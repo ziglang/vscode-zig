@@ -4,7 +4,7 @@
     "description": "Language support for the zig programming language",
     "version": "0.1.0",
     "publisher": "tiehuis",
-    "icon": "images/zig-icon.png",
+    "icon": "images/zig-icon.svg",
     "repository": {
         "type": "git",
         "url": "https://github.com/tiehuis/vscode-zig"
