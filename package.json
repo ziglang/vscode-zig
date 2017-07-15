@@ -7,7 +7,7 @@
     "icon": "images/zig-icon.png",
     "repository": {
         "type": "git",
-        "url": "https://github.com/tiehuis/vscode-zig"
+        "url": "https://github.com/zig-lang/vscode-zig"
     },
     "engines": {
         "vscode": "*"
