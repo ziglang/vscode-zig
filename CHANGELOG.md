@@ -1,3 +1,6 @@
+## 0.1.4 - 23rd October 2017
+ - Fix C string literals and allow escape characters (@scurest)
+
 ## 0.1.3 - 11th September 2017
 
  - Fix file extension
