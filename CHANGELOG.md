@@ -1,3 +1,6 @@
+## 0.1.5 - 23rd October 2017
+ - Fix and/or word boundary display
+
 ## 0.1.4 - 23rd October 2017
  - Fix C string literals and allow escape characters (@scurest)
 

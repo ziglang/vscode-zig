@@ -79,7 +79,7 @@
 			"patterns":[
 				{
 					"name": "keyword.operator.comparison.zig",
-					"match": "(and|or|==|!=)"
+					"match": "(\\b(and|or)\\b)|(==|!=)"
 				},
 				{
 					"name": "keyword.operator.arithmetic.zig",
