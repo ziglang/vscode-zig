@@ -35,7 +35,7 @@
 				},
 				{
 					"name": "keyword.statement.zig",
-					"match": "\\b(break|return|continue|asm|defer|unreachable)\\b"
+					"match": "\\b(break|return|continue|asm|defer|unreachable|try|catch)\\b"
 				},
 				{
 					"name": "keyword.conditional.zig",
