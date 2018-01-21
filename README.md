@@ -7,3 +7,4 @@
 ## Features
 
  - syntax highlighting
+ - basic compiler linting

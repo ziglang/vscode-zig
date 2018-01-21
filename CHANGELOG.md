@@ -1,3 +1,7 @@
+## 0.1.6 - 21st January 2018
+ - Keyword updates for new zig
+ - Basic linting functionality (@Hejsil)
+
 ## 0.1.5 - 23rd October 2017
  - Fix and/or word boundary display
 
