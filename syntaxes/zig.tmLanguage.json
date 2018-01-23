@@ -1,177 +1,177 @@
 {
-	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-	"name": "zig",
-	"scopeName": "source.zig",
-	"fileTypes": [
-		"zig"
-	],
-	"patterns": [
-		{
-			"include": "#comments"
-		},
-		{
-			"include": "#strings"
-		},
-		{
-			"include": "#keywords"
-		},
-		{
-			"include": "#operators"
-		},
-		{
-			"include": "#numbers"
-		}
-	],
-	"repository": {
-		"keywords": {
-			"patterns": [
-				{
-					"name": "keyword.storage.zig",
-					"match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|section)\\b"
-				},
-				{
-					"name": "keyword.structure.zig",
-					"match": "\\b(struct|enum|union)\\b"
-				},
-				{
-					"name": "keyword.statement.zig",
-					"match": "\\b(break|return|continue|asm|defer|unreachable|try|catch)\\b"
-				},
-				{
-					"name": "keyword.conditional.zig",
-					"match": "\\b(if|else|switch|and|or)\\b"
-				},
-				{
-					"name": "keyword.repeat.zig",
-					"match": "\\b(while|for)\\b"
-				},
-				{
-					"name": "keyword.constant.default.zig",
-					"match": "\\b(null|undefined|this)\\b"
-				},
-				{
-					"name": "keyword.constant.bool.zig",
-					"match": "\\b(true|false)\\b"
-				},
-				{
-					"name": "keyword.default.zig",
-					"match": "\\b(fn|use|test)\\b"
-				},
-				{
-					"name": "keyword.type.zig",
-					"match": "\\b(bool|void|noreturn|type|error)\\b"
-				},
-				{
-					"name": "keyword.type.integer.zig",
-					"match": "\\b(f32|f64|f128|i2|u2|i3|u3|i4|u4|i5|u5|i6|u6|i7|u7|i8|u8|u16|i16|i29|u29|i32|u32|i64|u64|i128|u128|isize|usize)\\b"
-				},
-				{
-					"name": "keyword.type.c.zig",
-					"match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble|c_void)\\b"
-				},
-				{
-					"name": "keyword.todo.zig",
-					"match": "\\b(TODO,XXX)\\b"
-				}
-			]
-		},
-		"operators": {
-			"patterns":[
-				{
-					"name": "keyword.operator.comparison.zig",
-					"match": "(\\b(and|or)\\b)|(==|!=)"
-				},
-				{
-					"name": "keyword.operator.arithmetic.zig",
-					"match": "(-%?|\\+%?|\\*%?|/|%)=?"
-				},
-				{
-					"name": "keyword.operator.bitwise.zig",
-					"match": "(<<%?|>>|!|&|\\^|\\|)=?"
-				},
-				{
-					"name": "keyword.operator.special.zig",
-					"match": "(==|\\+\\+|\\*\\*|->)"
-				}
-			]
-		},
-		"comments": {
-			"patterns":[
-				{
-					"name": "comment.line.documentation.zig",
-					"begin": "//[!/](?=[^/])",
-					"end": "$"
-				},
-				{
-					"name": "comment.line.double-slash.zig",
-					"begin": "//",
-					"end": "$"
-				}
-			]
-		},
-		"strings": {
-			"patterns":[
-				{
-					"name": "string.quoted.double.zig",
-					"begin": "c?\"",
-					"end": "\"",
-					"patterns": [
-						{
-							"include": "#stringcontent"
-						}
-					]
-				},
-				{
-					"name": "string.multiline.zig",
-					"begin": "c?\\\\\\\\",
-					"end": "$"
-				},
-				{
-					"name": "string.quoted.single.zig",
-					"match": "'([^'\\\\]|\\\\(x\\h{2}|[0-2][0-7]{,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.))'"
-				}
-			]
-		},
-		"stringcontent": {
-			"patterns": [
-				{
-					"name": "constant.character.escape.zig",
-					"match": "\\\\([nrt'\"\\\\]|(x[0-9a-fA-F]{2})|(u[0-9a-fA-F]{4})|(U[0-9a-fA-F]{6}))"
-				},
-				{
-					"name": "invalid.illegal.unrecognized-string-escape.zig",
-					"match": "\\\\."
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "zig",
+  "scopeName": "source.zig",
+  "fileTypes": [
+    "zig"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#numbers"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.storage.zig",
+          "match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|section)\\b"
+        },
+        {
+          "name": "keyword.structure.zig",
+          "match": "\\b(struct|enum|union)\\b"
+        },
+        {
+          "name": "keyword.statement.zig",
+          "match": "\\b(break|return|continue|asm|defer|unreachable|try|catch)\\b"
+        },
+        {
+          "name": "keyword.conditional.zig",
+          "match": "\\b(if|else|switch|and|or)\\b"
+        },
+        {
+          "name": "keyword.repeat.zig",
+          "match": "\\b(while|for)\\b"
+        },
+        {
+          "name": "keyword.constant.default.zig",
+          "match": "\\b(null|undefined|this)\\b"
+        },
+        {
+          "name": "keyword.constant.bool.zig",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "keyword.default.zig",
+          "match": "\\b(fn|use|test)\\b"
+        },
+        {
+          "name": "keyword.type.zig",
+          "match": "\\b(bool|void|noreturn|type|error)\\b"
+        },
+        {
+          "name": "keyword.type.integer.zig",
+          "match": "\\b(f32|f64|f128|i2|u2|i3|u3|i4|u4|i5|u5|i6|u6|i7|u7|i8|u8|u16|i16|i29|u29|i32|u32|i64|u64|i128|u128|isize|usize)\\b"
+        },
+        {
+          "name": "keyword.type.c.zig",
+          "match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble|c_void)\\b"
+        },
+        {
+          "name": "keyword.todo.zig",
+          "match": "\\b(TODO,XXX)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns":[
+        {
+          "name": "keyword.operator.comparison.zig",
+          "match": "(\\b(and|or)\\b)|(==|!=)"
+        },
+        {
+          "name": "keyword.operator.arithmetic.zig",
+          "match": "(-%?|\\+%?|\\*%?|/|%)=?"
+        },
+        {
+          "name": "keyword.operator.bitwise.zig",
+          "match": "(<<%?|>>|!|&|\\^|\\|)=?"
+        },
+        {
+          "name": "keyword.operator.special.zig",
+          "match": "(==|\\+\\+|\\*\\*|->)"
+        }
+      ]
+    },
+    "comments": {
+      "patterns":[
+        {
+          "name": "comment.line.documentation.zig",
+          "begin": "//[!/](?=[^/])",
+          "end": "$"
+        },
+        {
+          "name": "comment.line.double-slash.zig",
+          "begin": "//",
+          "end": "$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns":[
+        {
+          "name": "string.quoted.double.zig",
+          "begin": "c?\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "include": "#stringcontent"
+            }
+          ]
+        },
+        {
+          "name": "string.multiline.zig",
+          "begin": "c?\\\\\\\\",
+          "end": "$"
+        },
+        {
+          "name": "string.quoted.single.zig",
+          "match": "'([^'\\\\]|\\\\(x\\h{2}|[0-2][0-7]{,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.))'"
+        }
+      ]
+    },
+    "stringcontent": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.zig",
+          "match": "\\\\([nrt'\"\\\\]|(x[0-9a-fA-F]{2})|(u[0-9a-fA-F]{4})|(U[0-9a-fA-F]{6}))"
+        },
+        {
+          "name": "invalid.illegal.unrecognized-string-escape.zig",
+          "match": "\\\\."
 
-				}
-			]
-		},
-		"numbers": {
-			"patterns": [
-				{
-					"name": "constant.numeric.float.zig",
-					"match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?[eE][+-]?[0-9_]+(f32|f64)?\\b"
-				},
-				{
-					"name": "constant.numeric.float.zig",
-					"match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?(f32|f64)\\b"
-				},
-				{
-					"name": "constant.numeric.decimal.zig",
-					"match": "\\b[0-9][0-9_]*([ui](8|16|32|64|128|s|size))?\\b"
-				},
-				{
-					"name": "constant.numeric.hexadecimal.zig",
-					"match": "\\b0x[a-fA-F0-9_]+([ui](8|16|32|64|128|s|size))?\\b"
-				},
-				{
-					"name": "constant.numeric.octal.zig",
-					"match": "\\b0o[0-7_]+([ui](8|16|32|64|128|s|size))?\\b"
-				},
-				{
-					"name": "constant.numeric.binary.zig",
-					"match": "\\b0b[01_]+([ui](8|16|32|64|128|s|size))?\\b"
-				}
-			]
-		}
-	}
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.zig",
+          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?[eE][+-]?[0-9_]+(f32|f64)?\\b"
+        },
+        {
+          "name": "constant.numeric.float.zig",
+          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?(f32|f64)\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.zig",
+          "match": "\\b[0-9][0-9_]*([ui](8|16|32|64|128|s|size))?\\b"
+        },
+        {
+          "name": "constant.numeric.hexadecimal.zig",
+          "match": "\\b0x[a-fA-F0-9_]+([ui](8|16|32|64|128|s|size))?\\b"
+        },
+        {
+          "name": "constant.numeric.octal.zig",
+          "match": "\\b0o[0-7_]+([ui](8|16|32|64|128|s|size))?\\b"
+        },
+        {
+          "name": "constant.numeric.binary.zig",
+          "match": "\\b0b[01_]+([ui](8|16|32|64|128|s|size))?\\b"
+        }
+      ]
+    }
+  }
 }
