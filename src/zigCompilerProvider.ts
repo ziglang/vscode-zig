@@ -6,48 +6,66 @@ import * as vscode from 'vscode';
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     private diagnosticCollection: vscode.DiagnosticCollection;
-    
-	public activate(subscriptions: vscode.Disposable[]) {
-		subscriptions.push(this);
-		this.diagnosticCollection = vscode.languages.createDiagnosticCollection();
 
-		vscode.workspace.onDidOpenTextDocument(this.doCompile, this, subscriptions);
-		vscode.workspace.onDidCloseTextDocument((textDocument)=> {
-			this.diagnosticCollection.delete(textDocument.uri);
-		}, null, subscriptions);
+    public activate(subscriptions: vscode.Disposable[]) {
+        subscriptions.push(this);
+        this.diagnosticCollection = vscode.languages.createDiagnosticCollection();
 
-		vscode.workspace.onDidSaveTextDocument(this.doCompile, this);
+        vscode.workspace.onDidOpenTextDocument(this.doCompile, this, subscriptions);
+        vscode.workspace.onDidCloseTextDocument((textDocument)=> {
+            this.diagnosticCollection.delete(textDocument.uri);
+        }, null, subscriptions);
 
-		// Hlint all open haskell documents
-		vscode.workspace.textDocuments.forEach(this.doCompile, this);
-	}
+        vscode.workspace.onDidSaveTextDocument(this.doCompile, this);
+    }
 
-	public dispose(): void {
-		this.diagnosticCollection.clear();
-		this.diagnosticCollection.dispose();
-	}
+    public dispose(): void {
+        this.diagnosticCollection.clear();
+        this.diagnosticCollection.dispose();
+    }
 
     public provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Command[]> {
         throw new Error("Method not implemented.");
     }
-	
-	private doCompile(textDocument: vscode.TextDocument) {
-		if (textDocument.languageId !== 'zig') {
-			return;
-		}
-		
-		let decoded = ''
-		let diagnostics: vscode.Diagnostic[] = [];
 
-		let childProcess = cp.spawn('zig', [ 'build-exe', textDocument.fileName ], undefined);
-		if (childProcess.pid) {
-			childProcess.stderr.on('data', (data: Buffer) => {
-				decoded += data;
-			});
-			childProcess.stdout.on('end', () => {
+    private doCompile(textDocument: vscode.TextDocument) {
+        if (textDocument.languageId !== 'zig') {
+            return;
+        }
+
+        let decoded = ''
+        let config = vscode.workspace.getConfiguration('zig');
+        let buildOption = config.get<string>("buildOption");
+        let processArg: string[] = [buildOption];
+
+        switch (buildOption) {
+            case "build":
+                let buildFilePath = config.get<string>("buildFilePath");
+                processArg.push("--build-file");
+                processArg.push(buildFilePath.replace("${workspaceFolder}", vscode.workspace.rootPath));
+                break;
+            default:
+                processArg.push(textDocument.fileName);
+                break;
+        }
+
+        let extraArgs = config.get<string[]>("buildArgs");
+        extraArgs.forEach(element => {
+            processArg.push(element);
+        });
+
+        let childProcess = cp.spawn('zig', processArg, undefined);
+        if (childProcess.pid) {
+            childProcess.stderr.on('data', (data: Buffer) => {
+                decoded += data;
+            });
+            childProcess.stdout.on('end', () => {
+                var diagnostics: { [id: string]: vscode.Diagnostic[]; } = {};
                 let regex = /(.*):(\d*):(\d*):([^:]*):(.*)/g;
-                for (let match = regex.exec(decoded); match; 
-                     match = regex.exec(decoded)) 
+
+                this.diagnosticCollection.clear();
+                for (let match = regex.exec(decoded); match;
+                     match = regex.exec(decoded))
                 {
                     let path    = match[1];
                     let line    = parseInt(match[2]) - 1;
@@ -55,15 +73,19 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                     let type    = match[4];
                     let message = match[5];
 
-					let severity = type.trim().toLowerCase() === "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
-					let range = new vscode.Range(line, column, 
-                                                 line, column + 1);
-					let diagnostic = new vscode.Diagnostic(range, message, severity);
-					diagnostics.push(diagnostic);
+                    let severity = type.trim().toLowerCase() === "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
+                    let range = new vscode.Range(line, column,
+                        line, column + 1);
+
+                    if (diagnostics[path] == null) diagnostics[path] = [];
+                    diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
                 }
-                    
-                this.diagnosticCollection.set(textDocument.uri, diagnostics);
-			});
-		}
-	}
+
+                for (let path in diagnostics) {
+                    let diagnostic = diagnostics[path];
+                    this.diagnosticCollection.set(vscode.Uri.file(path), diagnostic);
+                }
+            });
+        }
+    }
 }
