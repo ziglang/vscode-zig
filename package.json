@@ -20,16 +20,52 @@
     ],
     "main": "./out/extension",
     "contributes": {
-        "languages": [{
-            "id": "zig",
-            "extensions": [".zig"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "zig",
-            "scopeName": "source.zig",
-            "path": "./syntaxes/zig.tmLanguage.json"
-        }]
+        "languages": [
+            {
+                "id": "zig",
+                "extensions": [
+                    ".zig"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "zig",
+                "scopeName": "source.zig",
+                "path": "./syntaxes/zig.tmLanguage.json"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "zig",
+            "properties": {
+                "zig.buildOption": {
+                    "type": "string",
+                    "default": "build",
+                    "enum": [
+                        "build",
+                        "build-exe",
+                        "build-lib",
+                        "build-obj"
+                    ],
+                    "description": "Control the way zig with build the source code for linting."
+                },
+                "zig.buildArgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Extra arguments to pass to Zig."
+                },
+                "zig.buildFilePath": {
+                    "type": "string",
+                    "default": "${workspaceFolder}/build.zig",
+                    "description": "The path to the build system path. This is only required if zig.buildOptions = build."
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
