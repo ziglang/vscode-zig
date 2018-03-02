@@ -35,7 +35,7 @@
         },
         {
           "name": "keyword.statement.zig",
-          "match": "\\b(break|return|continue|asm|defer|errdefer|unreachable|try|catch)\\b"
+          "match": "\\b(break|return|continue|asm|defer|errdefer|unreachable|try|catch|async|await|suspend|resume|cancel)\\b"
         },
         {
           "name": "keyword.conditional.zig",
@@ -59,7 +59,7 @@
         },
         {
           "name": "keyword.type.zig",
-          "match": "\\b(bool|void|noreturn|type|error)\\b"
+          "match": "\\b(bool|void|noreturn|type|error|promise)\\b"
         },
         {
           "name": "keyword.type.integer.zig",
