@@ -1,3 +1,7 @@
+## 0.1.7 - 2nd March 2017
+ - Async keyword updates
+ - Build on save support (@Hejsil)
+
 ## 0.1.6 - 21st January 2018
  - Keyword updates for new zig
  - Basic linting functionality (@Hejsil)

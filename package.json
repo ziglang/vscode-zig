@@ -2,7 +2,7 @@
     "name": "zig",
     "displayName": "Zig",
     "description": "Language support for the zig programming language",
-    "version": "0.1.6",
+    "version": "0.1.7",
     "publisher": "tiehuis",
     "icon": "images/zig-icon.png",
     "repository": {
