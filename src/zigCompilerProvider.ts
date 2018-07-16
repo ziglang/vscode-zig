@@ -12,7 +12,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection();
 
         vscode.workspace.onDidOpenTextDocument(this.doCompile, this, subscriptions);
-        vscode.workspace.onDidCloseTextDocument((textDocument)=> {
+        vscode.workspace.onDidCloseTextDocument((textDocument) => {
             this.diagnosticCollection.delete(textDocument.uri);
         }, null, subscriptions);
 
@@ -65,12 +65,11 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
                 this.diagnosticCollection.clear();
                 for (let match = regex.exec(decoded); match;
-                     match = regex.exec(decoded))
-                {
-                    let path    = match[1];
-                    let line    = parseInt(match[2]) - 1;
-                    let column  = parseInt(match[3]) - 1;
-                    let type    = match[4];
+                    match = regex.exec(decoded)) {
+                    let path = match[1];
+                    let line = parseInt(match[2]) - 1;
+                    let column = parseInt(match[3]) - 1;
+                    let type = match[4];
                     let message = match[5];
 
                     let severity = type.trim().toLowerCase() === "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;

@@ -63,6 +63,11 @@
                     "type": "string",
                     "default": "${workspaceFolder}/build.zig",
                     "description": "The path to the build system path. This is only required if zig.buildOptions = build."
+                },
+                "zig.formatCommand": {
+                    "type": "string",
+                    "default": null,
+                    "description": "The command to execute zig fmt"
                 }
             }
         }
