@@ -2,9 +2,10 @@
     "name": "zig",
     "displayName": "Zig",
     "description": "Language support for the zig programming language",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "publisher": "tiehuis",
     "icon": "images/zig-icon.png",
+    "license": "MIT",
     "repository": {
         "type": "git",
         "url": "https://github.com/zig-lang/vscode-zig"
@@ -80,9 +81,9 @@
         "test": "npm run compile && node ./node_modules/vscode/bin/test"
     },
     "devDependencies": {
-        "typescript": "^2.5.3",
-        "vscode": "^1.1.5",
-        "@types/node": "^7.0.43",
-        "@types/mocha": "^2.2.42"
+        "@types/mocha": "^2.2.48",
+        "@types/node": "^7.0.67",
+        "typescript": "^2.9.2",
+        "vscode": "^1.1.18"
     }
 }
