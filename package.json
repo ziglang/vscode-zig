@@ -50,7 +50,7 @@
                         "build-lib",
                         "build-obj"
                     ],
-                    "description": "Control the way zig with build the source code for linting."
+                    "description": "Which build command Zig should use to build the code."
                 },
                 "zig.buildArgs": {
                     "type": "array",
@@ -58,12 +58,12 @@
                         "type": "string"
                     },
                     "default": [],
-                    "description": "Extra arguments to pass to Zig."
+                    "description": "Extra arguments to passed to Zig."
                 },
                 "zig.buildFilePath": {
                     "type": "string",
                     "default": "${workspaceFolder}/build.zig",
-                    "description": "The path to the build system path. This is only required if zig.buildOptions = build."
+                    "description": "The path to build.zig. This is only required if zig.buildOptions = build."
                 },
                 "zig.formatCommand": {
                     "type": "string",
