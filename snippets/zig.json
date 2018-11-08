@@ -3,6 +3,7 @@
         "public function": {
             "prefix": "pfun",
             "body": "pub fn ${1:name}() ${2:void}{\n    $0\n}",
+            "description": "Snippet for zig public function"
         }
     }
 }
