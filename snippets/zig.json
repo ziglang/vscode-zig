@@ -1,0 +1,8 @@
+{
+    ".source.zig": {
+        "public function": {
+            "prefix": "pfun",
+            "body": "pub fn ${1:name}() ${2:void}{\n    $0\n}",
+        }
+    }
+}

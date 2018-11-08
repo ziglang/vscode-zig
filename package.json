@@ -37,6 +37,12 @@
                 "path": "./syntaxes/zig.tmLanguage.json"
             }
         ],
+        "snippets": [
+            {
+                "language": "zig",
+                "path": "./snippets/zig.json"
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "zig",
