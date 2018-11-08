@@ -4,6 +4,16 @@
             "prefix": "pfun",
             "body": "pub fn ${1:name}() ${2:void}{\n    $0\n}",
             "description": "Snippet for zig public function"
+        },
+        "if with value ": {
+            "prefix": "ifv",
+            "body": "if (${1:expr})|v|{\n    $0\n}",
+            "description": "Snippet for if expression with value"
+        },
+        "if with no value ": {
+            "prefix": "iff",
+            "body": "if (${1:expr}){\n    $0\n}",
+            "description": "Snippet for if expression without value"
         }
     }
 }
