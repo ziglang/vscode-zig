@@ -39,6 +39,11 @@
             "prefix": "pstr",
             "body": "pub const ${1:Name} = struct.{$0};",
             "description": "Snippet for public struct definition"
+        },
+        "test block ": {
+            "prefix": "tb",
+            "body": "test \"${1:Name}\"  {\n    $0\n}",
+            "description": "Snippet for test block"
         }
     }
 }
