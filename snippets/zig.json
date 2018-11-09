@@ -14,6 +14,11 @@
             "prefix": "iff",
             "body": "if (${1:expr}){\n    $0\n}",
             "description": "Snippet for if expression without value"
+        },
+        "for with  value ": {
+            "prefix": "forr",
+            "body": "for (${1:expr}) |${2:v|{\n    $0\n}",
+            "description": "Snippet for for expression with value"
         }
     }
 }
