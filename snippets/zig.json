@@ -17,7 +17,7 @@
         },
         "for with  value ": {
             "prefix": "forr",
-            "body": "for (${1:expr}) |${2:v|{\n    $0\n}",
+            "body": "for (${1:expr}) |${2:value}|{\n    $0\n}",
             "description": "Snippet for for expression with value"
         }
     }
