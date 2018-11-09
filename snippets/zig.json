@@ -29,6 +29,16 @@
             "prefix": "wh",
             "body": "while (${1:condition}) {\n    $0\n}",
             "description": "Snippet for while expression"
+        },
+        "private struct ": {
+            "prefix": "str",
+            "body": "const ${1:Name} = struct.{$0};",
+            "description": "Snippet for private struct definition"
+        },
+        "public struct ": {
+            "prefix": "pstr",
+            "body": "pub const ${1:Name} = struct.{$0};",
+            "description": "Snippet for public struct definition"
         }
     }
 }
