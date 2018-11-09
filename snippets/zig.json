@@ -7,7 +7,7 @@
         },
         "if with value ": {
             "prefix": "ifv",
-            "body": "if (${1:expr})|v|{\n    $0\n}",
+            "body": "if (${1:expr})|${$2:value}|{\n    $0\n}",
             "description": "Snippet for if expression with value"
         },
         "if with no value ": {
