@@ -19,6 +19,16 @@
             "prefix": "forr",
             "body": "for (${1:expr}) |${2:value}|{\n    $0\n}",
             "description": "Snippet for for expression with value"
+        },
+        "while with  expression ": {
+            "prefix": "whc",
+            "body": "while (${1:expr}) :(${2:expresson}){\n    $0\n}",
+            "description": "Snippet for while expression with value conditional expression"
+        },
+        "while with no expression ": {
+            "prefix": "wh",
+            "body": "while (${1:expr}) {\n    $0\n}",
+            "description": "Snippet for while expression"
         }
     }
 }
