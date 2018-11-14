@@ -20,6 +20,9 @@
     },
     {
       "include": "#numbers"
+    },
+    {
+      "include": "#support"
     }
   ],
   "repository": {
@@ -47,7 +50,7 @@
         },
         {
           "name": "keyword.constant.default.zig",
-          "match": "\\b(null|undefined|this)\\b"
+          "match": "\\b(null|undefined)\\b"
         },
         {
           "name": "keyword.constant.bool.zig",
@@ -170,6 +173,15 @@
         {
           "name": "constant.numeric.binary.zig",
           "match": "\\b0b[01_]+([ui](8|16|32|64|128|s|size))?\\b"
+        }
+      ]
+    },
+    "support": {
+      "patterns": [
+        {
+          "comment": "Built-in functions",
+          "name": "support.function.builtin.zig",
+          "match": "@[_a-zA-Z][_a-zA-Z0-9]*"
         }
       ]
     }
