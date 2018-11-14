@@ -62,7 +62,7 @@
         },
         {
           "name": "keyword.type.zig",
-          "match": "\\b(bool|void|noreturn|type|error|promise)\\b"
+          "match": "\\b(bool|void|noreturn|type|error|anyerror|promise)\\b"
         },
         {
           "name": "keyword.type.integer.zig",
