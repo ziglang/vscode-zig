@@ -30,7 +30,7 @@
       "patterns": [
         {
           "name": "keyword.storage.zig",
-          "match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|section)\\b"
+          "match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal)\\b"
         },
         {
           "name": "keyword.structure.zig",
