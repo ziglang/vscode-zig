@@ -121,29 +121,25 @@ export function execCmd
   }
 }
 
-export function findProj(dir: string): string {
+const buildFile = 'build.zig';
+
+export function findProj(dir: string, parent: string): string {
+  if (dir === '' || dir === parent) {
+    return '';
+  }
   if (fs.lstatSync(dir).isDirectory()) {
-    const files = fs.readdirSync(dir);
-    const file = files.find((v, i) => v === 'elm-package.json');
-    if (file !== undefined) {
-      return dir + path.sep + file;
-    }
-    let parent = '';
-    if (dir.lastIndexOf(path.sep) > 0) {
-      parent = dir.substr(0, dir.lastIndexOf(path.sep));
-    }
-    if (parent === '') {
-      return '';
-    } else {
-      return findProj(parent);
+    const build = path.join(dir, buildFile);
+    if (fs.existsSync(build)) {
+      return dir;
     }
   }
+  return findProj(path.dirname(dir), dir)
 }
 
 export function detectProjectRoot(fileName: string): string {
-  const proj = findProj(path.dirname(fileName));
+  const proj = findProj(path.dirname(fileName), '');
   if (proj !== '') {
-    return path.dirname(proj);
+    return proj;
   }
   return undefined;
 }
