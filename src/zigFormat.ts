@@ -1,15 +1,12 @@
 import * as vscode from 'vscode';
-import { Range, StatusBarItem, TextEdit } from 'vscode';
+import { Range, StatusBarItem, TextEdit, OutputChannel } from 'vscode';
 import { execCmd } from './zigUtil';
 
 export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {
-    private showError;
-    private clearError;
+    private _channel: OutputChannel;
 
-    constructor(statusBarItem: StatusBarItem) {
-        statusBarItem.hide();
-        this.showError = statusBarMessage(statusBarItem);
-        this.clearError = clearStatus(statusBarItem);
+    constructor(logChannel: OutputChannel) {
+        this._channel = logChannel;
     }
 
     provideDocumentFormattingEdits(
@@ -17,9 +14,10 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
         options?: vscode.FormattingOptions,
         token?: vscode.CancellationToken,
     ): Thenable<TextEdit[]> {
+        const logger = this._channel;
         return zigFormat(document)
             .then(({ stdout }) => {
-                this.clearError();
+                logger.clear();
                 const lastLineId = document.lineCount - 1;
                 const wholeDocument = new vscode.Range(
                     0,
@@ -29,19 +27,19 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
                 );
                 return [TextEdit.replace(wholeDocument, stdout)];
             })
-            .catch(this.showError);
+            .catch((reason) => {
+                logger.appendLine(`zig fmt failed. Check the file for syntax errors ${reason}`);
+                logger.show()
+                return null;
+            });
     }
 }
 
 // Same as full document formatter for now
 export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEditProvider {
-    private showError;
-    private clearError;
-
-    constructor(statusBarItem: StatusBarItem) {
-        statusBarItem.hide();
-        this.showError = statusBarMessage(statusBarItem);
-        this.clearError = clearStatus(statusBarItem);
+    private _channel: OutputChannel;
+    constructor(logChannel: OutputChannel) {
+        this._channel = logChannel;
     }
 
     provideDocumentRangeFormattingEdits(
@@ -50,9 +48,10 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
         options?: vscode.FormattingOptions,
         token?: vscode.CancellationToken,
     ): Thenable<TextEdit[]> {
+        const logger = this._channel;
         return zigFormat(document)
             .then(({ stdout }) => {
-                this.clearError();
+                logger.clear();
                 const lastLineId = document.lineCount - 1;
                 const wholeDocument = new vscode.Range(
                     0,
@@ -62,7 +61,11 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                 );
                 return [TextEdit.replace(wholeDocument, stdout)];
             })
-            .catch(this.showError);
+            .catch((reason) => {
+                logger.appendLine(`zig fmt failed. Check the file for syntax errors ${reason}`);
+                logger.show()
+                return null;
+            });
     }
 }
 
@@ -82,23 +85,5 @@ function zigFormat(document: vscode.TextDocument) {
     return format;
 }
 
-function clearStatus(statusBarItem: StatusBarItem) {
-    return function () {
-        statusBarItem.text = 'text';
-        statusBarItem.hide();
-    }
-}
 
-function statusBarMessage(statusBarItem: StatusBarItem) {
-    return function (err) {
-        const message = 'zig fmt failed. Check the file for syntax errors';
 
-        let editor = vscode.window.activeTextEditor;
-        if (editor) {
-            statusBarItem.text = message;
-            statusBarItem.show();
-        }
-
-        return;
-    };
-}
