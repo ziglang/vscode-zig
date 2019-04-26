@@ -12,7 +12,5 @@
 
 ## Automatic Formatting
 
-To enable automatic formatting, the `zig.formatCommand` property must be
-configured in your settings. This should be the command to run `zig fmt`, which
-can is found on the current [stage2
-compiler](https://github.com/ziglang/zig#stage-2-build-self-hosted-zig-from-zig-source-code).
+To enable automatic formatting add the `zig` command to your `PATH`, or
+modify the `Zig Path` setting to point to the `zig` binary.

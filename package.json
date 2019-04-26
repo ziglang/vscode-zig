@@ -65,10 +65,10 @@
                     "default": "${workspaceFolder}/build.zig",
                     "description": "The path to build.zig. This is only required if zig.buildOptions = build."
                 },
-                "zig.formatCommand": {
+                "zig.zigPath": {
                     "type": "string",
                     "default": null,
-                    "description": "The command to execute zig fmt"
+                    "description": "Set a custom path to the Zig command. Defaults to 'zig' in your PATH."
                 }
             }
         }
