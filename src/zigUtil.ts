@@ -43,15 +43,18 @@ export interface ExecutingCmd
 export function execCmd
   (cmd: string, options: ExecCmdOptions = {}): ExecutingCmd {
 
-  const { fileName, onStart, onStdout, onStderr, onExit, cmdArguments } = options;
+  const { fileName, onStart, onStdout, onStderr, onExit } = options;
   let childProcess, firstResponse = true, wasKilledbyUs = false;
 
   const executingCmd: any = new Promise((resolve, reject) => {
-    let cmdArguments = options ? options.cmdArguments : [];
+    const cmdArguments = options.cmdArguments || [];
+    const execCmd = [cmd, ...cmdArguments].join(' ');
 
-    childProcess =
-      cp.exec(cmd + ' ' + (cmdArguments || []).join(' '), { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName') }, handleExit);
-
+    childProcess = cp.exec(
+      execCmd,
+      { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName') },
+      handleExit
+    );
 
     childProcess.stdout.on('data', (data: Buffer) => {
       if (firstResponse && onStart) {
