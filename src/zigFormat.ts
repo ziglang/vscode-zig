@@ -77,7 +77,7 @@ function zigFormat(document: vscode.TextDocument) {
 
     const options = {
         cmdArguments: ['fmt', '--stdin'],
-        notFoundText: 'Install the zig stage2 compiler from https://github.com/ziglang/zig',
+        notFoundText: 'Could not find zig. Please add zig to your PATH or specify a custom path to the zig binary in your settings.',
     };
     const format = execCmd(zigPath, options);
 
@@ -86,6 +86,3 @@ function zigFormat(document: vscode.TextDocument) {
 
     return format;
 }
-
-
-
