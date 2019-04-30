@@ -28,7 +28,7 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
                 return [TextEdit.replace(wholeDocument, stdout)];
             })
             .catch((reason) => {
-                logger.appendLine(`zig fmt failed. Check the file for syntax errors ${reason}`);
+                logger.appendLine(reason);
                 logger.show()
                 return null;
             });
@@ -62,7 +62,7 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                 return [TextEdit.replace(wholeDocument, stdout)];
             })
             .catch((reason) => {
-                logger.appendLine(`zig fmt failed. Check the file for syntax errors ${reason}`);
+                logger.appendLine(reason);
                 logger.show()
                 return null;
             });
