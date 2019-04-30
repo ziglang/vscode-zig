@@ -68,7 +68,7 @@
                 "zig.zigPath": {
                     "type": "string",
                     "default": null,
-                    "description": "Set a custom path to the Zig command. Defaults to 'zig' in your PATH."
+                    "description": "Set a custom path to the Zig binary. Defaults to 'zig' in your PATH."
                 }
             }
         }
