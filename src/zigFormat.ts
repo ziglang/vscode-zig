@@ -73,19 +73,16 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
 
 function zigFormat(document: vscode.TextDocument) {
     const config = vscode.workspace.getConfiguration('zig');
-    const formatCommand = <string[]>config.get('formatCommand');
+    const zigPath = config.get<string>('zigPath') || 'zig';
 
     const options = {
-        cmdArguments: [],
-        notFoundText: 'Install the zig stage2 compiler from https://github.com/ziglang/zig',
+        cmdArguments: ['fmt', '--stdin'],
+        notFoundText: 'Could not find zig. Please add zig to your PATH or specify a custom path to the zig binary in your settings.',
     };
-    const format = execCmd(formatCommand + ' --stdin', options);
+    const format = execCmd(zigPath, options);
 
     format.stdin.write(document.getText());
     format.stdin.end();
 
     return format;
 }
-
-
-
