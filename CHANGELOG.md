@@ -1,3 +1,6 @@
+## 0.2.2
+ - Add new usingnamespace keyword
+
 ## 0.2.1
  - Add correct filename to zig fmt output (@gernest)
  - Stop zig fmt error output taking focus on save (@CurtisFenner)
