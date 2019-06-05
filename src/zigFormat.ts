@@ -30,7 +30,7 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
             .catch((reason) => {
                 logger.clear();
                 logger.appendLine(reason.toString().replace('<stdin>', document.fileName));
-                logger.show()
+                logger.show(true)
                 return null;
             });
     }
@@ -65,7 +65,7 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
             .catch((reason) => {
                 logger.clear();
                 logger.appendLine(reason.toString().replace('<stdin>', document.fileName));
-                logger.show()
+                logger.show(true)
                 return null;
             });
     }
