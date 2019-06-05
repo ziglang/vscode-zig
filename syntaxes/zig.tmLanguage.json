@@ -58,7 +58,7 @@
         },
         {
           "name": "keyword.default.zig",
-          "match": "\\b(fn|use|test)\\b"
+          "match": "\\b(fn|use|usingnamespace|test)\\b"
         },
         {
           "name": "keyword.type.zig",
