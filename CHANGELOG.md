@@ -21,7 +21,7 @@
  - Add auto-formatting using `zig fmt`
  - Syntax updates
 
-## 0.1.7 - 2nd March 2017
+## 0.1.7 - 2nd March 2018
  - Async keyword updates
  - Build on save support (@Hejsil)
 
