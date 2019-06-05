@@ -1,3 +1,7 @@
+## 0.2.1
+ - Add correct filename to zig fmt output (@gernest)
+ - Stop zig fmt error output taking focus on save (@CurtisFenner)
+
 ## 0.2.0
  - Syntax updates
  - Add built-in functions to syntax (@jakewakefield)
