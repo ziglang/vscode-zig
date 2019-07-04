@@ -61,7 +61,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             });
             childProcess.stdout.on('end', () => {
                 var diagnostics: { [id: string]: vscode.Diagnostic[]; } = {};
-                let regex = /(.*):(\d*):(\d*):([^:]*):(.*)/g;
+                let regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
 
                 this.diagnosticCollection.clear();
                 for (let match = regex.exec(decoded); match;
