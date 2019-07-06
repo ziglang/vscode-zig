@@ -139,7 +139,7 @@
       "patterns": [
         {
           "name": "constant.character.escape.zig",
-          "match": "\\\\([nrt'\"\\\\]|(x[0-9a-fA-F]{2})|(u[0-9a-fA-F]{4})|(U[0-9a-fA-F]{6}))"
+          "match": "\\\\([nrt'\"\\\\]|(x[0-9a-fA-F]{2})|(u\\{[0-9a-fA-F]+\\}))"
         },
         {
           "name": "invalid.illegal.unrecognized-string-escape.zig",
