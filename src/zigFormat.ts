@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Range, StatusBarItem, TextEdit, OutputChannel } from 'vscode';
+import { Range, StatusBarItem, TextEdit, OutputChannel, EndOfLine } from 'vscode';
 import { execCmd } from './zigUtil';
 
 export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {
@@ -25,7 +25,7 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
                     lastLineId,
                     document.lineAt(lastLineId).text.length,
                 );
-                return [TextEdit.replace(wholeDocument, stdout)];
+                return [TextEdit.replace(wholeDocument, stdout), TextEdit.setEndOfLine(EndOfLine.LF)];
             })
             .catch((reason) => {
                 logger.clear();
@@ -60,7 +60,7 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                     lastLineId,
                     document.lineAt(lastLineId).text.length,
                 );
-                return [TextEdit.replace(wholeDocument, stdout)];
+                return [TextEdit.replace(wholeDocument, stdout), TextEdit.setEndOfLine(EndOfLine.LF)];
             })
             .catch((reason) => {
                 logger.clear();
