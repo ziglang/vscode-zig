@@ -28,9 +28,13 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
                 return [TextEdit.replace(wholeDocument, stdout), TextEdit.setEndOfLine(EndOfLine.LF)];
             })
             .catch((reason) => {
+                let config = vscode.workspace.getConfiguration('zig');
+
                 logger.clear();
                 logger.appendLine(reason.toString().replace('<stdin>', document.fileName));
-                logger.show(true)
+                if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
+                    logger.show(true)
+                }
                 return null;
             });
     }
@@ -63,9 +67,13 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                 return [TextEdit.replace(wholeDocument, stdout), TextEdit.setEndOfLine(EndOfLine.LF)];
             })
             .catch((reason) => {
+                const config = vscode.workspace.getConfiguration('zig');
+
                 logger.clear();
                 logger.appendLine(reason.toString().replace('<stdin>', document.fileName));
-                logger.show(true)
+                if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
+                    logger.show(true)
+                }
                 return null;
             });
     }
