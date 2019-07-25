@@ -69,6 +69,11 @@
                     "type": "string",
                     "default": null,
                     "description": "Set a custom path to the Zig binary. Defaults to 'zig' in your PATH."
+                },
+                "zig.revealOutputChannelOnFormattingError": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Should output channel be reaised on formatting error."
                 }
             }
         }
