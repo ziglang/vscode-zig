@@ -66,13 +66,13 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                 this.diagnosticCollection.clear();
                 for (let match = regex.exec(decoded); match;
                     match = regex.exec(decoded)) {
-                    let path = match[1];
+                    let path = match[1].trim();
                     let line = parseInt(match[2]) - 1;
                     let column = parseInt(match[3]) - 1;
                     let type = match[4];
                     let message = match[5];
 
-                    let severity = type.trim().toLowerCase() === "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
+                    let severity = type.trim().toLowerCase() === "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Information;
                     let range = new vscode.Range(line, column,
                         line, column + 1);
 
