@@ -30,7 +30,7 @@
       "patterns": [
         {
           "name": "keyword.storage.zig",
-          "match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero)\\b"
+          "match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline)\\b"
         },
         {
           "name": "keyword.structure.zig",
@@ -58,11 +58,11 @@
         },
         {
           "name": "keyword.default.zig",
-          "match": "\\b(fn|use|usingnamespace|test)\\b"
+          "match": "\\b(fn|usingnamespace|test)\\b"
         },
         {
           "name": "keyword.type.zig",
-          "match": "\\b(bool|void|noreturn|type|error|anyerror|promise)\\b"
+          "match": "\\b(bool|void|noreturn|type|error|anyerror|anyframe)\\b"
         },
         {
           "name": "keyword.type.integer.zig",
