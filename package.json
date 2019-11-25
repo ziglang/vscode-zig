@@ -73,7 +73,7 @@
                 "zig.revealOutputChannelOnFormattingError": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Should output channel be reaised on formatting error."
+                    "description": "Should output channel be raised on formatting error."
                 }
             }
         }

@@ -1,3 +1,11 @@
+## 0.2.3
+ - Syntax updates
+ - Improve diagnostics regex (@emekoi)
+ - Fix eol on format (@emekoi)
+ - Trim URI's to fix path issue (@emekoi)
+ - Update unicode escape pattern match (@hryx)
+ - Add configuration option for showing output channel on error (@not-fl3)
+
 ## 0.2.2
  - Add new usingnamespace keyword
 
