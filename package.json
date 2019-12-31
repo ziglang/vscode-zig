@@ -76,7 +76,14 @@
                     "description": "Should output channel be raised on formatting error."
                 }
             }
-        }
+        },
+        "commands": [
+            {
+                "command": "zig.build.workspace",
+                "title": "Zig: Build Workspace",
+                "description": "Build the current project using 'zig build'"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
