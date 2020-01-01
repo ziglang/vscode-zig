@@ -9,7 +9,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
     public activate(subscriptions: vscode.Disposable[]) {
         subscriptions.push(this);
-        this.diagnosticCollection = vscode.languages.createDiagnosticCollection();
+        this.diagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
 
         vscode.workspace.onDidOpenTextDocument(this.doCompile, this, subscriptions);
         vscode.workspace.onDidCloseTextDocument((textDocument) => {
