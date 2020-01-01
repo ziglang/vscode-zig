@@ -40,14 +40,10 @@
         "problemMatchers": [
             {
                 "name": "zig",
-                "source": "zig",
-                "owner": "zigtools",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}"
-                ],
+                "owner": "ziglang",
+                "fileLocation": "absolute",
                 "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(?:fatal\\s+)?(warning|error):\\s+(.*)$",
+                    "regexp": "([^\\s]*):(\\d+):(\\d+):\\s+(?:fatal\\s+)?(note|error):\\s+(.*)$",
                     "file": 1,
                     "line": 2,
                     "column": 3,
