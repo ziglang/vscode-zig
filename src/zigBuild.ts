@@ -1,8 +1,8 @@
-import { buildDiagnosticCollection } from './extension';
+import { buildDiagnosticCollection, logChannel } from './extension';
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
 
-export function zigBuild() {
+export function zigBuild(): void {
     const editor = vscode.window.activeTextEditor;
 
     const textDocument = editor.document;
@@ -22,7 +22,7 @@ export function zigBuild() {
             break;
     }
 
-    let extraArgs = config.get<string[]>("buildArgs");
+    let extraArgs = config.get<string[]>("buildArgs");;
     extraArgs.forEach(element => {
         processArg.push(element);
     });
@@ -32,12 +32,15 @@ export function zigBuild() {
     const buildPath = config.get<string>("zigPath") || 'zig';
     let childProcess = cp.spawn(buildPath, processArg, { cwd });
 
+    logChannel.appendLine(`Starting building the current workspace at ${cwd}`);
+
     let decoded = ''
     if (childProcess.pid) {
         childProcess.stderr.on('data', (data: Buffer) => {
             decoded += data;
         });
         childProcess.stderr.on('end', () => {
+            logChannel.appendLine(decoded);
             var diagnostics: { [id: string]: vscode.Diagnostic[]; } = {};
             let regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
 
