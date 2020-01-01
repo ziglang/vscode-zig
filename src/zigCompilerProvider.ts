@@ -29,12 +29,13 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     }
 
     private doCompile(textDocument: vscode.TextDocument) {
-        if (textDocument.languageId !== 'zig') {
+        let config = vscode.workspace.getConfiguration('zig');
+        let buildOnSave = config.get<boolean>("buildOnSave");
+
+        if (textDocument.languageId !== 'zig' || buildOnSave !== true) {
             return;
         }
 
-        let decoded = ''
-        let config = vscode.workspace.getConfiguration('zig');
         let buildOption = config.get<string>("buildOption");
         let processArg: string[] = [buildOption];
 
@@ -54,6 +55,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             processArg.push(element);
         });
 
+        let decoded = ''
         let childProcess = cp.spawn('zig', processArg, undefined);
         if (childProcess.pid) {
             childProcess.stderr.on('data', (data: Buffer) => {
