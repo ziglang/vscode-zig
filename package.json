@@ -99,8 +99,8 @@
     },
     "devDependencies": {
         "@types/mocha": "^2.2.48",
-        "@types/node": "^7.0.67",
+        "@types/node": "^7.10.9",
         "typescript": "^2.9.2",
-        "vscode": "^1.1.33"
+        "vscode": "^1.1.36"
     }
 }
