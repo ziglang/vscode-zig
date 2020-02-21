@@ -24,10 +24,6 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         this.diagnosticCollection.dispose();
     }
 
-    public provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Command[]> {
-        throw new Error("Method not implemented.");
-    }
-
     private doCompile(textDocument: vscode.TextDocument) {
         let config = vscode.workspace.getConfiguration('zig');
         let buildOnSave = config.get<boolean>("buildOnSave");
