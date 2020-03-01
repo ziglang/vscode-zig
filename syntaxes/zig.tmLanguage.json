@@ -79,6 +79,21 @@
               }
             },
             {
+              "begin": "\\b(fn)\\s+@\"",
+              "end": "\"",
+              "name": "entity.name.function.zig",
+              "beginCaptures": {
+                "1": {
+                  "name": "storage.type.function.zig"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#stringcontent"
+                }
+              ]
+            },
+            {
               "name": "keyword.default.zig",
               "match": "\\b(const|var|fn)\\b"
             }
@@ -108,6 +123,16 @@
             {
               "match": "[_a-zA-Z][_a-zA-Z0-9]*",
               "name": "variable.zig"
+            },
+            {
+              "begin": "@\"",
+              "end": "\"",
+              "name": "variable.zig",
+              "patterns": [
+                {
+                  "include": "#stringcontent"
+                }
+              ]
             }
           ]
         }
@@ -125,11 +150,11 @@
         },
         {
           "name": "keyword.statement.zig",
-          "match": "\\b(asm|defer|errdefer|unreachable)\\b"
+          "match": "\\b(asm|unreachable)\\b"
         },
         {
           "name": "keyword.control.flow.zig",
-          "match": "\\b(break|return|continue|await|resume|suspend|async)\\b"
+          "match": "\\b(break|return|continue|await|resume|suspend|async|defer|errdefer)\\b"
         },
         {
           "name": "keyword.control.trycatch.zig",
