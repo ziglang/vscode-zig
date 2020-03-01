@@ -32,38 +32,16 @@
     "variables": {
       "patterns": [
         {
-          "name": "meta.declaration.zig",
+          "name": "meta.function.declaration.zig",
           "patterns": [
             {
-              "match": "\\b(const)\\s+([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*=\\s*\\b(extern|packed|union|struct|enum|error)\\b)",
+              "match": "\\b(fn)\\s+([A-Z][_a-zA-Z0-9]*)",
               "captures": {
                 "1": {
-                  "name": "storage.type.zig"
+                  "name": "storage.type.function.zig"
                 },
                 "2": {
                   "name": "entity.name.type.zig"
-                }
-              }
-            },
-            {
-              "match": "\\b(const)\\s+([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*=)",
-              "captures": {
-                "1": {
-                  "name": "storage.type.zig"
-                },
-                "2": {
-                  "name": "variable.constant.zig"
-                }
-              }
-            },
-            {
-              "match": "\\b(var)\\s+([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*=)",
-              "captures": {
-                "1": {
-                  "name": "storage.type.zig"
-                },
-                "2": {
-                  "name": "variable.readwrite.zig"
                 }
               }
             },
@@ -100,8 +78,12 @@
           ]
         },
         {
-          "name": "meta.function-call.zig",
+          "name": "meta.function.call.zig",
           "patterns": [
+            {
+              "match": "([_A-Z][_a-zA-Z0-9]*)(?=\\s*\\()",
+              "name": "entity.name.type.zig"
+            },
             {
               "match": "([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*\\()",
               "name": "entity.name.function.zig"
@@ -109,19 +91,18 @@
           ]
         },
         {
-          "name": "meta.init.zig",
-          "patterns": [
-            {
-              "match": "[_a-zA-Z][_a-zA-Z0-9]*(?=\\s*(\\{|![^=]))",
-              "name": "entity.name.type.zig"
-            }
-          ]
-        },
-        {
           "name": "meta.variable.zig",
           "patterns": [
             {
-              "match": "[_a-zA-Z][_a-zA-Z0-9]*",
+              "match": "\\b[_A-Z][_A-Z0-9]+\\b",
+              "name": "variable.zig"
+            },
+            {
+              "match": "\\b[A-Z][_a-zA-Z0-9]*\\b",
+              "name": "entity.name.type.zig"
+            },
+            {
+              "match": "\\b[_a-zA-Z][_a-zA-Z0-9]*\\b",
               "name": "variable.zig"
             },
             {
@@ -177,8 +158,12 @@
           "match": "\\b(true|false)\\b"
         },
         {
-          "name": "keyword.constant.enum-literal.zig",
-          "match": "(\\s\\.[_a-zA-Z][_a-zA-Z0-9]*(?!\\s*=[^>]))(?![_a-zA-Z0-9])"
+          "match": "[\\s\\(\\[\\{](\\.[_a-zA-Z][_a-zA-Z0-9]*)(?!\\s*=[^>])(?![_a-zA-Z0-9])",
+          "captures": {
+            "1": {
+              "name": "keyword.constant.enum-literal.zig"
+            }
+          }
         },
         {
           "name": "keyword.default.zig",
@@ -271,27 +256,23 @@
       "patterns": [
         {
           "name": "constant.numeric.float.zig",
-          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?[eE][+-]?[0-9_]+(f32|f64)?\\b"
-        },
-        {
-          "name": "constant.numeric.float.zig",
-          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?(f32|f64)\\b"
+          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?\\b"
         },
         {
           "name": "constant.numeric.decimal.zig",
-          "match": "\\b[0-9][0-9_]*([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b[0-9][0-9_]*\\b"
         },
         {
           "name": "constant.numeric.hexadecimal.zig",
-          "match": "\\b0x[a-fA-F0-9_]+([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b0x[a-fA-F0-9_]+\\b"
         },
         {
           "name": "constant.numeric.octal.zig",
-          "match": "\\b0o[0-7_]+([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b0o[0-7_]+\\b"
         },
         {
           "name": "constant.numeric.binary.zig",
-          "match": "\\b0b[01_]+([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b0b[01_]+\\b"
         }
       ]
     },
