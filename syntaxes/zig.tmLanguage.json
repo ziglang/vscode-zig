@@ -46,7 +46,7 @@
               }
             },
             {
-              "match": "\\b(const)\\s+([_a-zA-Z][_a-zA-Z0-9]*)",
+              "match": "\\b(const)\\s+([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*=)",
               "captures": {
                 "1": {
                   "name": "storage.type.zig"
@@ -57,7 +57,7 @@
               }
             },
             {
-              "match": "\\b(var)\\s+([_a-zA-Z][_a-zA-Z0-9]*)",
+              "match": "\\b(var)\\s+([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*=)",
               "captures": {
                 "1": {
                   "name": "storage.type.zig"
@@ -77,6 +77,10 @@
                   "name": "entity.name.function.zig"
                 }
               }
+            },
+            {
+              "name": "keyword.default.zig",
+              "match": "\\b(const|var|fn)\\b"
             }
           ]
         },
@@ -133,7 +137,7 @@
         },
         {
           "name": "keyword.control.conditional.zig",
-          "match": "\\b(if|else|switch|and|or|orelse)\\b"
+          "match": "\\b(if|else|switch)\\b"
         },
         {
           "name": "keyword.control.repeat.zig",
@@ -153,7 +157,7 @@
         },
         {
           "name": "keyword.default.zig",
-          "match": "\\b(usingnamespace|test)\\b"
+          "match": "\\b(usingnamespace|test|and|or|orelse)\\b"
         },
         {
           "name": "keyword.type.zig",
