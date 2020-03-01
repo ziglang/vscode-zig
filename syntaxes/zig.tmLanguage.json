@@ -23,14 +23,97 @@
     },
     {
       "include": "#support"
+    },
+    {
+      "include": "#variables"
     }
   ],
   "repository": {
+    "variables": {
+      "patterns": [
+        {
+          "name": "meta.declaration.zig",
+          "patterns": [
+            {
+              "match": "\\b(const)\\s+([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*=\\s*\\b(extern|packed|union|struct|enum|error)\\b)",
+              "captures": {
+                "1": {
+                  "name": "storage.type.zig"
+                },
+                "2": {
+                  "name": "entity.name.type.zig"
+                }
+              }
+            },
+            {
+              "match": "\\b(const)\\s+([_a-zA-Z][_a-zA-Z0-9]*)",
+              "captures": {
+                "1": {
+                  "name": "storage.type.zig"
+                },
+                "2": {
+                  "name": "variable.constant.zig"
+                }
+              }
+            },
+            {
+              "match": "\\b(var)\\s+([_a-zA-Z][_a-zA-Z0-9]*)",
+              "captures": {
+                "1": {
+                  "name": "storage.type.zig"
+                },
+                "2": {
+                  "name": "variable.readwrite.zig"
+                }
+              }
+            },
+            {
+              "match": "\\b(fn)\\s+([_a-zA-Z][_a-zA-Z0-9]*)",
+              "captures": {
+                "1": {
+                  "name": "storage.type.function.zig"
+                },
+                "2": {
+                  "name": "entity.name.function.zig"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "meta.function-call.zig",
+          "patterns": [
+            {
+              "match": "([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*\\()",
+              "name": "entity.name.function.zig"
+            }
+          ]
+        },
+        {
+          "name": "meta.init.zig",
+          "patterns": [
+            {
+              "match": "[_a-zA-Z][_a-zA-Z0-9]*(?=\\s*(\\{|![^=]))",
+              "name": "entity.name.type.zig"
+            }
+          ]
+        },
+        {
+          "name": "meta.variable.zig",
+          "patterns": [
+            {
+              "match": "[_a-zA-Z][_a-zA-Z0-9]*",
+              "name": "variable.zig"
+            }
+          ]
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.storage.zig",
-          "match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline)\\b"
+          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline)\\b"
         },
         {
           "name": "keyword.structure.zig",
@@ -38,14 +121,22 @@
         },
         {
           "name": "keyword.statement.zig",
-          "match": "\\b(break|return|continue|asm|defer|errdefer|unreachable|try|catch|async|await|suspend|resume|cancel)\\b"
+          "match": "\\b(asm|defer|errdefer|unreachable)\\b"
         },
         {
-          "name": "keyword.conditional.zig",
+          "name": "keyword.control.flow.zig",
+          "match": "\\b(break|return|continue|await|resume|suspend|async)\\b"
+        },
+        {
+          "name": "keyword.control.trycatch.zig",
+          "match": "\\b(try|catch)\\b"
+        },
+        {
+          "name": "keyword.control.conditional.zig",
           "match": "\\b(if|else|switch|and|or|orelse)\\b"
         },
         {
-          "name": "keyword.repeat.zig",
+          "name": "keyword.control.repeat.zig",
           "match": "\\b(while|for)\\b"
         },
         {
@@ -57,8 +148,12 @@
           "match": "\\b(true|false)\\b"
         },
         {
+          "name": "keyword.constant.enum-literal.zig",
+          "match": "(\\s\\.[_a-zA-Z][_a-zA-Z0-9]*(?!\\s*=[^>]))(?![_a-zA-Z0-9])"
+        },
+        {
           "name": "keyword.default.zig",
-          "match": "\\b(fn|usingnamespace|test)\\b"
+          "match": "\\b(usingnamespace|test)\\b"
         },
         {
           "name": "keyword.type.zig",
@@ -71,15 +166,11 @@
         {
           "name": "keyword.type.c.zig",
           "match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble|c_void)\\b"
-        },
-        {
-          "name": "keyword.todo.zig",
-          "match": "\\b(TODO,XXX)\\b"
         }
       ]
     },
     "operators": {
-      "patterns":[
+      "patterns": [
         {
           "name": "keyword.operator.comparison.zig",
           "match": "(\\b(and|or)\\b)|(==|!=)"
@@ -99,7 +190,7 @@
       ]
     },
     "comments": {
-      "patterns":[
+      "patterns": [
         {
           "name": "comment.line.documentation.zig",
           "begin": "//[!/](?=[^/])",
@@ -113,10 +204,10 @@
       ]
     },
     "strings": {
-      "patterns":[
+      "patterns": [
         {
           "name": "string.quoted.double.zig",
-          "begin": "c?\"",
+          "begin": "\"",
           "end": "\"",
           "patterns": [
             {
@@ -126,7 +217,7 @@
         },
         {
           "name": "string.multiline.zig",
-          "begin": "c?\\\\\\\\",
+          "begin": "\\\\\\\\",
           "end": "$"
         },
         {
@@ -144,7 +235,6 @@
         {
           "name": "invalid.illegal.unrecognized-string-escape.zig",
           "match": "\\\\."
-
         }
       ]
     },

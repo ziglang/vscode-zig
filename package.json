@@ -35,6 +35,11 @@
                 "language": "zig",
                 "scopeName": "source.zig",
                 "path": "./syntaxes/zig.tmLanguage.json"
+            },
+            {
+                "scopeName": "todo-comment.injection",
+                "injectTo": ["source.zig"],
+                "path": "./syntaxes/comment-injection.json"
             }
         ],
         "configuration": {
