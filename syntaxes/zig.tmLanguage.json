@@ -95,10 +95,14 @@
           "patterns": [
             {
               "match": "\\b[_A-Z][_A-Z0-9]+\\b",
-              "name": "variable.zig"
+              "name": "variable.constant.zig"
             },
             {
-              "match": "\\b[A-Z][_a-zA-Z0-9]*\\b",
+              "match": "\\b[A-Z]\\b",
+              "name": "entity.name.type.zig"
+            },
+            {
+              "match": "\\b[A-Z][a-z][_a-zA-Z0-9]*\\b",
               "name": "entity.name.type.zig"
             },
             {
@@ -143,7 +147,7 @@
         },
         {
           "name": "keyword.control.conditional.zig",
-          "match": "\\b(if|else|switch)\\b"
+          "match": "\\b(if|else|switch|orelse)\\b"
         },
         {
           "name": "keyword.control.repeat.zig",
@@ -167,7 +171,7 @@
         },
         {
           "name": "keyword.default.zig",
-          "match": "\\b(usingnamespace|test|and|or|orelse)\\b"
+          "match": "\\b(usingnamespace|test|and|or)\\b"
         },
         {
           "name": "keyword.type.zig",
@@ -208,12 +212,30 @@
         {
           "name": "comment.line.documentation.zig",
           "begin": "//[!/](?=[^/])",
-          "end": "$"
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#commentContents"
+            }
+          ]
         },
         {
           "name": "comment.line.double-slash.zig",
           "begin": "//",
-          "end": "$"
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#commentContents"
+            }
+          ]
+        }
+      ]
+    },
+    "commentContents": {
+      "patterns": [
+        {
+          "match": "\\b(TODO|FIXME|XXX|NOTE)\\b",
+          "name": "keyword.todo.zig"
         }
       ]
     },
