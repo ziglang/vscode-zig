@@ -23,14 +23,115 @@
     },
     {
       "include": "#support"
+    },
+    {
+      "include": "#variables"
     }
   ],
   "repository": {
+    "variables": {
+      "patterns": [
+        {
+          "name": "meta.function.declaration.zig",
+          "patterns": [
+            {
+              "match": "\\b(fn)\\s+([A-Z][_a-zA-Z0-9]*)",
+              "captures": {
+                "1": {
+                  "name": "storage.type.function.zig"
+                },
+                "2": {
+                  "name": "entity.name.type.zig"
+                }
+              }
+            },
+            {
+              "match": "\\b(fn)\\s+([_a-zA-Z][_a-zA-Z0-9]*)",
+              "captures": {
+                "1": {
+                  "name": "storage.type.function.zig"
+                },
+                "2": {
+                  "name": "entity.name.function.zig"
+                }
+              }
+            },
+            {
+              "begin": "\\b(fn)\\s+@\"",
+              "end": "\"",
+              "name": "entity.name.function.zig",
+              "beginCaptures": {
+                "1": {
+                  "name": "storage.type.function.zig"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#stringcontent"
+                }
+              ]
+            },
+            {
+              "name": "keyword.default.zig",
+              "match": "\\b(const|var|fn)\\b"
+            }
+          ]
+        },
+        {
+          "name": "meta.function.call.zig",
+          "patterns": [
+            {
+              "match": "([_A-Z][_a-zA-Z0-9]*)(?=\\s*\\()",
+              "name": "entity.name.type.zig"
+            },
+            {
+              "match": "([_a-zA-Z][_a-zA-Z0-9]*)(?=\\s*\\()",
+              "name": "entity.name.function.zig"
+            }
+          ]
+        },
+        {
+          "name": "meta.variable.zig",
+          "patterns": [
+            {
+              "match": "\\b[_A-Z][_A-Z0-9]+\\b",
+              "name": "variable.constant.zig"
+            },
+            {
+              "match": "\\b[A-Z]\\b",
+              "name": "entity.name.type.zig"
+            },
+            {
+              "match": "\\b[A-Z][a-z][_a-zA-Z0-9]*\\b",
+              "name": "entity.name.type.zig"
+            },
+            {
+              "match": "\\b[_a-zA-Z][_a-zA-Z0-9]*\\b",
+              "name": "variable.zig"
+            },
+            {
+              "begin": "@\"",
+              "end": "\"",
+              "name": "variable.zig",
+              "patterns": [
+                {
+                  "include": "#stringcontent"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
+          "match": "(\\binline\\b)?\\s*\\b(while|for)\\b",
+          "name": "keyword.control.repeat.zig"
+        },
+        {
           "name": "keyword.storage.zig",
-          "match": "\\b(const|var|extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline)\\b"
+          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline)\\b"
         },
         {
           "name": "keyword.structure.zig",
@@ -38,15 +139,19 @@
         },
         {
           "name": "keyword.statement.zig",
-          "match": "\\b(break|return|continue|asm|defer|errdefer|unreachable|try|catch|async|await|suspend|resume|cancel)\\b"
+          "match": "\\b(asm|unreachable)\\b"
         },
         {
-          "name": "keyword.conditional.zig",
-          "match": "\\b(if|else|switch|and|or|orelse)\\b"
+          "name": "keyword.control.flow.zig",
+          "match": "\\b(break|return|continue|await|resume|suspend|async|defer|errdefer)\\b"
         },
         {
-          "name": "keyword.repeat.zig",
-          "match": "\\b(while|for)\\b"
+          "name": "keyword.control.trycatch.zig",
+          "match": "\\b(try|catch)\\b"
+        },
+        {
+          "name": "keyword.control.conditional.zig",
+          "match": "\\b(if|else|switch|orelse)\\b"
         },
         {
           "name": "keyword.constant.default.zig",
@@ -57,8 +162,50 @@
           "match": "\\b(true|false)\\b"
         },
         {
+          "match": "[\\s\\(\\[\\{](\\.[_a-zA-Z][_a-zA-Z0-9]*)(?!\\s*=[^>])(?![_a-zA-Z0-9])",
+          "captures": {
+            "1": {
+              "name": "keyword.constant.enum-literal.zig"
+            }
+          }
+        },
+        {
           "name": "keyword.default.zig",
-          "match": "\\b(fn|usingnamespace|test)\\b"
+          "match": "\\b(usingnamespace|test|and|or)\\b"
+        },
+        {
+          "name": "meta.error-set.zig",
+          "patterns": [
+            {
+              "begin": "\\b(error)\\b\\s*{",
+              "end": "}",
+              "beginCaptures": {
+                "1": {
+                  "name": "keyword.type.zig"
+                }
+              },
+              "patterns": [
+                {
+                  "match": "\\b[_a-zA-Z][_a-zA-Z0-9]*\\b",
+                  "name": "variable.constant.error.zig"
+                },
+                {
+                  "include": "$self"
+                }
+              ]
+            },
+            {
+              "match": "\\b(error)\\s*\\.\\s*([_a-zA-Z][_a-zA-Z0-9]*)\\b",
+              "captures": {
+                "1": {
+                  "name": "keyword.type.zig"
+                },
+                "2": {
+                  "name": "variable.constant.error.zig"
+                }
+              }
+            }
+          ]
         },
         {
           "name": "keyword.type.zig",
@@ -71,15 +218,11 @@
         {
           "name": "keyword.type.c.zig",
           "match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble|c_void)\\b"
-        },
-        {
-          "name": "keyword.todo.zig",
-          "match": "\\b(TODO,XXX)\\b"
         }
       ]
     },
     "operators": {
-      "patterns":[
+      "patterns": [
         {
           "name": "keyword.operator.comparison.zig",
           "match": "(\\b(and|or)\\b)|(==|!=)"
@@ -99,24 +242,42 @@
       ]
     },
     "comments": {
-      "patterns":[
+      "patterns": [
         {
           "name": "comment.line.documentation.zig",
           "begin": "//[!/](?=[^/])",
-          "end": "$"
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#commentContents"
+            }
+          ]
         },
         {
           "name": "comment.line.double-slash.zig",
           "begin": "//",
-          "end": "$"
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#commentContents"
+            }
+          ]
+        }
+      ]
+    },
+    "commentContents": {
+      "patterns": [
+        {
+          "match": "\\b(TODO|FIXME|XXX|NOTE)\\b:?",
+          "name": "keyword.todo.zig"
         }
       ]
     },
     "strings": {
-      "patterns":[
+      "patterns": [
         {
           "name": "string.quoted.double.zig",
-          "begin": "c?\"",
+          "begin": "\"",
           "end": "\"",
           "patterns": [
             {
@@ -126,7 +287,7 @@
         },
         {
           "name": "string.multiline.zig",
-          "begin": "c?\\\\\\\\",
+          "begin": "\\\\\\\\",
           "end": "$"
         },
         {
@@ -144,7 +305,6 @@
         {
           "name": "invalid.illegal.unrecognized-string-escape.zig",
           "match": "\\\\."
-
         }
       ]
     },
@@ -152,27 +312,23 @@
       "patterns": [
         {
           "name": "constant.numeric.float.zig",
-          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?[eE][+-]?[0-9_]+(f32|f64)?\\b"
-        },
-        {
-          "name": "constant.numeric.float.zig",
-          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?(f32|f64)\\b"
+          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?\\b"
         },
         {
           "name": "constant.numeric.decimal.zig",
-          "match": "\\b[0-9][0-9_]*([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b[0-9][0-9_]*\\b"
         },
         {
           "name": "constant.numeric.hexadecimal.zig",
-          "match": "\\b0x[a-fA-F0-9_]+([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b0x[a-fA-F0-9_]+\\b"
         },
         {
           "name": "constant.numeric.octal.zig",
-          "match": "\\b0o[0-7_]+([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b0o[0-7_]+\\b"
         },
         {
           "name": "constant.numeric.binary.zig",
-          "match": "\\b0b[01_]+([ui](8|16|32|64|128|s|size))?\\b"
+          "match": "\\b0b[01_]+\\b"
         }
       ]
     },
