@@ -126,6 +126,10 @@
     "keywords": {
       "patterns": [
         {
+          "match": "(\\binline\\b)?\\s*\\b(while|for)\\b",
+          "name": "keyword.control.repeat.zig"
+        },
+        {
           "name": "keyword.storage.zig",
           "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline)\\b"
         },
@@ -148,10 +152,6 @@
         {
           "name": "keyword.control.conditional.zig",
           "match": "\\b(if|else|switch|orelse)\\b"
-        },
-        {
-          "name": "keyword.control.repeat.zig",
-          "match": "\\b(while|for)\\b"
         },
         {
           "name": "keyword.constant.default.zig",
