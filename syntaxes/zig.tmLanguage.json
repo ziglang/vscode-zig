@@ -131,7 +131,7 @@
         },
         {
           "name": "keyword.storage.zig",
-          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline)\\b"
+          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline|callconv)\\b"
         },
         {
           "name": "keyword.structure.zig",
@@ -195,15 +195,23 @@
               ]
             },
             {
-              "match": "\\b(error)\\s*\\.\\s*([_a-zA-Z][_a-zA-Z0-9]*)\\b",
-              "captures": {
+              "begin": "\\b(error)\\b",
+              "end": "\\b([_a-zA-Z][_a-zA-Z0-9]*)\\b",
+              "beginCaptures": {
                 "1": {
                   "name": "keyword.type.zig"
-                },
-                "2": {
+                }
+              },
+              "endCaptures": {
+                "1": {
                   "name": "variable.constant.error.zig"
                 }
-              }
+              },
+              "patterns": [
+                {
+                  "include": "$self"
+                }
+              ]
             }
           ]
         },
