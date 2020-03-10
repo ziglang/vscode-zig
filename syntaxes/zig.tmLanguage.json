@@ -35,7 +35,7 @@
           "name": "meta.function.declaration.zig",
           "patterns": [
             {
-              "match": "\\b(fn)\\s+([A-Z][_a-zA-Z0-9]*)",
+              "match": "\\b(fn)\\s+([A-Z][a-zA-Z0-9]*)\\b",
               "captures": {
                 "1": {
                   "name": "storage.type.function.zig"
@@ -46,7 +46,7 @@
               }
             },
             {
-              "match": "\\b(fn)\\s+([_a-zA-Z][_a-zA-Z0-9]*)",
+              "match": "\\b(fn)\\s+([_a-zA-Z][_a-zA-Z0-9]*)\\b",
               "captures": {
                 "1": {
                   "name": "storage.type.function.zig"
@@ -81,7 +81,7 @@
           "name": "meta.function.call.zig",
           "patterns": [
             {
-              "match": "([_A-Z][_a-zA-Z0-9]*)(?=\\s*\\()",
+              "match": "([A-Z][a-zA-Z0-9]*)(?=\\s*\\()",
               "name": "entity.name.type.zig"
             },
             {
@@ -98,11 +98,11 @@
               "name": "variable.constant.zig"
             },
             {
-              "match": "\\b[A-Z]\\b",
+              "match": "\\b[_a-zA-Z][_a-zA-Z0-9]*_t\\b",
               "name": "entity.name.type.zig"
             },
             {
-              "match": "\\b[A-Z][a-z][_a-zA-Z0-9]*\\b",
+              "match": "\\b[A-Z][a-zA-Z0-9]*\\b",
               "name": "entity.name.type.zig"
             },
             {
@@ -131,7 +131,7 @@
         },
         {
           "name": "keyword.storage.zig",
-          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noasync|noinline|callconv)\\b"
+          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noinline|callconv)\\b"
         },
         {
           "name": "keyword.structure.zig",
@@ -143,7 +143,15 @@
         },
         {
           "name": "keyword.control.flow.zig",
-          "match": "\\b(break|return|continue|await|resume|suspend|async|defer|errdefer)\\b"
+          "match": "\\b(break|return|continue|defer|errdefer)\\b"
+        },
+        {
+          "match": "(\\basync\\b)(?=\\s+fn\\b)",
+          "name": "keyword.default.zig"
+        },
+        {
+          "name": "keyword.control.async.zig",
+          "match": "\\b(await|resume|suspend|async|noasync)\\b"
         },
         {
           "name": "keyword.control.trycatch.zig",
