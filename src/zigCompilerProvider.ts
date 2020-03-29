@@ -85,4 +85,8 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             });
         }
     }
+
+    public provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Command[]> {
+        return [];
+    }
 }
