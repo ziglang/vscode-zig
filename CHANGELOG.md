@@ -1,3 +1,12 @@
+## 0.2.4
+ - Update syntax (@Vexu)
+ - Fix provideCodeActions regression (@mxmn)
+ - Add build-on-save setting (@Swoogan)
+ - Add stderr to output panel (@Swoogan)
+ - Add zig build to command palette (@Swoogan)
+
+ Thanks to @Vexu for taking over keeping the project up to date.
+
 ## 0.2.3
  - Syntax updates
  - Improve diagnostics regex (@emekoi)
