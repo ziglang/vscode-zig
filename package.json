@@ -28,6 +28,13 @@
                     ".zig"
                 ],
                 "configuration": "./language-configuration.json"
+            },
+            {
+                "id": "zir",
+                "extensions": [
+                    ".zir"
+                ],
+                "configuration": "./language-configuration.zir.json"
             }
         ],
         "grammars": [
@@ -35,6 +42,11 @@
                 "language": "zig",
                 "scopeName": "source.zig",
                 "path": "./syntaxes/zig.tmLanguage.json"
+            },
+            {
+                "language": "zir",
+                "scopeName": "source.zir",
+                "path": "./syntaxes/zir.tmLanguage.json"
             }
         ],
         "configuration": {

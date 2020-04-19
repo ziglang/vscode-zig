@@ -1,0 +1,118 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "zir",
+  "scopeName": "source.zir",
+  "fileTypes": [
+    "zir"
+  ],
+  "patterns": [
+    {
+      "include": "#variables"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#comments"
+    }
+  ],
+  "repository": {
+    "variables": {
+      "patterns": [
+        {
+          "match": "@[0-9]+",
+          "name": "variable.constant.zir"
+        },
+        {
+          "match": "%[0-9]+",
+          "name": "variable.zir"
+        },
+        {
+          "name": "variable.parameter.zir",
+          "match": "\\b[a-z]+="
+        },
+        {
+          "name": "entity.name.function.instruciton.zir",
+          "match": "\\b[a-z]+\\("
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.constant.default.zir",
+          "match": "\\b(null|undefined)\\b"
+        },
+        {
+          "name": "keyword.constant.bool.zir",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "keyword.type.zir",
+          "match": "\\b(bool|void|noreturn|type|error|anyerror|anyframe)\\b"
+        },
+        {
+          "name": "keyword.type.integer.zir",
+          "match": "\\b(f16|f32|f64|f128|u\\d+|i\\d+|isize|usize|comptime_int|comptime_float)\\b"
+        },
+        {
+          "name": "keyword.type.c.zir",
+          "match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble|c_void)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.zir",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "include": "#stringcontent"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.zir",
+          "match": "'([^'\\\\]|\\\\(x\\h{2}|[0-2][0-7]{,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.))'"
+        }
+      ]
+    },
+    "stringcontent": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.zir",
+          "match": "\\\\([nrt'\"\\\\]|(x[0-9a-fA-F]{2})|(u\\{[0-9a-fA-F]+\\}))"
+        },
+        {
+          "name": "invalid.illegal.unrecognized-string-escape.zir",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.decimal.zir",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.zir",
+          "begin": ";",
+          "end": "$"
+        }
+      ]
+    }
+  }
+}
