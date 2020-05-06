@@ -131,7 +131,7 @@
         },
         {
           "name": "keyword.storage.zig",
-          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|nakedcc|stdcallcc|volatile|align|linksection|threadlocal|allowzero|noinline|callconv)\\b"
+          "match": "\\b(extern|packed|export|pub|noalias|inline|comptime|volatile|align|linksection|threadlocal|allowzero|noinline|callconv)\\b"
         },
         {
           "name": "keyword.structure.zig",
@@ -151,7 +151,7 @@
         },
         {
           "name": "keyword.control.async.zig",
-          "match": "\\b(await|resume|suspend|async|noasync)\\b"
+          "match": "\\b(await|resume|suspend|async|nosuspend)\\b"
         },
         {
           "name": "keyword.control.trycatch.zig",
