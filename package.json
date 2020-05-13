@@ -43,7 +43,7 @@
             "properties": {
                 "zig.buildOnSave": {
                     "type": "boolean",
-                    "default": "false",
+                    "default": false,
                     "description": "Compiles code on file save using the settings specified in 'Build Option'."
                 },
                 "zig.buildOption": {
