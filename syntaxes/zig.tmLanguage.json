@@ -146,10 +146,6 @@
           "match": "\\b(break|return|continue|defer|errdefer)\\b"
         },
         {
-          "match": "(\\basync\\b)(?=\\s+fn\\b)",
-          "name": "keyword.default.zig"
-        },
-        {
           "name": "keyword.control.async.zig",
           "match": "\\b(await|resume|suspend|async|nosuspend)\\b"
         },
@@ -173,7 +169,7 @@
           "match": "[\\s\\(\\[\\{](\\.[_a-zA-Z][_a-zA-Z0-9]*)(?!\\s*=[^>])(?![_a-zA-Z0-9])",
           "captures": {
             "1": {
-              "name": "keyword.constant.enum-literal.zig"
+              "name": "variable.other.enummember.zig"
             }
           }
         },
@@ -239,6 +235,10 @@
     },
     "operators": {
       "patterns": [
+        {
+          "name": "keyword.operator.c-pointer.zig",
+          "match": "\\[*c\\]"
+        },
         {
           "name": "keyword.operator.comparison.zig",
           "match": "(\\b(and|or)\\b)|(==|!=)"
