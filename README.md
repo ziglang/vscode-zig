@@ -1,5 +1,7 @@
 # vscode-zig
 
+![CI](https://github.com/ziglang/vscode-zig/workflows/CI/badge.svg)
+
 [Zig](http://ziglang.org/) support for Visual Studio Code.
 
 ![Syntax Highlighting](./images/example.png)
@@ -14,3 +16,11 @@
 
 To enable automatic formatting add the `zig` command to your `PATH`, or
 modify the `Zig Path` setting to point to the `zig` binary.
+
+## Creating .vsix extension file
+
+```
+npm install
+tsc src/extensions.js
+npx vsce package
+```
