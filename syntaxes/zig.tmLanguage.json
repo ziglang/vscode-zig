@@ -221,7 +221,7 @@
         },
         {
           "name": "keyword.type.zig",
-          "match": "\\b(bool|void|noreturn|type|error|anyerror|anyframe)\\b"
+          "match": "\\b(bool|void|noreturn|type|error|anyerror|anyframe|anytype)\\b"
         },
         {
           "name": "keyword.type.integer.zig",
