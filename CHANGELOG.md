@@ -1,3 +1,6 @@
+## 0.2.5
+ - Syntax updates (@Vexu)
+
 ## 0.2.4
  - Update syntax (@Vexu)
  - Fix provideCodeActions regression (@mxmn)
