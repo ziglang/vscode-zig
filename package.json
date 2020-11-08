@@ -41,7 +41,7 @@
             {
                 "name": "zig",
                 "owner": "ziglang",
-                "fileLocation": "absolute",
+                "fileLocation": "relative",
                 "pattern": {
                     "regexp": "([^\\s]*):(\\d+):(\\d+):\\s+(?:fatal\\s+)?(note|error):\\s+(.*)$",
                     "file": 1,
