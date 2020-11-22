@@ -37,6 +37,11 @@
                 "path": "./syntaxes/zig.tmLanguage.json"
             }
         ],
+        "breakpoints": [
+            {
+                "language": "zig"
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "zig",
