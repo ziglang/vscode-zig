@@ -9,7 +9,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
     public activate(subscriptions: vscode.Disposable[]) {
         subscriptions.push(this);
-        this.diagnosticCollection = vscode.languages.createDiagnosticCollection();
+        this.diagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
 
         vscode.workspace.onDidOpenTextDocument(this.doCompile, this, subscriptions);
         vscode.workspace.onDidCloseTextDocument((textDocument) => {
@@ -34,12 +34,17 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
         let buildOption = config.get<string>("buildOption");
         let processArg: string[] = [buildOption];
+        let workspaceFolder = vscode.workspace.getWorkspaceFolder(textDocument.uri);
+        if (!workspaceFolder && vscode.workspace.workspaceFolders.length) {
+            workspaceFolder = vscode.workspace.workspaceFolders[0];
+        }
+        const cwd = workspaceFolder.uri.fsPath;
 
         switch (buildOption) {
             case "build":
                 let buildFilePath = config.get<string>("buildFilePath");
                 processArg.push("--build-file");
-                processArg.push(buildFilePath.replace("${workspaceFolder}", vscode.workspace.rootPath));
+                processArg.push(buildFilePath.replace("${workspaceFolder}", cwd));
                 break;
             default:
                 processArg.push(textDocument.fileName);
@@ -65,6 +70,10 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                 for (let match = regex.exec(decoded); match;
                     match = regex.exec(decoded)) {
                     let path = match[1].trim();
+                    if (!path.includes(cwd)) {
+                        path = vscode.Uri.joinPath(workspaceFolder.uri, path).fsPath;
+                    }
+
                     let line = parseInt(match[2]) - 1;
                     let column = parseInt(match[3]) - 1;
                     let type = match[4];
