@@ -27,8 +27,7 @@ export function zigBuild(): void {
         processArg.push(element);
     });
 
-    // TODO: switch rootpath to support multi root
-    const cwd = vscode.workspace.rootPath;
+    const cwd = vscode.workspace.getWorkspaceFolder(editor.document.uri).uri.fsPath;
     const buildPath = config.get<string>("zigPath") || 'zig';
 
     logChannel.appendLine(`Starting building the current workspace at ${cwd}`);
@@ -63,3 +62,4 @@ export function zigBuild(): void {
         }
     });
 }
+
