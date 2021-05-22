@@ -135,7 +135,7 @@
         },
         {
           "name": "keyword.structure.zig",
-          "match": "\\b(struct|enum|union)\\b"
+          "match": "\\b(struct|enum|union|opaque)\\b"
         },
         {
           "name": "keyword.statement.zig",
@@ -172,6 +172,14 @@
               "name": "variable.other.enummember.zig"
             }
           }
+        },
+        {
+          "match": "[\\s\\(\\[\\{](\\.@\"[^\"]*\")(?!\\s*=[^>])",
+            "captures": {
+              "1": {
+                "name": "variable.other.enummember.zig"
+              }
+            }
         },
         {
           "name": "keyword.default.zig",
