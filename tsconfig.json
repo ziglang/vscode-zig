@@ -1,10 +1,10 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "target": "es6",
+        "target": "ESNext",
         "outDir": "out",
         "lib": [
-            "es6"
+            "esnext",
         ],
         "sourceMap": true,
         "rootDir": "src"
