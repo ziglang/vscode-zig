@@ -28,7 +28,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         let config = vscode.workspace.getConfiguration('zig');
         let buildOnSave = config.get<boolean>("buildOnSave");
 
-        if (textDocument.languageId !== 'zig' || buildOnSave !== true) {
+        if (textDocument.languageId !== 'zig' || !buildOnSave) {
             return;
         }
 
@@ -44,12 +44,18 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             case "build":
                 let buildFilePath = config.get<string>("buildFilePath");
                 processArg.push("--build-file");
-                processArg.push(buildFilePath.replace("${workspaceFolder}", cwd));
+                try {
+                    processArg.push(    path.resolve(buildFilePath.replace("${workspaceFolder}", cwd)));
+                } catch {
+
+                }
+                
                 break;
             default:
                 processArg.push(textDocument.fileName);
                 break;
         }
+        
 
         let extraArgs = config.get<string[]>("buildArgs");
         extraArgs.forEach(element => {
@@ -57,7 +63,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         });
 
         let decoded = ''
-        let childProcess = cp.spawn('zig', processArg, undefined);
+        let childProcess = cp.spawn('zig', processArg, {cwd});
         if (childProcess.pid) {
             childProcess.stderr.on('data', (data: Buffer) => {
                 decoded += data;
@@ -70,8 +76,12 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                 for (let match = regex.exec(decoded); match;
                     match = regex.exec(decoded)) {
                     let path = match[1].trim();
-                    if (!path.includes(cwd)) {
-                        path = vscode.Uri.joinPath(workspaceFolder.uri, path).fsPath;
+                    try {
+                        if (!path.includes(cwd)) {
+                            path = require("path").resolve(workspaceFolder.uri.fsPath, path);
+                        }
+                    } catch {
+
                     }
 
                     let line = parseInt(match[2]) - 1;
@@ -81,7 +91,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
                     let severity = type.trim().toLowerCase() === "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Information;
                     let range = new vscode.Range(line, column,
-                        line, column + 1);
+                        line, Infinity);
 
                     if (diagnostics[path] == null) diagnostics[path] = [];
                     diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
