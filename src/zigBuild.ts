@@ -41,6 +41,13 @@ export function zigBuild(): void {
         for (let match = regex.exec(stderr); match;
             match = regex.exec(stderr)) {
             let path = match[1].trim();
+            try {
+                if (!path.includes(cwd)) {
+                    path = require("path").resolve(cwd, path);
+                }
+            } catch {
+
+            }
             let line = parseInt(match[2]) - 1;
             let column = parseInt(match[3]) - 1;
             let type = match[4];
@@ -50,7 +57,7 @@ export function zigBuild(): void {
                 vscode.DiagnosticSeverity.Error :
                 vscode.DiagnosticSeverity.Information;
 
-            let range = new vscode.Range(line, column, line, column + 1);
+            let range = new vscode.Range(line, column, line, Infinity);
 
             if (diagnostics[path] == null) diagnostics[path] = [];
             diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
