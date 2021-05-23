@@ -1,106 +1,129 @@
 {
-    "name": "zig",
-    "displayName": "Zig",
-    "description": "Language support for the Zig programming language",
-    "version": "0.2.5",
-    "publisher": "tiehuis",
-    "icon": "images/zig-icon.png",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/zig-lang/vscode-zig"
-    },
-    "engines": {
-        "vscode": "^1.43.0"
-    },
-    "categories": [
-        "Programming Languages"
-    ],
-    "activationEvents": [
-        "onLanguage:zig"
-    ],
-    "main": "./out/extension",
-    "contributes": {
-        "languages": [
-            {
-                "id": "zig",
-                "extensions": [
-                    ".zig"
-                ],
-                "configuration": "./language-configuration.json"
-            }
+  "name": "zig",
+  "displayName": "Zig",
+  "description": "Language support for the Zig programming language",
+  "version": "0.2.5",
+  "publisher": "tiehuis",
+  "icon": "images/zig-icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zig-lang/vscode-zig"
+  },
+  "engines": {
+    "vscode": "^1.56.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:zig"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "zig",
+        "extensions": [
+          ".zig"
         ],
-        "grammars": [
-            {
-                "language": "zig",
-                "scopeName": "source.zig",
-                "path": "./syntaxes/zig.tmLanguage.json"
-            }
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "zig",
+        "scopeName": "source.zig",
+        "path": "./syntaxes/zig.tmLanguage.json"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "zig",
+        "owner": "zig",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
         ],
-        "configuration": {
-            "type": "object",
-            "title": "zig",
-            "properties": {
-                "zig.buildOnSave": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Compiles code on file save using the settings specified in 'Build Option'."
-                },
-                "zig.buildOption": {
-                    "type": "string",
-                    "default": "build",
-                    "enum": [
-                        "build",
-                        "build-exe",
-                        "build-lib",
-                        "build-obj"
-                    ],
-                    "description": "Which build command Zig should use to build the code."
-                },
-                "zig.buildArgs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [],
-                    "description": "Extra arguments to passed to Zig."
-                },
-                "zig.buildFilePath": {
-                    "type": "string",
-                    "default": "${workspaceFolder}/build.zig",
-                    "description": "The path to build.zig. This is only required if zig.buildOptions = build."
-                },
-                "zig.zigPath": {
-                    "type": "string",
-                    "default": null,
-                    "description": "Set a custom path to the Zig binary. Defaults to 'zig' in your PATH."
-                },
-                "zig.revealOutputChannelOnFormattingError": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Should output channel be raised on formatting error."
-                }
-            }
+        "pattern": {
+          "regexp": "([^\\s]*):(\\d+):(\\d+):\\s+(?:fatal\\s+)?(note|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "zig",
+      "properties": {
+        "zig.buildOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Compiles code on file save using the settings specified in 'Build Option'."
         },
-        "commands": [
-            {
-                "command": "zig.build.workspace",
-                "title": "Zig: Build Workspace",
-                "description": "Build the current project using 'zig build'"
-            }
-        ]
+        "zig.buildOption": {
+          "type": "string",
+          "default": "build",
+          "enum": [
+            "build",
+            "build-exe",
+            "build-lib",
+            "build-obj"
+          ],
+          "description": "Which build command Zig should use to build the code."
+        },
+        "zig.buildArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments to passed to Zig."
+        },
+        "zig.buildFilePath": {
+          "type": "string",
+          "default": "${workspaceFolder}/build.zig",
+          "description": "The path to build.zig. This is only required if zig.buildOptions = build."
+        },
+        "zig.zigPath": {
+          "type": "string",
+          "default": null,
+          "description": "Set a custom path to the Zig binary. Defaults to 'zig' in your PATH."
+        },
+        "zig.revealOutputChannelOnFormattingError": {
+          "type": "boolean",
+          "default": true,
+          "description": "Should output channel be raised on formatting error."
+        }
+      }
     },
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test"
-    },
-    "devDependencies": {
-        "@types/mocha": "^2.2.48",
-        "@types/node": "^7.10.9",
-        "@types/vscode": "^1.43.0",
-        "typescript": "^2.9.2",
-        "vscode-test": "^1.4.0"
-    }
+    "commands": [
+      {
+        "command": "zig.build.workspace",
+        "title": "Zig: Build Workspace",
+        "description": "Build the current project using 'zig build'"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "esbuild --bundle --sourcemap=external --minify --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
+    "watch": "esbuild --watch --bundle --sourcemap=external --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
+    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^2.2.48",
+    "@types/node": "^15.6.0",
+    "@types/vscode": "^1.43.0",
+    "vscode-test": "^1.4.0"
+  },
+  "dependencies": {
+    "esbuild": "^0.12.1",
+    "lodash-es": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
+    "vsce": "^1.88.0"
+  }
 }

@@ -25,7 +25,7 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
                     lastLineId,
                     document.lineAt(lastLineId).text.length,
                 );
-                return [TextEdit.replace(wholeDocument, stdout), TextEdit.setEndOfLine(EndOfLine.LF)];
+                return [new TextEdit(wholeDocument, stdout),];
             })
             .catch((reason) => {
                 let config = vscode.workspace.getConfiguration('zig');
@@ -64,7 +64,7 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                     lastLineId,
                     document.lineAt(lastLineId).text.length,
                 );
-                return [TextEdit.replace(wholeDocument, stdout), TextEdit.setEndOfLine(EndOfLine.LF)];
+                return [new TextEdit(wholeDocument, stdout),];
             })
             .catch((reason) => {
                 const config = vscode.workspace.getConfiguration('zig');
