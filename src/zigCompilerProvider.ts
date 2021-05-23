@@ -72,11 +72,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     const cwd = vscode.workspace.getWorkspaceFolder(textDocument.uri).uri
       .fsPath;
 
-    let childProcess = cp.spawn(
-      zig_path as string,
-      ["astgen", "--errors-only", "--stdin"],
-      { cwd }
-    );
+    let childProcess = cp.spawn(zig_path as string, ["ast-check"], { cwd });
 
     if (!childProcess.pid) {
       return;
