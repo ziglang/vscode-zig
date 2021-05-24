@@ -21,6 +21,25 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "taskDefinitions": [
+      {
+        "type": "zig",
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Test name to only run"
+          },
+          "args": {
+            "type": "string",
+            "description": "Additional args to pass \"zig test\""
+          },
+          "file": {
+            "type": "string",
+            "description": "The Rake file that provides the task. Can be omitted."
+          }
+        }
+      }
+    ],
     "languages": [
       {
         "id": "zig",
@@ -92,6 +111,16 @@
           "type": "string",
           "default": null,
           "description": "Set a custom path to the Zig binary. Defaults to 'zig' in your PATH."
+        },
+        "zig.testArgs": {
+          "type": "string",
+          "default": "",
+          "description": "Additional flags to pass \"zig test\""
+        },
+        "zig.disableProblemMatcherForTest": {
+          "type": "bool",
+          "default": false,
+          "description": "Highlight lines where tests failed"
         },
         "zig.revealOutputChannelOnFormattingError": {
           "type": "boolean",
