@@ -76,11 +76,15 @@ export function activate(context: vscode.ExtensionContext) {
     const bin = (config.get("zigPath") as string) || "zig";
 
     const testOptions = (task.definition.args as string) || "";
-
+    var main_package_path = "";
+    try {
+      main_package_path = path.resolve(workspaceFolder.uri.fsPath, "build.zig");
+    } catch {}
     const args = [
       bin,
       "test",
-
+      main_package_path.length &&
+        `--main-pkg-path ${workspaceFolder.uri.fsPath}`,
       filename && path.relative(workspaceFolder.uri.fsPath, filename.fsPath),
       filter && filter.length > 0 && `--test-filter ${filter}`,
       testOptions,
