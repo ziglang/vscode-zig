@@ -20,11 +20,15 @@ export function activate(context: vscode.ExtensionContext) {
   let codeLens = new CodelensProvider();
   compiler.activate(context.subscriptions);
 
+  const select: vscode.DocumentSelector = {
+    language: "zig",
+    scheme: "file",
+  };
   context.subscriptions.push(
-    vscode.languages.registerCodeActionsProvider("zig", compiler)
+    vscode.languages.registerCodeActionsProvider(select, compiler)
   );
   context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider("zig", codeLens)
+    vscode.languages.registerCodeLensProvider(select, codeLens)
   );
 
   context.subscriptions.push(logChannel);
@@ -95,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
       provideTasks: (token) => {
         return [
           new vscode.Task(
-            { type: "zig", task: "zig test" },
+            { type: "zig test", task: "zig test" },
             vscode.workspace.workspaceFolders[0],
             "zig test",
             "zig",
@@ -112,7 +116,7 @@ export function activate(context: vscode.ExtensionContext) {
       "zig.test.run",
       (filename: vscode.Uri, filter: string) => {
         const task = new vscode.Task(
-          { type: "zig", task: "test" },
+          { type: "zig test", task: "test" },
           vscode.workspace.workspaceFolders[0],
           "zig test",
           "zig",

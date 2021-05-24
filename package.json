@@ -23,11 +23,11 @@
   "contributes": {
     "taskDefinitions": [
       {
-        "type": "zig",
+        "type": "zig test",
         "properties": {
           "filter": {
             "type": "string",
-            "description": "Test name to only run"
+            "description": "Test name to filter against"
           },
           "args": {
             "type": "string",
@@ -35,7 +35,7 @@
           },
           "file": {
             "type": "string",
-            "description": "The Rake file that provides the task. Can be omitted."
+            "description": "The file path to the zig source code to filter the test. Can be omitted."
           }
         }
       }
