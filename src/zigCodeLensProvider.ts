@@ -88,10 +88,9 @@ export class CodelensProvider implements vscode.CodeLensProvider {
         const range = document.getWordRangeAtPosition(position, null);
         this.codeLenses.push(
           new vscode.CodeLens(range, {
-            title: "Run test",
+            title: "Run all tests in file (and imports)",
             command: "zig.test.run",
             arguments: [document.uri, ""],
-            tooltip: "Run this test via zig test",
           })
         );
         test_keyword_start = -1;
@@ -111,6 +110,19 @@ export class CodelensProvider implements vscode.CodeLensProvider {
           break;
         }
       }
+    }
+
+    if (this.codeLenses.length > 0) {
+      const line = document.lineAt(document.positionAt(0).line);
+      const position = new vscode.Position(line.lineNumber, 0);
+      const range = document.getWordRangeAtPosition(position, null);
+      this.codeLenses.push(
+        new vscode.CodeLens(range, {
+          title: "Run all tests in file (and imports)",
+          command: "zig.test.run",
+          arguments: [document.uri, ""],
+        })
+      );
     }
 
     return this.codeLenses;
