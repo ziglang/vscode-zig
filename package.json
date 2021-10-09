@@ -21,6 +21,12 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "snippets": [
+      {
+        "language": "zig",
+        "path": "./snippets.json"
+      }
+    ],
     "taskDefinitions": [
       {
         "type": "zig test",
@@ -118,7 +124,7 @@
           "description": "Additional flags to pass \"zig test\""
         },
         "zig.disableProblemMatcherForTest": {
-          "type": "bool",
+          "type": "boolean",
           "default": false,
           "description": "Highlight lines where tests failed"
         },
