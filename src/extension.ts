@@ -62,7 +62,11 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  const resolveTask = function resolveTask(task: vscode.Task, token) {
+  const resolveTask = function resolveTask(
+    task: vscode.Task,
+    token,
+    additionalArgs = []
+  ) {
     if (!task.presentationOptions) {
       task.presentationOptions = {};
     }
@@ -91,6 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
       main_package_path.length &&
         `--main-pkg-path ${workspaceFolder.uri.fsPath}`,
       filename && path.relative(workspaceFolder.uri.fsPath, filename.fsPath),
+      ...additionalArgs,
       filter && filter.length > 0 && `--test-filter ${filter}`,
       testOptions,
     ].filter((a) => Boolean(a));
@@ -160,7 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
           try {
             const out = path.resolve(path.dirname(filename.fsPath), filepath);
 
-            objectFiles.push(out);
+            objectFiles.push(`"${out}"`);
           } catch (exception) {
             logChannel.appendLine(
               `Could not resolve ${filepath} relative to ${
@@ -177,11 +182,7 @@ export function activate(context: vscode.ExtensionContext) {
         task.definition.filter = filter;
         task.definition.args = config.get("testArgs") || "";
 
-        for (let file of objectFiles) {
-          task.definition.args += `${file}`;
-        }
-
-        vscode.tasks.executeTask(resolveTask(task, null));
+        vscode.tasks.executeTask(resolveTask(task, null, objectFiles));
       }
     )
   );
