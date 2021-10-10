@@ -93,6 +93,18 @@ export class CodelensProvider implements vscode.CodeLensProvider {
             })
           );
 
+          this.codeLenses.push(
+            new vscode.CodeLens(line.rangeIncludingLineBreak, {
+              title: "Debug test",
+              command: "zig.test.debug",
+              arguments: [
+                document.uri,
+                `"${text.substring(quoteStart + 1, quoteEnd - 1)}"`,
+              ],
+              tooltip: "Run this test via zig test",
+            })
+          );
+
           i = nextCurlyBrace + 1;
         }
       }
