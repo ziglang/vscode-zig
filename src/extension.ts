@@ -6,6 +6,8 @@ import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";
 import * as child_process from "child_process";
 import { CodelensProvider } from "./zigCodeLensProvider";
 import path from "path";
+import fs from "fs";
+
 const ZIG_MODE: vscode.DocumentFilter = { language: "zig", scheme: "file" };
 
 export let buildDiagnosticCollection: vscode.DiagnosticCollection;
@@ -76,10 +78,13 @@ export function activate(context: vscode.ExtensionContext) {
     const bin = (config.get("zigPath") as string) || "zig";
 
     const testOptions = (task.definition.args as string) || "";
+
     var main_package_path = "";
+
     try {
       main_package_path = path.resolve(workspaceFolder.uri.fsPath, "build.zig");
     } catch {}
+
     const args = [
       bin,
       "test",
@@ -128,11 +133,54 @@ export function activate(context: vscode.ExtensionContext) {
         );
         task.detail = "zig test";
 
+        const contents = fs.readFileSync(filename.fsPath, "utf8");
+        var i = 0;
+        const objectFiles = [];
+        while (i < contents.length) {
+          const linkStart = contents.indexOf('// @link "', i);
+          if (linkStart === -1) {
+            break;
+          }
+          i += '// @link "'.length;
+          const startQuote = i;
+          const lineEnd = contents.indexOf("\n", i);
+          if (lineEnd === -1) break;
+
+          const endQuote = contents.indexOf('"', i);
+          if (endQuote === -1 || endQuote > lineEnd) {
+            logChannel.appendLine(
+              `@link ignored due to missing quote (position: ${startQuote})`
+            );
+            logChannel.show();
+            break;
+          }
+          i = lineEnd + 1;
+
+          const filepath = contents.substring(startQuote, endQuote);
+          try {
+            const out = path.resolve(path.dirname(filename.fsPath), filepath);
+
+            objectFiles.push(out);
+          } catch (exception) {
+            logChannel.appendLine(
+              `Could not resolve ${filepath} relative to ${
+                filename.fsPath
+              } due to error:\n${exception.toString()}`
+            );
+            logChannel.show();
+          }
+        }
+
         const config = vscode.workspace.getConfiguration("zig");
 
         task.definition.file = filename;
         task.definition.filter = filter;
         task.definition.args = config.get("testArgs") || "";
+
+        for (let file of objectFiles) {
+          task.definition.args += `${file}`;
+        }
+
         vscode.tasks.executeTask(resolveTask(task, null));
       }
     )
