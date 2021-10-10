@@ -65,14 +65,15 @@ export function activate(context: vscode.ExtensionContext) {
   const resolveTask = function resolveTask(
     task: vscode.Task,
     token,
-    additionalArgs = []
+    additionalArgs = [],
+    reveal = vscode.TaskRevealKind.Always
   ) {
     if (!task.presentationOptions) {
       task.presentationOptions = {};
     }
 
     task.presentationOptions.clear = true;
-    task.presentationOptions.reveal = vscode.TaskRevealKind.Always;
+    task.presentationOptions.reveal = reveal;
     task.presentationOptions.showReuseMessage = false;
 
     const workspaceFolder = task.scope as vscode.WorkspaceFolder;
@@ -108,6 +109,48 @@ export function activate(context: vscode.ExtensionContext) {
     return task;
   };
 
+  function getObjectFiles(filename: vscode.Uri): string[] {
+    const contents = fs.readFileSync(filename.fsPath, "utf8");
+    var i = 0;
+    const objectFiles = [];
+    while (i < contents.length) {
+      const linkStart = contents.indexOf('// @link "', i);
+      if (linkStart === -1) {
+        break;
+      }
+      i += '// @link "'.length;
+      const startQuote = i;
+      const lineEnd = contents.indexOf("\n", i);
+      if (lineEnd === -1) break;
+
+      const endQuote = contents.indexOf('"', i);
+      if (endQuote === -1 || endQuote > lineEnd) {
+        logChannel.appendLine(
+          `@link ignored due to missing quote (position: ${startQuote})`
+        );
+        logChannel.show();
+        break;
+      }
+      i = lineEnd + 1;
+
+      const filepath = contents.substring(startQuote, endQuote);
+      try {
+        const out = path.resolve(path.dirname(filename.fsPath), filepath);
+
+        objectFiles.push(`"${out}"`);
+      } catch (exception) {
+        logChannel.appendLine(
+          `Could not resolve ${filepath} relative to ${
+            filename.fsPath
+          } due to error:\n${exception.toString()}`
+        );
+        logChannel.show();
+      }
+    }
+
+    return objectFiles;
+  }
+
   context.subscriptions.push(
     vscode.tasks.registerTaskProvider("zig", {
       provideTasks: (token) => {
@@ -138,51 +181,146 @@ export function activate(context: vscode.ExtensionContext) {
         );
         task.detail = "zig test";
 
-        const contents = fs.readFileSync(filename.fsPath, "utf8");
-        var i = 0;
-        const objectFiles = [];
-        while (i < contents.length) {
-          const linkStart = contents.indexOf('// @link "', i);
-          if (linkStart === -1) {
-            break;
-          }
-          i += '// @link "'.length;
-          const startQuote = i;
-          const lineEnd = contents.indexOf("\n", i);
-          if (lineEnd === -1) break;
+        const config = vscode.workspace.getConfiguration("zig");
 
-          const endQuote = contents.indexOf('"', i);
-          if (endQuote === -1 || endQuote > lineEnd) {
-            logChannel.appendLine(
-              `@link ignored due to missing quote (position: ${startQuote})`
-            );
-            logChannel.show();
-            break;
-          }
-          i = lineEnd + 1;
+        task.definition.file = filename;
+        task.definition.filter = filter;
+        task.definition.args = (config.get("testArgs") || "").replace(
+          /\$\{workspaceFolder\}/gm,
+          vscode.workspace.workspaceFolders[0].uri.fsPath
+        );
 
-          const filepath = contents.substring(startQuote, endQuote);
-          try {
-            const out = path.resolve(path.dirname(filename.fsPath), filepath);
+        vscode.tasks.executeTask(
+          resolveTask(task, null, getObjectFiles(filename))
+        );
+      }
+    )
+  );
 
-            objectFiles.push(`"${out}"`);
-          } catch (exception) {
-            logChannel.appendLine(
-              `Could not resolve ${filepath} relative to ${
-                filename.fsPath
-              } due to error:\n${exception.toString()}`
-            );
-            logChannel.show();
-          }
-        }
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "zig.test.debug",
+      (filename: vscode.Uri, filter: string) => {
+        const task = new vscode.Task(
+          { type: "zig test", task: "test" },
+          vscode.workspace.workspaceFolders[0],
+          "zig test",
+          "zig",
+          new vscode.ShellExecution("zig test")
+        );
+        task.detail = "zig test";
 
         const config = vscode.workspace.getConfiguration("zig");
 
         task.definition.file = filename;
         task.definition.filter = filter;
-        task.definition.args = config.get("testArgs") || "";
 
-        vscode.tasks.executeTask(resolveTask(task, null, objectFiles));
+        const workspaceFolder = vscode.workspace.workspaceFolders[0].uri.fsPath;
+        task.definition.args = (config.get("testArgs") || "").replace(
+          /\$\{workspaceFolder\}/gm,
+          workspaceFolder
+        );
+        const tmpdir = process.env.TMPDIR || config.get("tmpdir") || "/tmp";
+
+        let femitBinPath = path.join(
+          tmpdir,
+          `test-${path.basename(workspaceFolder)}`
+        );
+
+        let existingFEmitBin = task.definition.args.indexOf("-femit-bin=");
+        if (existingFEmitBin > -1) {
+          const end = task.definition.args.indexOf(" ", existingFEmitBin);
+          femitBinPath = task.definition.args.substring(
+            existingFEmitBin + "-femit-bin=".length,
+            end > -1 ? end : task.definition.args.length
+          );
+        } else {
+          task.definition.args += ` -femit-bin=${femitBinPath}`;
+        }
+
+        // delete the old bin so know if the test failed to build
+        try {
+          fs.rmSync(femitBinPath);
+        } catch (exception) {}
+
+        const vscodeDebuggerExtension = vscode.extensions.getExtension(
+          "vadimcn.vscode-lldb"
+        );
+
+        if (!vscodeDebuggerExtension) {
+          logChannel.appendLine(
+            "vscode-lldb extension is not installed.\nTo enable debugging, please install https://github.com/vadimcn/vscode-lldb."
+          );
+          logChannel.show();
+          return;
+        }
+
+        if (!vscodeDebuggerExtension.isActive) {
+          logChannel.appendLine(
+            "vscode-lldb extension is not enabled.\nTo enable debugging, please enable vscode-lldb."
+          );
+          logChannel.show();
+          return;
+        }
+
+        logChannel.clear();
+        const resolved = resolveTask(
+          task,
+          null,
+          getObjectFiles(filename),
+          vscode.TaskRevealKind.Silent
+        );
+
+        var onDidEnd;
+        onDidEnd = vscode.tasks.onDidEndTask((event) => {
+          if (event.execution.task.name !== task.name) return;
+          onDidEnd.dispose();
+          onDidEnd = null;
+
+          if (!fs.existsSync(femitBinPath)) {
+            // test failed to build, halt
+            return;
+          }
+          const launch = Object.assign(
+            {},
+            {
+              type: "lldb",
+              request: "launch",
+              name: "Zig Debug",
+              program: femitBinPath,
+              args:
+                Array.isArray(config.get("debugArgs")) &&
+                config.get("debugArgs").length > 0
+                  ? config.get("debugArgs")
+                  : ["placeholderBecauseZigTestCrashesWithoutArgs"],
+              cwd: workspaceFolder,
+              console: "internalConsole",
+            }
+          );
+
+          return vscode.env
+            .openExternal(
+              vscode.Uri.parse(
+                `${
+                  vscode.env.uriScheme
+                }://vadimcn.vscode-lldb/launch/config?{program: '${
+                  launch.program
+                }', args: [${launch.args
+                  .map((a) => `'${a}'`)
+                  .join(", ")}], name: '${
+                  launch.name
+                }', request: 'launch', cwd: '${workspaceFolder}', console: '${
+                  launch.console
+                }', type: 'lldb',}`
+              )
+            )
+            .then((a) => {
+              if (vscode.window.activeTerminal)
+                vscode.window.activeTerminal.show();
+            });
+        });
+
+        vscode.tasks.executeTask(resolved);
       }
     )
   );
