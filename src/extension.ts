@@ -61,18 +61,20 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  const resolveTask = function resolveTask(
-    task: vscode.Task,
-    token,
-    additionalArgs = [],
-    reveal = vscode.TaskRevealKind.Always
-  ) {
+  const resolveTask = function resolveTask(task: vscode.Task, token) {
     if (!task.presentationOptions) {
       task.presentationOptions = {};
     }
 
+    const isDebug = task.definition.task === "debug";
+
     task.presentationOptions.clear = true;
-    task.presentationOptions.reveal = reveal;
+    if (typeof task.presentationOptions.reveal === "undefined") {
+      task.presentationOptions.reveal = isDebug
+        ? vscode.TaskRevealKind.Silent
+        : vscode.TaskRevealKind.Always;
+    }
+
     task.presentationOptions.showReuseMessage = false;
     task.presentationOptions.echo = true;
 
@@ -97,15 +99,57 @@ export function activate(context: vscode.ExtensionContext) {
       main_package_path.length &&
         `--main-pkg-path ${workspaceFolder.uri.fsPath}`,
       filename && path.relative(workspaceFolder.uri.fsPath, filename.fsPath),
-      ...additionalArgs,
+      ...getObjectFiles(filename),
       filter && filter.length > 0 && `--test-filter ${filter}`,
       testOptions,
     ].filter((a) => Boolean(a));
 
+    let joined = args.join(" ");
+
+    if (isDebug) {
+      const tmpdir = process.env.TMPDIR || config.get("tmpdir") || "/tmp";
+
+      let femitBinPath = path.join(
+        tmpdir,
+        `test-${path.basename(workspaceFolder.uri.fsPath)}`
+      );
+
+      femitBinPath = path.resolve(femitBinPath);
+
+      if (!joined.includes("-femit-bin="))
+        joined += ` -femit-bin=${femitBinPath} `;
+      else {
+        let binI = joined.indexOf("-femit-bin") + "-femit-bin".length;
+        if (joined[binI] === '"') binI++;
+        const end = joined.indexOf(" ", binI);
+        femitBinPath = joined.substring(binI, end);
+        if (femitBinPath.endsWith('"'))
+          femitBinPath = femitBinPath.substring(0, femitBinPath.length - 1);
+        if (
+          femitBinPath.length === 0 ||
+          femitBinPath === "/" ||
+          femitBinPath === "." ||
+          femitBinPath === "/dev" ||
+          femitBinPath === "C:\\" ||
+          femitBinPath === "C:\\Windows"
+        ) {
+          femitBinPath = null;
+        }
+      }
+
+      // delete the old bin so know if the test failed to build
+      // its okay if it doesn't exist though
+      try {
+        if (femitBinPath) fs.rmSync(femitBinPath);
+      } catch (exception) {}
+
+      if (!joined.includes("--test-no-exec")) joined += `--test-no-exec `;
+    }
+
     task.problemMatchers = !config.get("disableProblemMatcherForTest")
       ? ["zig"]
       : [];
-    task.execution = new vscode.ShellExecution(args.join(" "), {});
+    task.execution = new vscode.ShellExecution(joined, {});
 
     return task;
   };
@@ -157,9 +201,16 @@ export function activate(context: vscode.ExtensionContext) {
       provideTasks: (token) => {
         return [
           new vscode.Task(
-            { type: "zig test", task: "zig test" },
+            { type: "zig", task: "test" },
             vscode.workspace.workspaceFolders[0],
-            "zig test",
+            "test",
+            "zig",
+            new vscode.ShellExecution("zig test")
+          ),
+          new vscode.Task(
+            { type: "zig", task: "debug" },
+            vscode.workspace.workspaceFolders[0],
+            "debug",
             "zig",
             new vscode.ShellExecution("zig test")
           ),
@@ -174,9 +225,9 @@ export function activate(context: vscode.ExtensionContext) {
       "zig.test.run",
       (filename: vscode.Uri, filter: string) => {
         const task = new vscode.Task(
-          { type: "zig test", task: "test" },
+          { type: "zig", task: "test" },
           vscode.workspace.workspaceFolders[0],
-          "zig test",
+          "test",
           "zig",
           new vscode.ShellExecution("zig test")
         );
@@ -192,9 +243,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.workspace.workspaceFolders[0].uri.fsPath
         );
 
-        vscode.tasks.executeTask(
-          resolveTask(task, null, getObjectFiles(filename))
-        );
+        vscode.tasks.executeTask(resolveTask(task, null));
       }
     )
   );
@@ -203,25 +252,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "zig.test.debug",
       (filename: vscode.Uri, filter: string) => {
-        const task = new vscode.Task(
-          { type: "zig test", task: "test" },
-          vscode.workspace.workspaceFolders[0],
-          "zig test",
-          "zig",
-          new vscode.ShellExecution("zig test")
-        );
-        task.detail = "zig test";
-
         const config = vscode.workspace.getConfiguration("zig");
 
-        task.definition.file = filename;
-        task.definition.filter = filter;
-
         const workspaceFolder = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        task.definition.args = (config.get("testArgs") || "").replace(
-          /\$\{workspaceFolder\}/gm,
-          workspaceFolder
-        );
 
         const vscodeDebuggerExtension = vscode.extensions.getExtension(
           "vadimcn.vscode-lldb"
@@ -249,43 +282,39 @@ export function activate(context: vscode.ExtensionContext) {
 
         let femitBinPath = path.join(
           tmpdir,
-          `test-${path.basename(workspaceFolder)}`
+          `test-${path.basename(
+            vscode.workspace.workspaceFolders[0].uri.fsPath
+          )}`
         );
-
-        let existingFEmitBin = task.definition.args.indexOf("-femit-bin=");
-
-        if (existingFEmitBin > -1) {
-          const end = task.definition.args.indexOf(" ", existingFEmitBin);
-          femitBinPath = task.definition.args.substring(
-            existingFEmitBin + "-femit-bin=".length,
-            end > -1 ? end : task.definition.args.length
-          );
-        } else {
-          task.definition.args += ` -femit-bin=${femitBinPath}`;
-        }
 
         // delete the old bin so know if the test failed to build
         // its okay if it doesn't exist though
         try {
           fs.rmSync(femitBinPath);
+          femitBinPath = path.resolve(femitBinPath);
         } catch (exception) {}
 
-        const resolved = resolveTask(
-          task,
-          null,
-          getObjectFiles(filename),
-          vscode.TaskRevealKind.Silent
+        const task = resolveTask(
+          new vscode.Task(
+            {
+              type: "zig",
+              task: "debug",
+              filter,
+              file: filename,
+            },
+            vscode.workspace.workspaceFolders[0],
+            "debug",
+            "zig",
+            new vscode.ShellExecution("zig test")
+          ),
+          undefined
         );
-        resolved.group = vscode.TaskGroup.Build;
 
-        var onDidEnd;
-        onDidEnd = vscode.tasks.onDidEndTask((event) => {
-          if (event.execution.task.name !== task.name) return;
-          onDidEnd.dispose();
-          onDidEnd = null;
-
+        var handler = vscode.tasks.onDidEndTask((event) => {
+          if (event.execution.task.name !== "debug") return;
+          handler.dispose();
+          handler = null;
           if (!fs.existsSync(femitBinPath)) {
-            // test failed to build, halt
             return;
           }
 
@@ -303,6 +332,8 @@ export function activate(context: vscode.ExtensionContext) {
                   : ["placeholderBecauseZigTestCrashesWithoutArgs"],
               cwd: workspaceFolder,
               internalConsoleOptions: "openOnSessionStart",
+              console: "internalConsole",
+              terminal: "console",
             }
           );
 
@@ -323,8 +354,7 @@ export function activate(context: vscode.ExtensionContext) {
             )
             .then((a) => {});
         });
-
-        vscode.tasks.executeTask(resolved);
+        vscode.tasks.executeTask(task).then(() => {});
       }
     )
   );

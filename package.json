@@ -29,7 +29,7 @@
     ],
     "taskDefinitions": [
       {
-        "type": "zig test",
+        "type": "test",
         "properties": {
           "filter": {
             "type": "string",
@@ -42,6 +42,27 @@
           "file": {
             "type": "string",
             "description": "The file path to the zig source code to filter the test. Can be omitted."
+          }
+        }
+      },
+      {
+        "type": "debug",
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Test name to filter against"
+          },
+          "args": {
+            "type": "string",
+            "description": "Additional args to pass \"zig test\""
+          },
+          "file": {
+            "type": "string",
+            "description": "The file path to the zig source code to filter the test. Can be omitted."
+          },
+          "extraFiles": {
+            "type": "array",
+            "description": "Extra files to pass"
           }
         }
       }
