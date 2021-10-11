@@ -1,13 +1,12 @@
 "use strict";
-import * as vscode from "vscode";
-import ZigCompilerProvider from "./zigCompilerProvider";
-import { zigBuild } from "./zigBuild";
-import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";
-import * as child_process from "child_process";
-import { CodelensProvider } from "./zigCodeLensProvider";
-import path from "path";
 import fs from "fs";
-
+import YAML from "js-yaml";
+import path from "path";
+import * as vscode from "vscode";
+import { zigBuild } from "./zigBuild";
+import { CodelensProvider } from "./zigCodeLensProvider";
+import ZigCompilerProvider from "./zigCompilerProvider";
+import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";
 const ZIG_MODE: vscode.DocumentFilter = { language: "zig", scheme: "file" };
 
 export let buildDiagnosticCollection: vscode.DiagnosticCollection;
@@ -75,8 +74,10 @@ export function activate(context: vscode.ExtensionContext) {
     task.presentationOptions.clear = true;
     task.presentationOptions.reveal = reveal;
     task.presentationOptions.showReuseMessage = false;
+    task.presentationOptions.echo = true;
 
     const workspaceFolder = task.scope as vscode.WorkspaceFolder;
+
     const filename = task.definition.file as vscode.Uri;
     const filter = task.definition.filter as string;
     const config = vscode.workspace.getConfiguration("zig");
@@ -184,6 +185,7 @@ export function activate(context: vscode.ExtensionContext) {
         const config = vscode.workspace.getConfiguration("zig");
 
         task.definition.file = filename;
+
         task.definition.filter = filter;
         task.definition.args = (config.get("testArgs") || "").replace(
           /\$\{workspaceFolder\}/gm,
@@ -220,28 +222,6 @@ export function activate(context: vscode.ExtensionContext) {
           /\$\{workspaceFolder\}/gm,
           workspaceFolder
         );
-        const tmpdir = process.env.TMPDIR || config.get("tmpdir") || "/tmp";
-
-        let femitBinPath = path.join(
-          tmpdir,
-          `test-${path.basename(workspaceFolder)}`
-        );
-
-        let existingFEmitBin = task.definition.args.indexOf("-femit-bin=");
-        if (existingFEmitBin > -1) {
-          const end = task.definition.args.indexOf(" ", existingFEmitBin);
-          femitBinPath = task.definition.args.substring(
-            existingFEmitBin + "-femit-bin=".length,
-            end > -1 ? end : task.definition.args.length
-          );
-        } else {
-          task.definition.args += ` -femit-bin=${femitBinPath}`;
-        }
-
-        // delete the old bin so know if the test failed to build
-        try {
-          fs.rmSync(femitBinPath);
-        } catch (exception) {}
 
         const vscodeDebuggerExtension = vscode.extensions.getExtension(
           "vadimcn.vscode-lldb"
@@ -264,12 +244,39 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         logChannel.clear();
+
+        const tmpdir = process.env.TMPDIR || config.get("tmpdir") || "/tmp";
+
+        let femitBinPath = path.join(
+          tmpdir,
+          `test-${path.basename(workspaceFolder)}`
+        );
+
+        let existingFEmitBin = task.definition.args.indexOf("-femit-bin=");
+
+        if (existingFEmitBin > -1) {
+          const end = task.definition.args.indexOf(" ", existingFEmitBin);
+          femitBinPath = task.definition.args.substring(
+            existingFEmitBin + "-femit-bin=".length,
+            end > -1 ? end : task.definition.args.length
+          );
+        } else {
+          task.definition.args += ` -femit-bin=${femitBinPath}`;
+        }
+
+        // delete the old bin so know if the test failed to build
+        // its okay if it doesn't exist though
+        try {
+          fs.rmSync(femitBinPath);
+        } catch (exception) {}
+
         const resolved = resolveTask(
           task,
           null,
           getObjectFiles(filename),
           vscode.TaskRevealKind.Silent
         );
+        resolved.group = vscode.TaskGroup.Build;
 
         var onDidEnd;
         onDidEnd = vscode.tasks.onDidEndTask((event) => {
@@ -281,6 +288,7 @@ export function activate(context: vscode.ExtensionContext) {
             // test failed to build, halt
             return;
           }
+
           const launch = Object.assign(
             {},
             {
@@ -294,30 +302,26 @@ export function activate(context: vscode.ExtensionContext) {
                   ? config.get("debugArgs")
                   : ["placeholderBecauseZigTestCrashesWithoutArgs"],
               cwd: workspaceFolder,
-              console: "internalConsole",
+              internalConsoleOptions: "openOnSessionStart",
             }
           );
+
+          var yaml = YAML.dump(launch, {
+            condenseFlow: true,
+            forceQuotes: true,
+          });
+
+          if (yaml.endsWith(",")) {
+            yaml = yaml.substring(0, yaml.length - 1);
+          }
 
           return vscode.env
             .openExternal(
               vscode.Uri.parse(
-                `${
-                  vscode.env.uriScheme
-                }://vadimcn.vscode-lldb/launch/config?{program: '${
-                  launch.program
-                }', args: [${launch.args
-                  .map((a) => `'${a}'`)
-                  .join(", ")}], name: '${
-                  launch.name
-                }', request: 'launch', cwd: '${workspaceFolder}', console: '${
-                  launch.console
-                }', type: 'lldb',}`
+                `${vscode.env.uriScheme}://vadimcn.vscode-lldb/launch/config?${yaml}`
               )
             )
-            .then((a) => {
-              if (vscode.window.activeTerminal)
-                vscode.window.activeTerminal.show();
-            });
+            .then((a) => {});
         });
 
         vscode.tasks.executeTask(resolved);

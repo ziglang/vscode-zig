@@ -11,7 +11,7 @@
     "url": "https://github.com/zig-lang/vscode-zig"
   },
   "engines": {
-    "vscode": "^1.56.0"
+    "vscode": "^1.58.0"
   },
   "categories": [
     "Programming Languages"
@@ -150,13 +150,15 @@
     "test": "npm run compile && node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.3",
     "@types/mocha": "^2.2.48",
     "@types/node": "^15.6.0",
-    "@types/vscode": "^1.43.0",
+    "@types/vscode": "^1.58.0",
     "vscode-test": "^1.4.0"
   },
   "dependencies": {
     "esbuild": "^0.12.1",
+    "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.21",
     "lodash.debounce": "^4.0.8",
     "vsce": "^1.88.0"
