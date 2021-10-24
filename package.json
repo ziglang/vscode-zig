@@ -42,6 +42,10 @@
           "file": {
             "type": "string",
             "description": "The file path to the zig source code to filter the test. Can be omitted."
+          },
+          "bin": {
+            "type": "string",
+            "description": "The file path to output the test to. Can be omitted."
           }
         }
       },
@@ -59,6 +63,10 @@
           "file": {
             "type": "string",
             "description": "The file path to the zig source code to filter the test. Can be omitted."
+          },
+          "bin": {
+            "type": "string",
+            "description": "The file path to output the test to. Can be omitted."
           },
           "extraFiles": {
             "type": "array",
@@ -144,6 +152,22 @@
           "default": "",
           "description": "Additional flags to pass \"zig test\""
         },
+        "zig.testCmd": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Custom command to build tests"
+        },
+        "zig.beforeDebugCmd": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Custom command to run before debugging tests. Probably want to build the tests."
+        },
         "zig.disableProblemMatcherForTest": {
           "type": "boolean",
           "default": false,
@@ -182,6 +206,7 @@
     "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.21",
     "lodash.debounce": "^4.0.8",
+    "qs": "^6.10.1",
     "vsce": "^1.88.0"
   }
 }
