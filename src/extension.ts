@@ -85,8 +85,11 @@ export function activate(context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration("zig");
     const bin = (config.get("zigPath") as string) || "zig";
     const testCmd = (
-      (config.get(isDebug ? "beforeDebugCmd" : "testCmd") as string[]) || []
-    ).slice();
+      (config.get(isDebug ? "beforeDebugCmd" : "testCmd") as string) || ""
+    )
+      .split(" ")
+      .filter(Boolean);
+
     let femitBinPath = (task.definition.bin || "") as string;
 
     if (!femitBinPath || femitBinPath.trim().length === 0) {
@@ -207,6 +210,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     return objectFiles;
   }
+  var lastTestCommand;
 
   context.subscriptions.push(
     vscode.tasks.registerTaskProvider("zig", {
@@ -254,16 +258,47 @@ export function activate(context: vscode.ExtensionContext) {
           /\$\{workspaceFolder\}/gm,
           vscode.workspace.workspaceFolders[0].uri.fsPath
         );
-
-        vscode.tasks.executeTask(resolveTask(task, null));
+        lastTestCommand = { filename, filter };
+        const resolved = resolveTask(task, null);
+        vscode.tasks.executeTask(resolved);
+        vscode.commands.executeCommand(
+          "setContext",
+          "zig.hasLastTestCommand",
+          true
+        );
       }
     )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zig.test.rerun", (cmd) => {
+      if (lastTestCommand) {
+        vscode.commands.executeCommand(
+          "zig.test.run",
+          lastTestCommand.filename,
+          lastTestCommand.filter
+        );
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("zig.test.rerun.debug", (cmd) => {
+      if (lastTestCommand) {
+        vscode.commands.executeCommand(
+          "zig.test.debug",
+          lastTestCommand.filename,
+          lastTestCommand.filter
+        );
+      }
+    })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "zig.test.debug",
       (filename: vscode.Uri, filter: string) => {
+        lastTestCommand = { filename, filter };
         const config = vscode.workspace.getConfiguration("zig");
 
         const workspaceFolder = vscode.workspace.workspaceFolders[0].uri.fsPath;

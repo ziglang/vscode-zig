@@ -153,20 +153,17 @@
           "description": "Additional flags to pass \"zig test\""
         },
         "zig.testCmd": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Custom command to build tests"
+          "type": "string",
+          "default": "",
+          "editPresentation": "multilineText",
+          "title": "Build Test Command",
+          "markdownDescription": "Custom command to build a test. Useful if you have non-Zig dependencies or multiple packages.\n\nVariables:\n\n- `${file}`\n- `${filter}`\n- `${bin}`\n\nExample:\n```\nzig build test ${file} --filter ${filter} --bin ${bin}```."
         },
         "zig.beforeDebugCmd": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Custom command to run before debugging tests. Probably want to build the tests."
+          "type": "string",
+          "default": "",
+          "title": "Debug Test Command",
+          "markdownDescription": "Custom command to build a test for debugging. Useful if you have non-Zig dependencies or multiple packages.\n\nVariables:\n\n- `${file}`\n- `${filter}`\n- `${bin}`\n\ne.g.\n```\nzig build test-debug ${file} --filter ${filter} --bin ${bin}```"
         },
         "zig.disableProblemMatcherForTest": {
           "type": "boolean",
@@ -185,6 +182,18 @@
         "command": "zig.build.workspace",
         "title": "Zig: Build Workspace",
         "description": "Build the current project using 'zig build'"
+      },
+      {
+        "command": "zig.test.rerun",
+        "title": "Zig: Re-run last test",
+        "description": "Re-run the last test",
+        "enablement": "zig.hasLastTestCommand"
+      },
+      {
+        "command": "zig.test.rerun.debug",
+        "title": "Zig: Re-run last test with debugging",
+        "description": "Re-run the last test with debugging",
+        "enablement": "zig.hasLastTestCommand"
       }
     ]
   },
