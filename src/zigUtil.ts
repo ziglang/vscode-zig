@@ -1,14 +1,14 @@
-import * as cp from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import { window, workspace } from 'vscode';
+import * as cp from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import { Uri, window, workspace } from "vscode";
 
-export const isWindows = process.platform === 'win32';
+export const isWindows = process.platform === "win32";
 
 /** Options for execCmd */
 export interface ExecCmdOptions {
   /** The project root folder for this file is used as the cwd of the process */
-  fileName?: string;
+  fileName?: Uri;
   /** Any arguments */
   cmdArguments?: string[];
   /** Shows a message if an error occurs (in particular the command not being */
@@ -38,22 +38,31 @@ export interface ExecutingCmd
   /** Is the process running */
   isRunning: boolean; // tslint:disable-line
 }
+let projectRootCache = new Map();
 
 /** Executes a command. Shows an error message if the command isn't found */
-export function execCmd
-  (cmd: string, options: ExecCmdOptions = {}): ExecutingCmd {
-
-  const { fileName, onStart, onStdout, onStderr, onExit, cmdArguments } = options;
-  let childProcess, firstResponse = true, wasKilledbyUs = false;
+export function execCmd(
+  cmd: string,
+  options: ExecCmdOptions = {}
+): ExecutingCmd {
+  const { fileName, onStart, onStdout, onStderr, onExit, cmdArguments } =
+    options;
+  let childProcess,
+    firstResponse = true,
+    wasKilledbyUs = false;
 
   const executingCmd: any = new Promise((resolve, reject) => {
     let cmdArguments = options ? options.cmdArguments : [];
 
-    childProcess =
-      cp.exec(cmd + ' ' + (cmdArguments || []).join(' '), { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName') }, handleExit);
+    childProcess = cp.exec(
+      cmd + " " + (cmdArguments || []).join(" "),
+      {
+        cwd: workspace.getWorkspaceFolder(fileName).uri.fsPath,
+      },
+      handleExit
+    );
 
-
-    childProcess.stdout.on('data', (data: Buffer) => {
+    childProcess.stdout.on("data", (data: Buffer) => {
       if (firstResponse && onStart) {
         onStart();
       }
@@ -63,7 +72,7 @@ export function execCmd
       }
     });
 
-    childProcess.stderr.on('data', (data: Buffer) => {
+    childProcess.stderr.on("data", (data: Buffer) => {
       if (firstResponse && onStart) {
         onStart();
       }
@@ -81,7 +90,7 @@ export function execCmd
       if (!wasKilledbyUs) {
         if (err) {
           if (options.showMessageOnError) {
-            const cmdName = cmd.split(' ', 1)[0];
+            const cmdName = cmd.split(" ", 1)[0];
             const cmdWasNotFound =
               // Windows method apparently still works on non-English systems
               (isWindows &&
@@ -89,9 +98,9 @@ export function execCmd
               (!isWindows && (<any>err).code === 127);
 
             if (cmdWasNotFound) {
-              let notFoundText = options ? options.notFoundText : '';
+              let notFoundText = options ? options.notFoundText : "";
               window.showErrorMessage(
-                `${cmdName} is not available in your path. ` + notFoundText,
+                `${cmdName} is not available in your path. ` + notFoundText
               );
             } else {
               window.showErrorMessage(err.message);
@@ -114,32 +123,11 @@ export function execCmd
   function killProcess() {
     wasKilledbyUs = true;
     if (isWindows) {
-      cp.spawn('taskkill', ['/pid', childProcess.pid.toString(), '/f', '/t']);
+      cp.spawn("taskkill", ["/pid", childProcess.pid.toString(), "/f", "/t"]);
     } else {
-      childProcess.kill('SIGINT');
+      childProcess.kill("SIGINT");
     }
   }
 }
 
-const buildFile = 'build.zig';
-
-export function findProj(dir: string, parent: string): string {
-  if (dir === '' || dir === parent) {
-    return '';
-  }
-  if (fs.lstatSync(dir).isDirectory()) {
-    const build = path.join(dir, buildFile);
-    if (fs.existsSync(build)) {
-      return dir;
-    }
-  }
-  return findProj(path.dirname(dir), dir)
-}
-
-export function detectProjectRoot(fileName: string): string {
-  const proj = findProj(path.dirname(fileName), '');
-  if (proj !== '') {
-    return proj;
-  }
-  return undefined;
-}
+const buildFile = "build.zig";

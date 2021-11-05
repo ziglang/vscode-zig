@@ -199,7 +199,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "esbuild --bundle --sourcemap=inline  --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
+    "compile": "esbuild  --bundle --sourcemap=external --minify  --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
     "watch": "esbuild --watch --bundle --sourcemap=inline --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
     "test": "npm run compile && node ./node_modules/vscode/bin/test"
   },

@@ -25,30 +25,32 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 
     for (let i = 0; i < text.length; i++) {
       const possibleTestKeyword = text.indexOf("test", i);
+      if (possibleTestKeyword === -1) break;
+      if (token && token.isCancellationRequested) break;
+
       const previousWord =
         possibleTestKeyword > -1
           ? text[possibleTestKeyword - 1].trimLeft()
           : "";
-      if (possibleTestKeyword > -1) {
-        if (!(previousWord === "" || previousWord === "}")) {
-          i = possibleTestKeyword + 4;
-          continue;
-        }
 
-        switch (text[possibleTestKeyword + 5].trimLeft()) {
-          case '"':
-          case "{":
-            break;
-          default: {
-            i = possibleTestKeyword + 5;
-            continue;
-          }
+      if (!(previousWord === "" || previousWord === "}")) {
+        i = possibleTestKeyword + 4;
+        continue;
+      }
+
+      switch (text[possibleTestKeyword + 5].trimLeft()) {
+        case '"':
+        case "{":
+          break;
+        default: {
+          i = possibleTestKeyword + 5;
+          continue;
         }
       }
 
       // test "foo"
       // ^
-      if (possibleTestKeyword > -1 && text.length > possibleTestKeyword + 4) {
+      if (text.length > possibleTestKeyword + 4) {
         const nextCurlyBrace = text.indexOf("{", possibleTestKeyword);
         if (nextCurlyBrace === -1) {
           i = possibleTestKeyword + 4;
@@ -56,7 +58,11 @@ export class CodelensProvider implements vscode.CodeLensProvider {
         }
 
         i = possibleTestKeyword + 4;
-        while (i < text.length && text[i] === " ") {
+        while (
+          i < text.length &&
+          text[i] === " " &&
+          !token.isCancellationRequested
+        ) {
           i++;
         }
 
@@ -66,7 +72,11 @@ export class CodelensProvider implements vscode.CodeLensProvider {
           const quoteStart = i;
           i++;
 
-          while (i < text.length && text[i] !== '"') {
+          while (
+            i < text.length &&
+            text[i] !== '"' &&
+            !token.isCancellationRequested
+          ) {
             if (text[i] === "\\" && text[i + 1] === '"') {
               i += 1;
             }
@@ -76,6 +86,8 @@ export class CodelensProvider implements vscode.CodeLensProvider {
           i++;
 
           const quoteEnd = i;
+
+          if (token.isCancellationRequested) return [];
 
           const line = document.lineAt(
             document.positionAt(possibleTestKeyword).line
