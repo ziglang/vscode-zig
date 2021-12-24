@@ -21,6 +21,6 @@ modify the `Zig Path` setting to point to the `zig` binary.
 
 ```
 npm install
-tsc src/extensions.js
+npm run compile
 npx vsce package
 ```
