@@ -1,6 +1,4 @@
 import * as cp from "child_process";
-import * as fs from "fs";
-import * as path from "path";
 import { Uri, window, workspace } from "vscode";
 
 export const isWindows = process.platform === "win32";

@@ -1,10 +1,6 @@
 import * as vscode from "vscode";
 import {
-  Range,
-  StatusBarItem,
-  TextEdit,
-  OutputChannel,
-  EndOfLine,
+  OutputChannel, TextEdit
 } from "vscode";
 import { execCmd } from "./zigUtil";
 
