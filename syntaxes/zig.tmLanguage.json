@@ -166,7 +166,7 @@
           "match": "\\b(true|false)\\b"
         },
         {
-          "match": "[\\s\\(\\[\\{](\\.[_a-zA-Z][_a-zA-Z0-9]*)(?!\\s*=[^>])(?![_a-zA-Z0-9])",
+          "match": "[\\s\\(\\[\\{](\\.[_a-zA-Z][_a-zA-Z0-9]*)(?!\\s*=[^>]|\\s*\\()(?![_a-zA-Z0-9])",
           "captures": {
             "1": {
               "name": "variable.other.enummember.zig"
@@ -174,7 +174,7 @@
           }
         },
         {
-          "match": "[\\s\\(\\[\\{](\\.@\"[^\"]*\")(?!\\s*=[^>])",
+          "match": "[\\s\\(\\[\\{](\\.@\"[^\"]*\")(?!\\s*=[^>]|\\s*\\()",
             "captures": {
               "1": {
                 "name": "variable.other.enummember.zig"
@@ -229,7 +229,7 @@
         },
         {
           "name": "keyword.type.zig",
-          "match": "\\b(bool|void|noreturn|type|error|anyerror|anyframe|anytype)\\b"
+          "match": "\\b(bool|void|noreturn|type|error|anyerror|anyframe|anytype|anyopaque)\\b"
         },
         {
           "name": "keyword.type.integer.zig",
@@ -237,7 +237,7 @@
         },
         {
           "name": "keyword.type.c.zig",
-          "match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble|c_void)\\b"
+          "match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble)\\b"
         }
       ]
     },
