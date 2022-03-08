@@ -1,4 +1,7 @@
 out
 node_modules
 .vscode-test/
+zig-cache
+.DS_Store
 *.vsix
+

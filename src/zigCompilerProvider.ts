@@ -4,7 +4,7 @@ import * as path from "path";
 import * as cp from "child_process";
 import * as vscode from "vscode";
 // This will be treeshaked to only the debounce function
-import { throttle } from "lodash-es";
+import { debounce } from "lodash-es";
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
   private buildDiagnostics: vscode.DiagnosticCollection;
@@ -211,10 +211,10 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     }
   }
 
-  doASTGenErrorCheck = throttle(this._doASTGenErrorCheck, 16, {
+  doASTGenErrorCheck = debounce(this._doASTGenErrorCheck, 16, {
     trailing: true,
   });
-  doCompile = throttle(this._doCompile, 60);
+  doCompile = debounce(this._doCompile, 60);
   public provideCodeActions(
     document: vscode.TextDocument,
     range: vscode.Range,

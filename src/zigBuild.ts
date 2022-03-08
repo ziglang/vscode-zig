@@ -25,7 +25,7 @@ export function zigBuild(): void {
     let extraArgs = config.get<string[]>("buildArgs");;
     extraArgs.forEach(element => {
         processArg.push(element);
-    });
+});
 
     const cwd = vscode.workspace.getWorkspaceFolder(editor.document.uri).uri.fsPath;
     const buildPath = config.get<string>("zigPath") || 'zig';

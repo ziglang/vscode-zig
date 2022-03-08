@@ -11,7 +11,7 @@
     "url": "https://github.com/ziglang/vscode-zig"
   },
   "engines": {
-    "vscode": "^1.56.0"
+    "vscode": "^1.58.0"
   },
   "categories": [
     "Programming Languages"
@@ -21,6 +21,60 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "snippets": [
+      {
+        "language": "zig",
+        "path": "./snippets.json"
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "test",
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Test name to filter against"
+          },
+          "args": {
+            "type": "string",
+            "description": "Additional args to pass \"zig test\""
+          },
+          "file": {
+            "type": "string",
+            "description": "The file path to the zig source code to filter the test. Can be omitted."
+          },
+          "bin": {
+            "type": "string",
+            "description": "The file path to output the test to. Can be omitted."
+          }
+        }
+      },
+      {
+        "type": "debug",
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Test name to filter against"
+          },
+          "args": {
+            "type": "string",
+            "description": "Additional args to pass \"zig test\""
+          },
+          "file": {
+            "type": "string",
+            "description": "The file path to the zig source code to filter the test. Can be omitted."
+          },
+          "bin": {
+            "type": "string",
+            "description": "The file path to output the test to. Can be omitted."
+          },
+          "extraFiles": {
+            "type": "array",
+            "description": "Extra files to pass"
+          }
+        }
+      }
+    ],
     "languages": [
       {
         "id": "zig",
@@ -93,6 +147,29 @@
           "default": null,
           "description": "Set a custom path to the Zig binary. Defaults to 'zig' in your PATH."
         },
+        "zig.testArgs": {
+          "type": "string",
+          "default": "",
+          "description": "Additional flags to pass \"zig test\""
+        },
+        "zig.testCmd": {
+          "type": "string",
+          "default": "",
+          "editPresentation": "multilineText",
+          "title": "Build Test Command",
+          "markdownDescription": "Custom command to build a test. Useful if you have non-Zig dependencies or multiple packages.\n\nVariables:\n\n- `${file}`\n- `${filter}`\n- `${bin}`\n\nExample:\n```\nzig build test ${file} --filter ${filter} --bin ${bin}```."
+        },
+        "zig.beforeDebugCmd": {
+          "type": "string",
+          "default": "",
+          "title": "Debug Test Command",
+          "markdownDescription": "Custom command to build a test for debugging. Useful if you have non-Zig dependencies or multiple packages.\n\nVariables:\n\n- `${file}`\n- `${filter}`\n- `${bin}`\n\ne.g.\n```\nzig build test-debug ${file} --filter ${filter} --bin ${bin}```"
+        },
+        "zig.disableProblemMatcherForTest": {
+          "type": "boolean",
+          "default": false,
+          "description": "Highlight lines where tests failed"
+        },
         "zig.revealOutputChannelOnFormattingError": {
           "type": "boolean",
           "default": true,
@@ -105,25 +182,40 @@
         "command": "zig.build.workspace",
         "title": "Zig: Build Workspace",
         "description": "Build the current project using 'zig build'"
+      },
+      {
+        "command": "zig.test.rerun",
+        "title": "Zig: Re-run last test",
+        "description": "Re-run the last test",
+        "enablement": "zig.hasLastTestCommand"
+      },
+      {
+        "command": "zig.test.rerun.debug",
+        "title": "Zig: Re-run last test with debugging",
+        "description": "Re-run the last test with debugging",
+        "enablement": "zig.hasLastTestCommand"
       }
     ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "esbuild --bundle --sourcemap=external --minify --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
-    "watch": "esbuild --watch --bundle --sourcemap=external --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
+    "compile": "esbuild  --bundle --sourcemap=external --minify  --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
+    "watch": "esbuild --watch --bundle --sourcemap=inline --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
     "test": "npm run compile && node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.3",
     "@types/mocha": "^2.2.48",
     "@types/node": "^15.6.0",
-    "@types/vscode": "^1.43.0",
+    "@types/vscode": "^1.58.0",
     "vscode-test": "^1.4.0"
   },
   "dependencies": {
     "esbuild": "^0.12.1",
+    "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.21",
     "lodash.debounce": "^4.0.8",
+    "qs": "^6.10.1",
     "vsce": "^1.88.0"
   }
 }
