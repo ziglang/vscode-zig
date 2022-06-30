@@ -233,7 +233,7 @@
         },
         {
           "name": "keyword.type.integer.zig",
-          "match": "\\b(f16|f32|f64|f128|u\\d+|i\\d+|isize|usize|comptime_int|comptime_float)\\b"
+          "match": "\\b(f16|f32|f64|f80|f128|u\\d+|i\\d+|isize|usize|comptime_int|comptime_float)\\b"
         },
         {
           "name": "keyword.type.c.zig",
