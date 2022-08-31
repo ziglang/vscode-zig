@@ -175,11 +175,11 @@
         },
         {
           "match": "[\\s\\(\\[\\{](\\.@\"[^\"]*\")(?!\\s*=[^>]|\\s*\\()",
-            "captures": {
-              "1": {
-                "name": "variable.other.enummember.zig"
-              }
+          "captures": {
+            "1": {
+              "name": "variable.other.enummember.zig"
             }
+          }
         },
         {
           "name": "keyword.default.zig",
@@ -335,6 +335,10 @@
     "numbers": {
       "patterns": [
         {
+          "name": "constant.numeric.hexfloat.zig",
+          "match": "\\b0x[0-9a-fA-F][0-9a-fA-F_]*(\\.[0-9a-fA-F][0-9a-fA-F_]*)?([pP][+-]?[0-9a-fA-F_]+)?\\b"
+        },
+        {
           "name": "constant.numeric.float.zig",
           "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?\\b"
         },
@@ -353,6 +357,10 @@
         {
           "name": "constant.numeric.binary.zig",
           "match": "\\b0b[01_]+\\b"
+        },
+        {
+          "name": "constant.numeric.invalid.zig",
+          "match": "\\b[0-9](([eEpP][+-])|[0-9a-zA-Z_])*(\\.(([eEpP][+-])|[0-9a-zA-Z_])*)?([eEpP][+-])?[0-9a-zA-Z_]*\\b"
         }
       ]
     },
