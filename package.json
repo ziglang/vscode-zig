@@ -35,17 +35,6 @@
         "language": "zig",
         "scopeName": "source.zig",
         "path": "./syntaxes/zig.tmLanguage.json"
-      },
-      {
-        "language": "zig",
-        "scopeName": "markdown.zig.codeblock",
-        "path": "./syntaxes/codeblock.json",
-        "injectTo": [
-          "text.html.markdown"
-        ],
-        "embeddedLanguages": {
-          "meta.embedded.block.zig": "zig"
-        }
       }
     ],
     "problemMatchers": [
