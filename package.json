@@ -124,6 +124,6 @@
     "esbuild": "^0.12.1",
     "lodash-es": "^4.17.21",
     "lodash.debounce": "^4.0.8",
-    "vsce": "^1.88.0"
+    "vsce": "^2.11.0"
   }
 }
