@@ -126,7 +126,11 @@
     "keywords": {
       "patterns": [
         {
-          "match": "(\\binline\\b)?\\s*\\b(while|for)\\b",
+          "match": "\\binline\\b(?!\\s*\\bfn\\b)",
+          "name": "keyword.control.repeat.zig"
+        },
+        {
+          "match": "\\b(while|for)\\b",
           "name": "keyword.control.repeat.zig"
         },
         {
