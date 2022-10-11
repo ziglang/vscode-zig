@@ -20,5 +20,34 @@
         ["(", ")"],
         ["\"", "\""],
         ["'", "'"]
+    ],
+    "folding": {
+        "markers": {
+            "start": "// zig fmt: off\\b",
+            "end": "// zig fmt: on\\b"
+        }
+    },
+    "onEnterRules": [
+        {
+            "beforeText": "//!.*$",
+            "action": {
+                "indent": "none", 
+                "appendText": "//! "
+            }
+        },
+        {
+            "beforeText": "///.*$",
+            "action": {
+                "indent": "none", 
+                "appendText": "/// "
+            }
+        },
+        {
+            "beforeText": "\\\\.*$",
+            "action": {
+                "indent": "none", 
+                "appendText": "\\\\"
+            }
+        }
     ]
 }
