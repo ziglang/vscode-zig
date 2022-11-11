@@ -37,7 +37,10 @@ export class ZigTestProvider {
     public dispose() {
         this.controller.dispose()
         vscode.workspace.onDidOpenTextDocument(document => parseTestsInDocument(this, document))
-        vscode.workspace.onDidChangeTextDocument(event => parseTestsInDocument(this, event.document))
+        vscode.workspace.onDidChangeTextDocument(event => {
+            this.controller.items.delete(event.document.uri.path)
+            parseTestsInDocument(this, event.document)
+        })
     }
 }
 
@@ -95,7 +98,10 @@ async function discoverAllTestFilesInWorkspace(controller: vscode.TestController
             const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
             watcher.onDidCreate(uri => getOrCreateFile(controller, uri));
-            watcher.onDidChange(uri => parseTestsInFileContents(controller, getOrCreateFile(controller, uri)));
+            watcher.onDidChange(uri => {
+                controller.items.delete(uri.path)
+                parseTestsInFileContents(controller, getOrCreateFile(controller, uri))
+            });
             watcher.onDidDelete(uri => controller.items.delete(uri.path));
 
             for (const file of await vscode.workspace.findFiles(pattern)) {
