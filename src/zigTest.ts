@@ -27,6 +27,9 @@ export class ZigTestProvider {
         }
 
         this.controller.refreshHandler = async () => {
+            this.controller.items.forEach((item, collection) => {
+                collection.delete(item.id);
+            });
             await discoverAllTestFilesInWorkspace(this.controller);
         };
     }
