@@ -61,7 +61,7 @@ async function parseTestsInFileContents(controller: vscode.TestController, file:
         contents = new TextDecoder().decode(rawContent);
     }
 
-    const regex = /test \"(.*)\" {/gm;
+    const regex = /test\s*"(.+)"\s*{/gm;
 
     let lines = contents.split('\n');
     for (let i = 0; i < lines.length; i++) {
