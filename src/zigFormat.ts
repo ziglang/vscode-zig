@@ -66,7 +66,7 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                 );
                 return [new TextEdit(wholeDocument, stdout),];
             })
-            .catch((reason) => {
+            .catch(({ error: reason }) => {
                 const config = vscode.workspace.getConfiguration('zig');
 
                 logger.clear();

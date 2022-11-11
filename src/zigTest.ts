@@ -133,13 +133,13 @@ async function runTestHandler(
                 run.passed(test, Date.now() - start);
             } catch (e) {
                 let [document, testCase] = test.id.split(':- test -:');
-                let message = new vscode.TestMessage(e.stderr);
+                let message = new vscode.TestMessage(e.toString());
 
                 let path = document.replace(/\//g, "\\/");
 
                 let regex = new RegExp(path + ":(\\d+):(\\d+)", "gm");
                 let location = new vscode.Position(0, 0);
-                let match = regex.exec(e.stderr);
+                let match = regex.exec(e.toString());
                 if (match !== null) {
                     let line = parseInt(match[1]) - 1;
                     let col = parseInt(match[2]) - 1;
