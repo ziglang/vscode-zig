@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import ZigCompilerProvider from './zigCompilerProvider';
 import { zigBuild } from './zigBuild';
 import { ZigFormatProvider, ZigRangeFormatProvider } from './zigFormat';
+import { ZigTestProvider } from './zigTest';
 
 const ZIG_MODE: vscode.DocumentFilter = { language: 'zig', scheme: 'file' };
 
@@ -32,6 +33,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     buildDiagnosticCollection = vscode.languages.createDiagnosticCollection('zig');
     context.subscriptions.push(buildDiagnosticCollection);
+
+    context.subscriptions.push(new ZigTestProvider());
 
     // Commands
     context.subscriptions.push(vscode.commands.registerCommand('zig.build.workspace', () => zigBuild()));

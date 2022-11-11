@@ -12,6 +12,7 @@
  - syntax highlighting
  - basic compiler linting
  - automatic formatting
+ - tests running
 
 ## Automatic Formatting
 

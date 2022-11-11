@@ -97,7 +97,7 @@ export function execCmd
               window.showErrorMessage(err.message);
             }
           } else {
-            reject(err);
+            reject({ error: err, stderr: stderr });
           }
         } else {
           resolve({ stdout: stdout, stderr: stderr });
