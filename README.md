@@ -32,3 +32,5 @@ here
 Download and install via the `Install from VSIX` vscode extension install option
 
 [Code Runner pre-release vsix](./pre-runner/code-runner-0.11.8.zip)
+
+Download the zip then extract the `.vsix` from the zip
