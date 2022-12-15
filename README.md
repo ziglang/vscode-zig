@@ -31,4 +31,4 @@ If you are looking for a way to run zig via code runner before the next release 
 here
 Download and install via the `Install from VSIX` vscode extension install option
 
-[Code Runner pre-release vsix](./pre-runner/code-runner-0.11.8.vsix)
+[Code Runner pre-release vsix](./pre-runner/code-runner-0.11.8.zip)
