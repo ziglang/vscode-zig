@@ -142,6 +142,10 @@ export async function startClient(context: ExtensionContext) {
     return client.start().catch(reason => {
         window.showWarningMessage(`Failed to run Zig Language Server (ZLS): ${reason}`);
         client = null;
+    }).then(() => {
+        const configuration = workspace.getConfiguration("zig.zls");
+        if (!configuration.get("forceFormatting", false))
+            client.getFeature("textDocument/formatting").dispose();
     });
 }
 

@@ -23,6 +23,13 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "configurationDefaults": {
+      "[zig]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ziglang.zig",
+        "files.eol": "\n"
+      }
+    },
     "languages": [
       {
         "id": "zig",
@@ -259,6 +266,12 @@
           "type": "string",
           "description": "Path to a directroy that will be used as zig's cache. null is equivalent to `${KnownFloders.Cache}/zls`",
           "default": null
+        },
+        "zig.zls.forceFormatting": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Forcefully override default extension formatting for zls's. This is not recommended as zls's formatting is slower than the extension's.",
+          "default": false
         }
       }
     },
