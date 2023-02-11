@@ -13,6 +13,7 @@ import * as path from "path";
 import which from "which";
 import mkdirp from "mkdirp";
 import * as child_process from "child_process";
+import camelCase from "camelcase";
 
 export let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
@@ -107,13 +108,27 @@ export async function startClient(context: ExtensionContext) {
 
     let serverOptions: ServerOptions = {
         command: zlsPath,
-        args: debugLog ? ["--enable-debug-log"] : []
+        args: debugLog ? ["--enable-debug-log"] : [],
     };
 
     // Options to control the language client
     let clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: "file", language: "zig" }],
         outputChannel,
+        middleware: {
+            workspace: {
+                configuration(params, token, next) {
+                    for (const param of params.items) {
+                        if (param.section === "zls.zig_exe_path") {
+                            param.section = `zig.zigPath`;
+                        } else {
+                            param.section = `zig.zls.${camelCase(param.section.slice(4))}`;
+                        }
+                    }
+                    return next(params, token);
+                }
+            }
+        }
     };
 
     // Create the language client and start the client.
@@ -365,7 +380,7 @@ export async function activate(context: ExtensionContext) {
     
     const configuration = workspace.getConfiguration("zig.zls", null);
     if (!configuration.get<string | null>("path", null)) {
-        const response = await window.showInformationMessage("We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to enable it? You can always change this later by modifying `zig.zls.enabled` in your settings.", "Disable", "Enable");
+        const response = await window.showInformationMessage("We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to enable it? You can always change this later by modifying `zig.zls.enabled` in your settings.", "Enable", "Disable");
 
         if (response === "Enable") {
             await installExecutable(context);
