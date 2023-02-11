@@ -101,7 +101,7 @@ export async function startClient(context: ExtensionContext) {
     const zlsPath = await getZLSPath(context);
 
     if (!zlsPath) {
-        window.showWarningMessage("Couldn't find Zig Language Server (ZLS) executable");
+        promptAfterFailure(context);
         return null;
     }
 
@@ -135,6 +135,29 @@ export async function stopClient(): Promise<void> {
     client = null;
 }
 
+export async function promptAfterFailure(context: ExtensionContext): Promise<string | null> {
+    const configuration = workspace.getConfiguration("zig.zls");
+    const response = await window.showWarningMessage("Couldn't find Zig Language Server (ZLS) executable", "Install ZLS", "Specify Path");
+
+    if (response === "Install ZLS") {
+        return await installExecutable(context);
+    } else if (response === "Specify Path") {
+        const uris = await window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            title: "Select Zig Language Server (ZLS) executable",
+        });
+
+        if (uris) {
+            await configuration.update("path", uris[0].path, true);
+            return uris[0].path;
+        }
+    }
+
+    return null;
+}
+
 // returns the file system path to the zls executable
 export async function getZLSPath(context: ExtensionContext): Promise<string | null> {
     const configuration = workspace.getConfiguration("zig.zls");
@@ -165,30 +188,14 @@ export async function getZLSPath(context: ExtensionContext): Promise<string | nu
 
     if (message === null) {
         if (!zlsPath) {
-            message = "Couldn't find Zig Language Server (ZLS) executable";
+            return null;
         } else if (!zlsPathExists) {
             message = `Couldn't find Zig Language Server (ZLS) executable at ${zlsPath}`;
         }
     }
 
     if (message) {
-        const response = await window.showWarningMessage(message, "Install ZLS", "Specify Path");
-
-        if (response === "Install ZLS") {
-            return await installExecutable(context);
-        } else if (response === "Specify Path") {
-            const uris = await window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-                title: "Select Zig Language Server (ZLS) executable",
-            });
-
-            if (uris) {
-                await configuration.update("path", uris[0].path, true);
-                return uris[0].path;
-            }
-        }
+        await window.showErrorMessage(message);
         return null;
     }
 
@@ -296,7 +303,7 @@ export async function openConfig(context: ExtensionContext): Promise<void> {
 }
 
 function isEnabled(): boolean {
-    return workspace.getConfiguration("zig.zls").get<boolean>("enabled");
+    return workspace.getConfiguration("zig.zls", null).get<boolean>("enabled", true);
 }
 
 const zlsDisabledMessage = "zls is not enabled; if you'd like to enable it, please set 'zig.zls.enabled' to true.";
@@ -355,6 +362,18 @@ export async function activate(context: ExtensionContext) {
 
     if (!isEnabled())
         return;
+    
+    const configuration = workspace.getConfiguration("zig.zls", null);
+    if (!configuration.get<string | null>("path", null)) {
+        const response = await window.showInformationMessage("We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to enable it? You can always change this later by modifying `zig.zls.enabled` in your settings.", "Disable", "Enable");
+
+        if (response === "Enable") {
+            await installExecutable(context);
+        } else if (response === "Disable") {
+            await configuration.update("enabled", false, true);
+            return;
+        }
+    }
 
     await checkUpdateMaybe(context);
     await startClient(context);
