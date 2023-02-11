@@ -84,7 +84,7 @@ export async function installExecutable(context: ExtensionContext): Promise<stri
 
 export async function checkUpdateMaybe(context: ExtensionContext) {
     const configuration = workspace.getConfiguration("zig.zls");
-    const checkForUpdate = configuration.get<boolean>("check_for_update", true);
+    const checkForUpdate = configuration.get<boolean>("checkForUpdate", true);
     if (checkForUpdate) {
         try {
             await checkUpdate(context, true);
@@ -221,7 +221,7 @@ export async function checkUpdate(context: ExtensionContext, autoInstallPrebuild
         if (response === "Install update") {
             await installExecutable(context);
         } else if (response === "Never ask again") {
-            await configuration.update("check_for_update", false, true);
+            await configuration.update("checkForUpdate", false, true);
         }
     }
 
