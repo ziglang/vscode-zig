@@ -1,3 +1,9 @@
+## 0.3.0
+ - Update syntax to Zig 0.10.x
+ - Add support for optional [Zig Language Server](https://github.com/zigtools/zls) integration
+ - Support `ast-check` diagnostics without language server integration
+ - Minor fixes for existing extension features
+
 ## 0.2.5
  - Syntax updates (@Vexu)
 

@@ -1,5 +1,5 @@
 {
-  "name": "zig",
+  "name": "vscode-zig",
   "displayName": "Zig",
   "description": "Language support for the Zig programming language",
   "version": "0.3.0",
