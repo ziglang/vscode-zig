@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import ZigCompilerProvider from './zigCompilerProvider';
 import { zigBuild } from './zigBuild';
 import { ZigFormatProvider, ZigRangeFormatProvider } from './zigFormat';
+import { activate as activateZls, deactivate as deactivateZls } from './zls';
 
 const ZIG_MODE: vscode.DocumentFilter = { language: 'zig', scheme: 'file' };
 
@@ -35,8 +36,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Commands
     context.subscriptions.push(vscode.commands.registerCommand('zig.build.workspace', () => zigBuild()));
-    context.subscriptions.push(vscode.commands.registerCommand('zig.format.file', () => console.log('test')));
+
+    activateZls(context);
 }
 
 export function deactivate() {
+    deactivateZls();
 }
