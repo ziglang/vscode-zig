@@ -1,6 +1,6 @@
 {
   "name": "vscode-zig",
-  "displayName": "Zig",
+  "displayName": "Zig Language",
   "description": "Language support for the Zig programming language",
   "version": "0.3.1",
   "publisher": "ziglang",
