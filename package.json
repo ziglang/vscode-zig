@@ -113,7 +113,7 @@
           "description": "Whether to enable zls",
           "default": true
         },
-        "zig.zls.trace.server": {
+        "zig.trace.server": {
           "scope": "window",
           "type": "string",
           "enum": [
@@ -147,11 +147,26 @@
           "description": "Enables snippet completions when the client also supports them",
           "default": false
         },
-        "zig.zls.enableAstCheckDiagnostics": {
+        "zig.astCheckProvider": {
           "scope": "resource",
-          "type": "boolean",
+          "type": "string",
           "description": "Whether to enable ast-check diagnostics",
-          "default": true
+          "enum": [
+            "off",
+            "extension",
+            "zls"
+          ],
+          "enumItemLabels": [
+            "Off",
+            "Extension",
+            "Zig Language Server"
+          ],
+          "enumDescriptions": [
+            "Disable ast-check diagnostics",
+            "Use extension ast-check diagnostics (fewer features)",
+            "Use ZLS ast-check diagnostics (includes code actions)"
+          ],
+          "default": "zls"
         },
         "zig.zls.enableAutofix": {
           "scope": "resource",

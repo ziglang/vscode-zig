@@ -117,15 +117,26 @@ export async function startClient(context: ExtensionContext) {
         outputChannel,
         middleware: {
             workspace: {
-                configuration(params, token, next) {
-                    for (const param of params.items) {
+                async configuration(params, token, next) {
+                    let indexOfAstCheck = null;
+
+                    for (const [index, param] of Object.entries(params.items)) {
                         if (param.section === "zls.zig_exe_path") {
                             param.section = `zig.zigPath`;
+                        } else if (param.section === "zls.enable_ast_check_diagnostics") {
+                            indexOfAstCheck = index;
                         } else {
                             param.section = `zig.zls.${camelCase(param.section.slice(4))}`;
                         }
                     }
-                    return next(params, token);
+
+                    const result = await next(params, token);
+
+                    if (indexOfAstCheck !== null) {
+                        result[indexOfAstCheck] = workspace.getConfiguration("zig").get<string>("astCheckProvider", "zls") === "zls";
+                    }
+
+                    return result;
                 }
             }
         }
