@@ -1,3 +1,6 @@
+## 0.3.1
+- Fix missing Linux AArch64 ZLS auto-installer support
+
 ## 0.3.0
  - Update syntax to Zig 0.10.x
  - Add support for optional [Zig Language Server](https://github.com/zigtools/zls) integration
