@@ -28,11 +28,12 @@ export enum InstallationName {
     x86_64_macos = "x86_64-macos",
     x86_64_windows = "x86_64-windows",
     arm_64_macos = "aarch64-macos",
+    arm_64_linux = "aarch64-linux",
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export function getDefaultInstallationName(): InstallationName | null {
-    // NOTE: Not using a JS switch because they"re very clunky :(
+    // NOTE: Not using a JS switch because they're very clunky :(
 
     const plat = process.platform;
     const arch = process.arch;
@@ -45,6 +46,7 @@ export function getDefaultInstallationName(): InstallationName | null {
         else if (plat === "win32") return InstallationName.x86_64_windows;
     } else if (arch === "arm64") {
         if (plat === "darwin") return InstallationName.arm_64_macos;
+        if (plat === "linux") return InstallationName.arm_64_linux;
     }
 
     return null;
