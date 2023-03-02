@@ -1,3 +1,7 @@
+## 0.3.2
+- Make formatting provider option an enum (@alichraghi)
+- Only apply onEnterRules when line starts with whitespace
+
 ## 0.3.1
 - Fix missing Linux AArch64 ZLS auto-installer support
 
