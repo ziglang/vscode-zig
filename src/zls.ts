@@ -156,8 +156,7 @@ export async function startClient(context: ExtensionContext) {
         window.showWarningMessage(`Failed to run Zig Language Server (ZLS): ${reason}`);
         client = null;
     }).then(() => {
-        const configuration = workspace.getConfiguration("zig.zls");
-        if (!configuration.get("forceFormatting", false))
+        if (workspace.getConfiguration("zig").get<string>("formattingProvider", "zls") !== "zls")
             client.getFeature("textDocument/formatting").dispose();
     });
 }
@@ -394,7 +393,7 @@ export async function activate(context: ExtensionContext) {
 
     if (!isEnabled())
         return;
-    
+
     const configuration = workspace.getConfiguration("zig.zls", null);
     if (!configuration.get<string | null>("path", null)) {
         const response = await window.showInformationMessage("We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to enable it? You can always change this later by modifying `zig.zls.enabled` in your settings.", "Enable", "Disable");

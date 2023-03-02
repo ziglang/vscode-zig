@@ -17,19 +17,21 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerCodeActionsProvider('zig', compiler);
 
     context.subscriptions.push(logChannel);
-    context.subscriptions.push(
-        vscode.languages.registerDocumentFormattingEditProvider(
-            ZIG_MODE,
-            new ZigFormatProvider(logChannel),
-        ),
-    );
 
-    context.subscriptions.push(
-        vscode.languages.registerDocumentRangeFormattingEditProvider(
-            ZIG_MODE,
-            new ZigRangeFormatProvider(logChannel),
-        ),
-    );
+    if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider", "zls") === "extension") {
+        context.subscriptions.push(
+            vscode.languages.registerDocumentFormattingEditProvider(
+                ZIG_MODE,
+                new ZigFormatProvider(logChannel),
+            ),
+        );
+        context.subscriptions.push(
+            vscode.languages.registerDocumentRangeFormattingEditProvider(
+                ZIG_MODE,
+                new ZigRangeFormatProvider(logChannel),
+            ),
+        );
+    }
 
     buildDiagnosticCollection = vscode.languages.createDiagnosticCollection('zig');
     context.subscriptions.push(buildDiagnosticCollection);
