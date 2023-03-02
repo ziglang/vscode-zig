@@ -282,11 +282,26 @@
           "description": "Path to a directroy that will be used as zig's cache. null is equivalent to `${KnownFloders.Cache}/zls`",
           "default": null
         },
-        "zig.zls.forceFormatting": {
+        "zig.formattingProvider": {
           "scope": "resource",
-          "type": "boolean",
-          "description": "Forcefully override default extension formatting for zls's. This is not recommended as zls's formatting is slower than the extension's.",
-          "default": false
+          "type": "string",
+          "description": "Whether to enable formatting (requires restarting editor)",
+          "enum": [
+            "off",
+            "extension",
+            "zls"
+          ],
+          "enumItemLabels": [
+            "Off",
+            "Extension",
+            "Zig Language Server"
+          ],
+          "enumDescriptions": [
+            "Disable formatting",
+            "Use extension formatting",
+            "Use ZLS formatting (not recommended as zls's formatting is slower)"
+          ],
+          "default": "extension"
         }
       }
     },
