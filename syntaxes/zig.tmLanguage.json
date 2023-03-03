@@ -3,7 +3,8 @@
   "name": "zig",
   "scopeName": "source.zig",
   "fileTypes": [
-    "zig"
+    "zig",
+    "zon"
   ],
   "patterns": [
     {
