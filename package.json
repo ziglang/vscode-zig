@@ -26,7 +26,7 @@
     "configurationDefaults": {
       "[zig]": {
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "ziglang.zig",
+        "editor.defaultFormatter": "ziglang.vscode-zig",
         "files.eol": "\n"
       }
     },
@@ -34,7 +34,8 @@
       {
         "id": "zig",
         "extensions": [
-          ".zig"
+          ".zig",
+          ".zon"
         ],
         "configuration": "./language-configuration.json"
       }
