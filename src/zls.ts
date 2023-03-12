@@ -73,10 +73,14 @@ export async function installExecutable(context: ExtensionContext): Promise<stri
         if (!fs.existsSync(installDir.fsPath)) mkdirp.sync(installDir.fsPath);
 
         const zlsBinPath = vscode.Uri.joinPath(installDir, `zls${def.endsWith("windows") ? ".exe" : ""}`).fsPath;
+        const zlsBinTempPath = zlsBinPath + ".tmp";
 
-        fs.writeFileSync(zlsBinPath, exe, "binary");
-
-        fs.chmodSync(zlsBinPath, 0o755);
+        // Create a new executable file.
+        // Do not update the existing file in place, to avoid code-signing crashes on macOS.
+        // https://developer.apple.com/documentation/security/updating_mac_software
+        fs.writeFileSync(zlsBinTempPath, exe, "binary");
+        fs.chmodSync(zlsBinTempPath, 0o755);
+        fs.renameSync(zlsBinTempPath, zlsBinPath);
 
         let config = workspace.getConfiguration("zig.zls");
         await config.update("path", zlsBinPath, true);
