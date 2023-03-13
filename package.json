@@ -108,6 +108,48 @@
           "default": true,
           "description": "Should output channel be raised on formatting error."
         },
+        "zig.astCheckProvider": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Whether to enable ast-check diagnostics",
+          "enum": [
+            "off",
+            "extension",
+            "zls"
+          ],
+          "enumItemLabels": [
+            "Off",
+            "Extension",
+            "Zig Language Server"
+          ],
+          "enumDescriptions": [
+            "Disable ast-check diagnostics",
+            "Use extension ast-check diagnostics (fewer features)",
+            "Use ZLS ast-check diagnostics (includes code actions)"
+          ],
+          "default": "zls"
+        },
+        "zig.formattingProvider": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Whether to enable formatting (requires restarting editor)",
+          "enum": [
+            "off",
+            "extension",
+            "zls"
+          ],
+          "enumItemLabels": [
+            "Off",
+            "Extension",
+            "Zig Language Server"
+          ],
+          "enumDescriptions": [
+            "Disable formatting",
+            "Use extension formatting",
+            "Use ZLS formatting (not recommended as zls's formatting is slower)"
+          ],
+          "default": "extension"
+        },
         "zig.zls.enabled": {
           "scope": "resource",
           "type": "boolean",
@@ -134,7 +176,7 @@
         "zig.zls.path": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zig.zls.exe`.",
+          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`.",
           "format": "path"
         },
         "zig.zls.debugLog": {
@@ -146,40 +188,19 @@
           "scope": "resource",
           "type": "boolean",
           "description": "Enables snippet completions when the client also supports them",
-          "default": false
-        },
-        "zig.astCheckProvider": {
-          "scope": "resource",
-          "type": "string",
-          "description": "Whether to enable ast-check diagnostics",
-          "enum": [
-            "off",
-            "extension",
-            "zls"
-          ],
-          "enumItemLabels": [
-            "Off",
-            "Extension",
-            "Zig Language Server"
-          ],
-          "enumDescriptions": [
-            "Disable ast-check diagnostics",
-            "Use extension ast-check diagnostics (fewer features)",
-            "Use ZLS ast-check diagnostics (includes code actions)"
-          ],
-          "default": "zls"
+          "default": true
         },
         "zig.zls.enableAutofix": {
           "scope": "resource",
           "type": "boolean",
           "description": "Whether to automatically fix errors on save. Currently supports adding and removing discards.",
-          "default": false
+          "default": true
         },
         "zig.zls.enableImportEmbedfileArgumentCompletions": {
           "scope": "resource",
           "type": "boolean",
           "description": "Whether to enable import/embedFile argument completions",
-          "default": false
+          "default": true
         },
         "zig.zls.enableSemanticTokens": {
           "scope": "resource",
@@ -191,7 +212,7 @@
           "scope": "resource",
           "type": "boolean",
           "description": "Enables inlay hint support when the client also supports it",
-          "default": false
+          "default": true
         },
         "zig.zls.inlayHintsShowBuiltin": {
           "scope": "resource",
@@ -259,50 +280,53 @@
           "description": "The detail field of completions is truncated to be no longer than this (in bytes)",
           "default": 1048576
         },
+        "zig.zls.recordSession": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "When true, zls will record all request is receives and write in into `record_session_path`, so that they can replayed with `zls replay`",
+          "default": false
+        },
+        "zig.zls.recordSessionPath": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Output file path when `record_session` is set. The recommended file extension *.zlsreplay",
+          "format": "path"
+        },
+        "zig.zls.replaySessionPath": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Used when calling `zls replay` for specifying the replay file. If no extra argument is given `record_session_path` is used as the default path.",
+          "format": "path"
+        },
         "zig.zls.builtinPath": {
           "scope": "resource",
           "type": "string",
           "description": "Path to 'builtin;' useful for debugging, automatically set if let null",
-          "default": null
+          "format": "path"
         },
         "zig.zls.zigLibPath": {
           "scope": "resource",
           "type": "string",
           "description": "Zig library path, e.g. `/path/to/zig/lib/zig`, used to analyze std library imports",
-          "default": null
+          "format": "path"
         },
         "zig.zls.buildRunnerPath": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to the `build_runner.zig` file provided by zig.zls. null is equivalent to `${executable_directory}/build_runner.zig`",
-          "default": null
+          "description": "Path to the `build_runner.zig` file provided by zls. null is equivalent to `${executable_directory}/build_runner.zig`",
+          "format": "path"
         },
         "zig.zls.globalCachePath": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to a directroy that will be used as zig's cache. null is equivalent to `${KnownFloders.Cache}/zls`",
-          "default": null
+          "description": "Path to a directory that will be used as zig's cache. null is equivalent to `${KnownFloders.Cache}/zls`",
+          "format": "path"
         },
-        "zig.formattingProvider": {
+        "zig.zls.buildRunnerGlobalCachePath": {
           "scope": "resource",
           "type": "string",
-          "description": "Whether to enable formatting (requires restarting editor)",
-          "enum": [
-            "off",
-            "extension",
-            "zls"
-          ],
-          "enumItemLabels": [
-            "Off",
-            "Extension",
-            "Zig Language Server"
-          ],
-          "enumDescriptions": [
-            "Disable formatting",
-            "Use extension formatting",
-            "Use ZLS formatting (not recommended as zls's formatting is slower)"
-          ],
-          "default": "extension"
+          "description": "Path to a directory that will be used as the global cache path when executing a projects build.zig. null is equivalent to the path shown by `zig env`",
+          "format": "path"
         }
       }
     },
