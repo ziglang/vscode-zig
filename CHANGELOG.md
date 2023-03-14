@@ -3,6 +3,7 @@
 - Only apply onEnterRules when line starts with whitespace
 - Highlight `.zon` files (@Techatrix)
 - Fix `zls` not restarting after having been updated on macOS (@ngrilly)
+- Make semantic token configuration an enum
 
 ## 0.3.1
 - Fix missing Linux AArch64 ZLS auto-installer support
