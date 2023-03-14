@@ -202,11 +202,16 @@
           "description": "Whether to enable import/embedFile argument completions",
           "default": true
         },
-        "zig.zls.enableSemanticTokens": {
+        "zig.zls.semanticTokens": {
           "scope": "resource",
-          "type": "boolean",
-          "description": "Enables semantic token support when the client also supports it",
-          "default": true
+          "type": "string",
+          "enum": [
+            "none",
+            "partial",
+            "full"
+          ],
+          "description": "Set level of semantic tokens. Partial only includes information that requires semantic analysis.",
+          "default": "partial"
         },
         "zig.zls.enableInlayHints": {
           "scope": "resource",
