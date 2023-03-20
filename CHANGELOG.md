@@ -3,6 +3,7 @@
 - Only apply onEnterRules when line starts with whitespace
 - Highlight `.zon` files (@Techatrix)
 - Fix `zls` not restarting after having been updated on macOS (@ngrilly)
+- Support `${workspaceFolder}` in `zig.zls.path` (@Jarred-Sumner)
 - Make semantic token configuration an enum
 
 ## 0.3.1
