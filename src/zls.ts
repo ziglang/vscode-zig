@@ -198,6 +198,16 @@ export async function getZLSPath(context: ExtensionContext): Promise<string | nu
     const configuration = workspace.getConfiguration("zig.zls");
     var zlsPath = configuration.get<string | null>("path", null);
 
+    // Allow passing the ${workspaceFolder} predefined variable
+    // See https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
+    if (zlsPath && zlsPath.includes("${workspaceFolder}")) {
+        // We choose the first workspaceFolder since it is ambiguous which one to use in this context
+        if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+            // older versions of Node (which VSCode uses) may not have String.prototype.replaceAll
+            zlsPath = zlsPath.replace(/\$\{workspaceFolder\}/gm, workspace.workspaceFolders[0].uri.fsPath);
+        }
+    }
+
     if (!zlsPath) {
         zlsPath = which.sync("zls", { nothrow: true });
     } else if (zlsPath.startsWith("~")) {
@@ -225,7 +235,7 @@ export async function getZLSPath(context: ExtensionContext): Promise<string | nu
         if (!zlsPath) {
             return null;
         } else if (!zlsPathExists) {
-            message = `Couldn't find Zig Language Server (ZLS) executable at ${zlsPath}`;
+            message = `Couldn't find Zig Language Server (ZLS) executable at "${zlsPath.replace(/"/gm,'\\"')}"`;
         }
     }
 

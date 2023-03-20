@@ -176,7 +176,7 @@
         "zig.zls.path": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`.",
+          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. If ${workspaceFolder} is used, it will resolve to the first workspace folder.",
           "format": "path"
         },
         "zig.zls.debugLog": {
