@@ -324,7 +324,7 @@
         "zig.zls.globalCachePath": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to a directory that will be used as zig's cache. null is equivalent to `${KnownFloders.Cache}/zls`",
+          "description": "Path to a directory that will be used as zig's cache. null is equivalent to `${KnownFolders.Cache}/zls`",
           "format": "path"
         },
         "zig.zls.buildRunnerGlobalCachePath": {
