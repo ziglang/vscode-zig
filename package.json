@@ -159,13 +159,13 @@
         "zig.trace.server": {
           "scope": "window",
           "type": "string",
+          "description": "Traces the communication between VS Code and the language server.",
           "enum": [
             "off",
             "messages",
             "verbose"
           ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
+          "default": "off"
         },
         "zig.zls.checkForUpdate": {
           "scope": "resource",
@@ -176,18 +176,19 @@
         "zig.zls.path": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. If ${workspaceFolder} is used, it will resolve to the first workspace folder.",
+          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`.",
           "format": "path"
-        },
-        "zig.zls.debugLog": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Enable debug logging in release builds of zig.zls."
         },
         "zig.zls.enableSnippets": {
           "scope": "resource",
           "type": "boolean",
           "description": "Enables snippet completions when the client also supports them",
+          "default": true
+        },
+        "zig.zls.enableAstCheckDiagnostics": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Whether to enable ast-check diagnostics",
           "default": true
         },
         "zig.zls.enableAutofix": {
@@ -205,13 +206,13 @@
         "zig.zls.semanticTokens": {
           "scope": "resource",
           "type": "string",
+          "description": "Set level of semantic tokens. Partial only includes information that requires semantic analysis.",
           "enum": [
             "none",
             "partial",
             "full"
           ],
-          "description": "Set level of semantic tokens. Partial only includes information that requires semantic analysis.",
-          "default": "partial"
+          "default": "full"
         },
         "zig.zls.enableInlayHints": {
           "scope": "resource",
@@ -261,7 +262,7 @@
           "description": "Whether to highlight global var declarations",
           "default": false
         },
-        "zig.zls.useComptimeInterpreter": {
+        "zig.zls.dangerousComptimeExperimentsDoNotEnable": {
           "scope": "resource",
           "type": "boolean",
           "description": "Whether to use the comptime interpreter",
@@ -284,6 +285,12 @@
           "type": "integer",
           "description": "The detail field of completions is truncated to be no longer than this (in bytes)",
           "default": 1048576
+        },
+        "zig.zls.preferAstCheckAsChildProcess": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Can be used in conjuction with `enable_ast_check_diagnostics` to favor using `zig ast-check` instead of ZLS's fork",
+          "default": true
         },
         "zig.zls.recordSession": {
           "scope": "resource",
@@ -315,6 +322,12 @@
           "description": "Zig library path, e.g. `/path/to/zig/lib/zig`, used to analyze std library imports",
           "format": "path"
         },
+        "zig.zls.zigExePath": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Zig executable path, e.g. `/path/to/zig/zig`, used to run the custom build runner. If `null`, zig is looked up in `PATH`. Will be used to infer the zig standard library path if none is provided",
+          "format": "path"
+        },
         "zig.zls.buildRunnerPath": {
           "scope": "resource",
           "type": "string",
@@ -332,6 +345,12 @@
           "type": "string",
           "description": "Path to a directory that will be used as the global cache path when executing a projects build.zig. null is equivalent to the path shown by `zig env`",
           "format": "path"
+        },
+        "zig.zls.optInTelemetry": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Opt into telemetry so that we can optimize the Zig Language Server",
+          "default": false
         }
       }
     },
