@@ -1,6 +1,6 @@
 # vscode-zig
 
-[![VSCode Extension](https://img.shields.io/badge/vscode-extension-brightgreen)](https://marketplace.visualstudio.com/items?itemName=ziglang.zig)
+[![VSCode Extension](https://img.shields.io/badge/vscode-extension-brightgreen)](https://marketplace.visualstudio.com/items?itemName=ziglang.vscode-zig)
 [![CI](https://github.com/ziglang/vscode-zig/workflows/CI/badge.svg)](https://github.com/ziglang/vscode-zig/actions)
 
 [Zig](http://ziglang.org/) support for Visual Studio Code.
