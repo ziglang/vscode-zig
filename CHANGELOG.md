@@ -1,3 +1,5 @@
+- Prompt to install if prebuilt zls doesn't exist in specified path
+
 ## 0.3.2
 - Make formatting provider option an enum (@alichraghi)
 - Only apply onEnterRules when line starts with whitespace

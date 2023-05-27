@@ -235,6 +235,9 @@ export async function getZLSPath(context: ExtensionContext): Promise<string | nu
         if (!zlsPath) {
             return null;
         } else if (!zlsPathExists) {
+            if (await isZLSPrebuildBinary(context)) {
+                return null;
+            }
             message = `Couldn't find Zig Language Server (ZLS) executable at "${zlsPath.replace(/"/gm,'\\"')}"`;
         }
     }
