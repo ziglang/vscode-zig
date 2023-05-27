@@ -60,7 +60,7 @@
             {
               "begin": "\\b(fn)\\s+@\"",
               "end": "\"",
-              "name": "entity.name.function.zig",
+              "name": "entity.name.function.string.zig",
               "beginCaptures": {
                 "1": {
                   "name": "storage.type.function.zig"
@@ -113,7 +113,7 @@
             {
               "begin": "@\"",
               "end": "\"",
-              "name": "variable.zig",
+              "name": "variable.string.zig",
               "patterns": [
                 {
                   "include": "#stringcontent"
@@ -182,7 +182,7 @@
           "match": "[\\s\\(\\[\\{](\\.@\"[^\"]*\")(?!\\s*=[^>]|\\s*\\()",
           "captures": {
             "1": {
-              "name": "variable.other.enummember.zig"
+              "name": "variable.other.enummember.string.zig"
             }
           }
         },

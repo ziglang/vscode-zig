@@ -1,4 +1,5 @@
 - Prompt to install if prebuilt zls doesn't exist in specified path
+- Add `string` to the `name` of `@""` tokens
 
 ## 0.3.2
 - Make formatting provider option an enum (@alichraghi)
