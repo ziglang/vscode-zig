@@ -14,6 +14,7 @@ import which from "which";
 import mkdirp from "mkdirp";
 import * as child_process from "child_process";
 import camelCase from "camelcase";
+import { shouldCheckUpdate } from "./extension";
 
 export let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
@@ -238,7 +239,7 @@ export async function getZLSPath(context: ExtensionContext): Promise<string | nu
             if (await isZLSPrebuildBinary(context)) {
                 return null;
             }
-            message = `Couldn't find Zig Language Server (ZLS) executable at "${zlsPath.replace(/"/gm,'\\"')}"`;
+            message = `Couldn't find Zig Language Server (ZLS) executable at "${zlsPath.replace(/"/gm, '\\"')}"`;
         }
     }
 
@@ -423,7 +424,9 @@ export async function activate(context: ExtensionContext) {
         }
     }
 
-    await checkUpdateMaybe(context);
+    if (shouldCheckUpdate(context, "zlsUpdate")) {
+        await checkUpdateMaybe(context);
+    }
     await startClient(context);
 }
 

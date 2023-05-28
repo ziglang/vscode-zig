@@ -8,6 +8,7 @@ import semver from "semver";
 import { createHash } from "crypto";
 import mkdirp from "mkdirp";
 import { execCmd } from "./zigUtil";
+import { shouldCheckUpdate } from "./extension";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -195,6 +196,7 @@ export async function setupZig(context: ExtensionContext) {
         }
     }
 
+    if (!shouldCheckUpdate(context, "zigUpdate")) return;
     if (!configuration.get<boolean>("checkForUpdate", true)) return;
     await checkUpdate(context);
 }

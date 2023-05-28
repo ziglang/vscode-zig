@@ -47,3 +47,14 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
     deactivateZls();
 }
+
+// Check timestamp `key` to avoid automatically checking for updates
+// more than once in an hour.
+export function shouldCheckUpdate(context: vscode.ExtensionContext, key: string): boolean {
+    const HOUR = 60 * 60 * 1000;
+    const timestamp = new Date().getTime();
+    const old = context.globalState.get<number>(key);
+    if (old === undefined || timestamp - old < HOUR) return false;
+    context.globalState.update(key, timestamp);
+    return true;
+}
