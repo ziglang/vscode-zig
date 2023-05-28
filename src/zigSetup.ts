@@ -91,7 +91,6 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
         const configuration = workspace.getConfiguration("zig");
         await configuration.update("zigPath", zigPath, true);
         await configuration.update("zigVersion", version.name, true);
-        // TODO install to PATH
     });
 }
 
@@ -178,6 +177,10 @@ export async function setupZig(context: ExtensionContext) {
 
         if (response === "Install") {
             await selectVersionAndInstall(context);
+            const configuration = workspace.getConfiguration("zig", null);
+            const zigPath = configuration.get<string | null>("zigPath", null);
+            if (!zigPath) return;
+            return window.showInformationMessage(`Zig was installed at '${zigPath}', add it to PATH to use it from the terminal`);
         } else if (response === "Specify path") {
             const uris = await window.showOpenDialog({
                 canSelectFiles: true,
