@@ -5,8 +5,6 @@ import axios from "axios";
 import * as fs from "fs";
 import decompress from "decompress"
 import semver from 'semver';
-import path from "path";
-import os from "os";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -44,6 +42,9 @@ async function getVersions(): Promise<ZigVersion[]> {
                 sha: value[hostName]["shasum"],
             });
         }
+    }
+    if (result.length == 0) {
+        throw `no pre-built Zig is available for your system '${hostName}', you can build it yourself using https://github.com/ziglang/zig-bootstrap`;
     }
     return result;
 }
@@ -152,7 +153,7 @@ async function getUpdatedVersion(): Promise<ZigVersion | null> {
 
     const available = await getVersions();
     if (version.startsWith("nightly")) {
-        if (available.length > 1 && available[0].name == "nightly") {
+        if (available[0].name == "nightly") {
             const curVersion = version.match(/nightly-(\d+)/)[1];
             const newVersion = getNightlySemVer(available[0].url);
             if (semver.gt(newVersion, curVersion)) {
