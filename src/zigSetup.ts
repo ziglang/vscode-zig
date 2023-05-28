@@ -125,29 +125,14 @@ async function selectVersionAndInstall(context: ExtensionContext): Promise<void>
     }
 }
 
-// Check whether Zig was installed by the extension.
-async function isZigPrebuildBinary(context: ExtensionContext): Promise<boolean> {
-    const configuration = workspace.getConfiguration("zig");
-    var zigPath = configuration.get<string | null>("zigPath", null);
-    if (!zigPath) return false;
-
-    const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
-    return zigPath.startsWith(zigBinPath);
-}
-
-async function checkUpdate(context: ExtensionContext, autoInstallPrebuild: boolean): Promise<void> {
+async function checkUpdate(context: ExtensionContext): Promise<void> {
     try {
         const update = await getUpdatedVersion();
         if (!update) return;
 
-        const isPrebuild = await isZigPrebuildBinary(context);
-        if (autoInstallPrebuild && isPrebuild) {
+        const response = await window.showInformationMessage(`New version of Zig available: ${update.name}`, "Install", "Cancel");
+        if (response === "Install") {
             await installZig(context, update);
-        } else {
-            const response = await window.showInformationMessage("There is a new version of Zig available, do you want to install it?", "Install", "Cancel");
-            if (response === "Install") {
-                await installZig(context, update);
-            }
         }
     } catch (err) {
         window.showErrorMessage(`Unable to update Zig: ${err}`);
@@ -165,6 +150,7 @@ async function getUpdatedVersion(): Promise<ZigVersion | null> {
             const curVersion = version.slice("nightly-".length);
             const newVersion = getNightlySemVer(available[0].url);
             if (semver.gt(newVersion, curVersion)) {
+                available[0].name = `nightly-${newVersion}`;
                 return available[0];
             }
         }
@@ -180,7 +166,7 @@ export async function setupZig(context: ExtensionContext) {
     });
 
     vscode.commands.registerCommand("zig.update", async () => {
-        await checkUpdate(context, false);
+        await checkUpdate(context);
     });
 
     const configuration = workspace.getConfiguration("zig", null);
@@ -207,5 +193,5 @@ export async function setupZig(context: ExtensionContext) {
     }
 
     if (!configuration.get<boolean>("checkForUpdate", true)) return;
-    await checkUpdate(context, true);
+    await checkUpdate(context);
 }
