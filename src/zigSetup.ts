@@ -4,7 +4,8 @@ import * as vscode from "vscode";
 import axios from "axios";
 import * as fs from "fs";
 import decompress from "decompress"
-import semver from 'semver';
+import semver from "semver";
+import { createHash } from "crypto";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -58,6 +59,10 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
         const tarball: Buffer = (await axios.get(version.url, {
             responseType: "arraybuffer"
         })).data;
+        const tarHash = createHash("sha256").update(tarball).digest("hex");
+        if (tarHash != version.sha) {
+            throw `hash of downloaded tarball ${tarHash} does not match expected hash ${version.sha}`;
+        }
 
         const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zig_install");
         if (fs.existsSync(installDir.fsPath)) fs.rmSync(installDir.fsPath, { recursive: true, force: true });
