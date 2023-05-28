@@ -5,7 +5,6 @@ import * as cp from "child_process";
 import * as vscode from "vscode";
 // This will be treeshaked to only the debounce function
 import { throttle } from "lodash-es";
-import { client } from "./zls";
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
   private buildDiagnostics: vscode.DiagnosticCollection;
@@ -16,15 +15,6 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     subscriptions.push(this);
     this.buildDiagnostics = vscode.languages.createDiagnosticCollection("zig");
     this.astDiagnostics = vscode.languages.createDiagnosticCollection("zig");
-
-    // vscode.workspace.onDidOpenTextDocument(this.doCompile, this, subscriptions);
-    // vscode.workspace.onDidCloseTextDocument(
-    //   (textDocument) => {
-    //     this.diagnosticCollection.delete(textDocument.uri);
-    //   },
-    //   null,
-    //   subscriptions
-    // );
 
     // vscode.workspace.onDidSaveTextDocument(this.doCompile, this);
     vscode.workspace.onDidChangeTextDocument(
