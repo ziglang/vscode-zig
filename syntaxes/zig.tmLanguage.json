@@ -95,18 +95,6 @@
           "name": "meta.variable.zig",
           "patterns": [
             {
-              "match": "\\b[_A-Z][_A-Z0-9]+\\b",
-              "name": "variable.constant.zig"
-            },
-            {
-              "match": "\\b[_a-zA-Z][_a-zA-Z0-9]*_t\\b",
-              "name": "entity.name.type.zig"
-            },
-            {
-              "match": "\\b[A-Z][a-zA-Z0-9]*\\b",
-              "name": "entity.name.type.zig"
-            },
-            {
               "match": "\\b[_a-zA-Z][_a-zA-Z0-9]*\\b",
               "name": "variable.zig"
             },
@@ -171,66 +159,8 @@
           "match": "\\b(true|false)\\b"
         },
         {
-          "match": "[\\s\\(\\[\\{](\\.[_a-zA-Z][_a-zA-Z0-9]*)(?!\\s*=[^>]|\\s*\\()(?![_a-zA-Z0-9])",
-          "captures": {
-            "1": {
-              "name": "variable.other.enummember.zig"
-            }
-          }
-        },
-        {
-          "match": "[\\s\\(\\[\\{](\\.@\"[^\"]*\")(?!\\s*=[^>]|\\s*\\()",
-          "captures": {
-            "1": {
-              "name": "variable.other.enummember.string.zig"
-            }
-          }
-        },
-        {
           "name": "keyword.default.zig",
           "match": "\\b(usingnamespace|test|and|or)\\b"
-        },
-        {
-          "name": "meta.error-set.zig",
-          "patterns": [
-            {
-              "begin": "\\b(error)\\b\\s*{",
-              "end": "}",
-              "beginCaptures": {
-                "1": {
-                  "name": "keyword.type.zig"
-                }
-              },
-              "patterns": [
-                {
-                  "match": "\\b[_a-zA-Z][_a-zA-Z0-9]*\\b",
-                  "name": "variable.constant.error.zig"
-                },
-                {
-                  "include": "$self"
-                }
-              ]
-            },
-            {
-              "begin": "\\b(error)\\b",
-              "end": "\\b([_a-zA-Z][_a-zA-Z0-9]*)\\b",
-              "beginCaptures": {
-                "1": {
-                  "name": "keyword.type.zig"
-                }
-              },
-              "endCaptures": {
-                "1": {
-                  "name": "variable.constant.error.zig"
-                }
-              },
-              "patterns": [
-                {
-                  "include": "$self"
-                }
-              ]
-            }
-          ]
         },
         {
           "name": "keyword.type.zig",
@@ -242,7 +172,7 @@
         },
         {
           "name": "keyword.type.c.zig",
-          "match": "\\b(c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble)\\b"
+          "match": "\\b(c_char|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|c_longlong|c_ulonglong|c_longdouble)\\b"
         }
       ]
     },
