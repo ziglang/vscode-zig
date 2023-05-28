@@ -3,9 +3,11 @@ import { workspace, ExtensionContext, window } from "vscode";
 import * as vscode from "vscode";
 import axios from "axios";
 import * as fs from "fs";
-import decompress from "decompress"
+import decompress from "decompress";
 import semver from "semver";
 import { createHash } from "crypto";
+import mkdirp from "mkdirp";
+import { execCmd } from "./zigUtil";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -66,10 +68,20 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
 
         const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zig_install");
         if (fs.existsSync(installDir.fsPath)) fs.rmSync(installDir.fsPath, { recursive: true, force: true });
+        mkdirp.sync(installDir.fsPath);
 
         progress.report({ message: "Decompressing..." });
-        // TODO can't decompress tar.xz, throws no errors about it
-        await decompress(tarball, installDir.fsPath);
+        if (version.url.includes("windows")) {
+            await decompress(tarball, installDir.fsPath);
+        } else {
+            const tar = execCmd("tar", {
+                cmdArguments: ["-xJf", "-", "-C", `"${installDir.fsPath}"`, "--strip-components=1"],
+                notFoundText: 'Could not find tar',
+            });
+            tar.stdin.write(tarball);
+            tar.stdin.end();
+            await tar;
+        }
 
         progress.report({ message: "Installing..." });
         const exeName = `zig${version.url.includes("windows") ? ".exe" : ""}`;
@@ -85,27 +97,23 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
 
 async function selectVersionAndInstall(context: ExtensionContext): Promise<void> {
     try {
-        const configuration = workspace.getConfiguration("zig");
-        let version = configuration.get<string | null>("zigVersion", null);
         const available = await getVersions();
 
-        if (!version) {
-            let items: vscode.QuickPickItem[] = [];
-            for (const option of available) {
-                items.push({ label: option.name });
-            }
-            // Recommend latest stable release.
-            const placeHolder = available.length > 2 ? available[1].name : null;
-            const selection = await window.showQuickPick(items, {
-                title: "Select Zig version to install",
-                canPickMany: false,
-                placeHolder,
-            });
-            if (selection === undefined) return;
-            version = selection.label;
-            if (version == "nightly") {
-                version = `nightly-${getNightlySemVer(available[0].url)}`;
-            }
+        let items: vscode.QuickPickItem[] = [];
+        for (const option of available) {
+            items.push({ label: option.name });
+        }
+        // Recommend latest stable release.
+        const placeHolder = available.length > 2 ? available[1].name : null;
+        const selection = await window.showQuickPick(items, {
+            title: "Select Zig version to install",
+            canPickMany: false,
+            placeHolder,
+        });
+        if (selection === undefined) return;
+        let version = selection.label;
+        if (version == "nightly") {
+            version = `nightly-${getNightlySemVer(available[0].url)}`;
         }
         if (version.startsWith("nightly") && available[0].name == "nightly") {
             await installZig(context, available[0]);
