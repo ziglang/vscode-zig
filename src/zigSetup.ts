@@ -21,7 +21,7 @@ function getHostZigName(): string {
     if (arch == "arm64") arch = "aarch64";
     if (arch == "ppc") arch = "powerpc";
     if (arch == "ppc64") arch = "powerpc64le";
-    return `${arch}-${os}`
+    return `${arch}-${os}`;
 }
 
 function getNightlySemVer(url: string): string {
@@ -111,18 +111,13 @@ async function selectVersionAndInstall(context: ExtensionContext): Promise<void>
             placeHolder,
         });
         if (selection === undefined) return;
-        let version = selection.label;
-        if (version == "nightly") {
-            version = `nightly-${getNightlySemVer(available[0].url)}`;
-        }
-        if (version.startsWith("nightly") && available[0].name == "nightly") {
-            await installZig(context, available[0]);
-        } else {
-            for (const option of available) {
-                if (option.name === version) {
-                    await installZig(context, option);
-                    return;
+        for (const option of available) {
+            if (option.name === selection.label) {
+                if (option.name == "nightly") {
+                    option.name = `nightly-${getNightlySemVer(option.url)}`;
                 }
+                await installZig(context, option);
+                return;
             }
         }
     } catch (err) {
@@ -167,7 +162,7 @@ async function getUpdatedVersion(): Promise<ZigVersion | null> {
     const available = await getVersions();
     if (version.startsWith("nightly")) {
         if (available[0].name == "nightly") {
-            const curVersion = version.match(/nightly-(\d+)/)[1];
+            const curVersion = version.slice("nightly-".length);
             const newVersion = getNightlySemVer(available[0].url);
             if (semver.gt(newVersion, curVersion)) {
                 return available[0];
