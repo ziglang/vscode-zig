@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Range, StatusBarItem, TextEdit, OutputChannel, EndOfLine } from 'vscode';
+import { TextEdit, OutputChannel } from 'vscode';
 import { execCmd } from './zigUtil';
 
 export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {

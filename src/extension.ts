@@ -4,6 +4,7 @@ import ZigCompilerProvider from './zigCompilerProvider';
 import { zigBuild } from './zigBuild';
 import { ZigFormatProvider, ZigRangeFormatProvider } from './zigFormat';
 import { activate as activateZls, deactivate as deactivateZls } from './zls';
+import { setupZig } from './zigSetup';
 
 const ZIG_MODE: vscode.DocumentFilter = { language: 'zig', scheme: 'file' };
 
@@ -39,9 +40,21 @@ export function activate(context: vscode.ExtensionContext) {
     // Commands
     context.subscriptions.push(vscode.commands.registerCommand('zig.build.workspace', () => zigBuild()));
 
+    setupZig(context);
     activateZls(context);
 }
 
 export function deactivate() {
     deactivateZls();
+}
+
+// Check timestamp `key` to avoid automatically checking for updates
+// more than once in an hour.
+export function shouldCheckUpdate(context: vscode.ExtensionContext, key: string): boolean {
+    const HOUR = 60 * 60 * 1000;
+    const timestamp = new Date().getTime();
+    const old = context.globalState.get<number>(key);
+    if (old === undefined || timestamp - old < HOUR) return false;
+    context.globalState.update(key, timestamp);
+    return true;
 }
