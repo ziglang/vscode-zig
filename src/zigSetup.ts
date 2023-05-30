@@ -7,7 +7,7 @@ import decompress from "decompress";
 import semver from "semver";
 import { createHash } from "crypto";
 import mkdirp from "mkdirp";
-import { execCmd } from "./zigUtil";
+import { execCmd, isWindows } from "./zigUtil";
 import { shouldCheckUpdate } from "./extension";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
@@ -72,20 +72,16 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
         mkdirp.sync(installDir.fsPath);
 
         progress.report({ message: "Decompressing..." });
-        if (version.url.includes("windows")) {
-            await decompress(tarball, installDir.fsPath);
-        } else {
-            const tar = execCmd("tar", {
-                cmdArguments: ["-xJf", "-", "-C", `"${installDir.fsPath}"`, "--strip-components=1"],
-                notFoundText: 'Could not find tar',
-            });
-            tar.stdin.write(tarball);
-            tar.stdin.end();
-            await tar;
-        }
+        const tar = execCmd("tar", {
+            cmdArguments: ["-xJf", "-", "-C", `"${installDir.fsPath}"`, "--strip-components=1"],
+            notFoundText: 'Could not find tar',
+        });
+        tar.stdin.write(tarball);
+        tar.stdin.end();
+        await tar;
 
         progress.report({ message: "Installing..." });
-        const exeName = `zig${version.url.includes("windows") ? ".exe" : ""}`;
+        const exeName = `zig${isWindows ? ".exe" : ""}`;
         const zigPath = vscode.Uri.joinPath(installDir, exeName).fsPath;
         fs.chmodSync(zigPath, 0o755);
 
