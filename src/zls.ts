@@ -1,19 +1,20 @@
-import { workspace, ExtensionContext, window } from "vscode";
+import { ExtensionContext, window, workspace } from "vscode";
 
+import axios from "axios";
+import camelCase from "camelcase";
+import * as child_process from "child_process";
+import * as fs from "fs";
+import mkdirp from "mkdirp";
+import * as os from "os";
+import * as path from "path";
+import semver from "semver";
 import * as vscode from "vscode";
 import {
     LanguageClient,
     LanguageClientOptions,
     ServerOptions
 } from "vscode-languageclient/node";
-import axios from "axios";
-import * as os from "os";
-import * as fs from "fs";
-import * as path from "path";
 import which from "which";
-import mkdirp from "mkdirp";
-import * as child_process from "child_process";
-import camelCase from "camelcase";
 import { shouldCheckUpdate } from "./extension";
 
 export let outputChannel: vscode.OutputChannel;
@@ -290,23 +291,15 @@ export async function isZLSPrebuildBinary(context: ExtensionContext): Promise<bo
 export async function isUpdateAvailable(zlsPath: string): Promise<boolean | null> {
     // get current version
     const buffer = child_process.execFileSync(zlsPath, ["--version"]);
-    const version = parseVersion(buffer.toString("utf8"));
+    const version = semver(buffer.toString("utf8"));
     if (!version) return null;
 
     // compare version triple if commit id is available
     if (version.commitHeight === null || version.commitHash === null) {
         // get latest tagged version
         const tagsResponse = await axios.get("https://api.github.com/repos/zigtools/zls/tags");
-        const latestVersion = parseVersion(tagsResponse.data[0].name);
-        if (!latestVersion) return null;
-
-        if (latestVersion.major < version.major) return false;
-        if (latestVersion.major > version.major) return true;
-        if (latestVersion.minor < version.minor) return false;
-        if (latestVersion.minor > version.minor) return true;
-        if (latestVersion.patch < version.patch) return false;
-        if (latestVersion.patch > version.patch) return true;
-        return false;
+        const latestVersion = semver(tagsResponse.data[0].name);
+        return latestVersion.gt(version);
     }
 
     const response = await axios.get("https://api.github.com/repos/zigtools/zls/commits/master");
@@ -315,31 +308,6 @@ export async function isUpdateAvailable(zlsPath: string): Promise<boolean | null
     const isMaster = masterHash.startsWith(version.commitHash);
 
     return !isMaster;
-}
-
-export interface Version {
-    major: number,
-    minor: number,
-    patch: number,
-    commitHeight: number | null,
-    commitHash: string | null,
-}
-
-export function parseVersion(str: string): Version | null {
-    const matches = /(\d+)\.(\d+)\.(\d+)(-dev\.(\d+)\+([0-9a-fA-F]+))?/.exec(str);
-    //                  0   . 10   .  0  -dev .218   +d0732db
-    //                                  (         optional          )?
-
-    if (!matches) return null;
-    if (matches.length !== 4 && matches.length !== 7) return null;
-
-    return {
-        major: parseInt(matches[1]),
-        minor: parseInt(matches[2]),
-        patch: parseInt(matches[3]),
-        commitHeight: (matches.length === 7) ? parseInt(matches[5]) : null,
-        commitHash: (matches.length === 7) ? matches[6] : null,
-    };
 }
 
 export async function openConfig(context: ExtensionContext): Promise<void> {

@@ -1,14 +1,13 @@
-import { workspace, ExtensionContext, window } from "vscode";
+import { ExtensionContext, window, workspace } from "vscode";
 
-import * as vscode from "vscode";
 import axios from "axios";
-import * as fs from "fs";
-import decompress from "decompress";
-import semver from "semver";
 import { createHash } from "crypto";
+import * as fs from "fs";
 import mkdirp from "mkdirp";
-import { execCmd, isWindows } from "./zigUtil";
+import semver from "semver";
+import * as vscode from "vscode";
 import { shouldCheckUpdate } from "./extension";
+import { execCmd, isWindows } from "./zigUtil";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
