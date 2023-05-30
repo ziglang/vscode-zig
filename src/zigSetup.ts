@@ -176,7 +176,8 @@ export async function setupZig(context: ExtensionContext) {
             const configuration = workspace.getConfiguration("zig", null);
             const zigPath = configuration.get<string | null>("zigPath", null);
             if (!zigPath) return;
-            return window.showInformationMessage(`Zig was installed at '${zigPath}', add it to PATH to use it from the terminal`);
+            window.showInformationMessage(`Zig was installed at '${zigPath}', add it to PATH to use it from the terminal`);
+            return;
         } else if (response === "Specify path") {
             const uris = await window.showOpenDialog({
                 canSelectFiles: true,

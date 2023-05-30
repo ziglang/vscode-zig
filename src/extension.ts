@@ -40,8 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Commands
     context.subscriptions.push(vscode.commands.registerCommand('zig.build.workspace', () => zigBuild()));
 
-    setupZig(context);
-    activateZls(context);
+    setupZig(context).then(() => activateZls(context));
 }
 
 export function deactivate() {
