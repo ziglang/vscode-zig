@@ -295,17 +295,17 @@ export async function isUpdateAvailable(zlsPath: string): Promise<boolean | null
     if (!version) return null;
 
     // compare version triple if commit id is available
-    if (version.commitHeight === null || version.commitHash === null) {
+    if (version.prerelease.length === 0 || version.build.length === 0) {
         // get latest tagged version
         const tagsResponse = await axios.get("https://api.github.com/repos/zigtools/zls/tags");
         const latestVersion = semver(tagsResponse.data[0].name);
-        return latestVersion.gt(version);
+        return semver.gt(latestVersion, version);
     }
 
     const response = await axios.get("https://api.github.com/repos/zigtools/zls/commits/master");
     const masterHash: string = response.data.sha;
 
-    const isMaster = masterHash.startsWith(version.commitHash);
+    const isMaster = masterHash.startsWith(version.build[0]);
 
     return !isMaster;
 }
