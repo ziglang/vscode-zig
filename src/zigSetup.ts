@@ -122,7 +122,7 @@ async function selectVersionAndInstall(context: ExtensionContext): Promise<void>
 
 async function checkUpdate(context: ExtensionContext): Promise<void> {
     try {
-        const update = await getUpdatedVersion();
+        const update = await getUpdatedVersion(context);
         if (!update) return;
 
         const response = await window.showInformationMessage(`New version of Zig available: ${update.name}`, "Install", "Cancel");
@@ -134,8 +134,14 @@ async function checkUpdate(context: ExtensionContext): Promise<void> {
     }
 }
 
-async function getUpdatedVersion(): Promise<ZigVersion | null> {
+async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion | null> {
     const configuration = workspace.getConfiguration("zig");
+    let zigPath = configuration.get<string | null>("zigPath", null);
+    if (zigPath) {
+        const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
+        if (!zigPath.startsWith(zigBinPath)) return null;
+    }
+
     const version = configuration.get<string | null>("zigVersion", null);
     if (!version) return null;
 
