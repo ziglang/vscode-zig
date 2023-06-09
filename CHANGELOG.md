@@ -1,3 +1,4 @@
+## 0.4.0
 - Prompt to install if prebuilt zls doesn't exist in specified path
 - Add `string` to the `name` of `@""` tokens
 - Add functionality to manage Zig installation
