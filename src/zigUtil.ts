@@ -50,7 +50,7 @@ export function execCmd
     let cmdArguments = options ? options.cmdArguments : [];
 
     childProcess =
-      cp.exec(cmd + ' ' + (cmdArguments || []).join(' '), { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName'), maxBuffer: 10 * 1024 * 1024}, handleExit);
+      cp.execFile(cmd, cmdArguments, { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName'), maxBuffer: 10 * 1024 * 1024}, handleExit);
 
 
     childProcess.stdout.on('data', (data: Buffer) => {
