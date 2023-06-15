@@ -1,4 +1,5 @@
-- Fix formatting on when `zigPath` includes spaces
+- Fix formatting when `zigPath` includes spaces
+- Do not default to `zig` in `PATH` anymore
 
 ## 0.4.0
 - Prompt to install if prebuilt zls doesn't exist in specified path

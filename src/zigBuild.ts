@@ -28,7 +28,7 @@ export function zigBuild(): void {
     });
 
     const cwd = vscode.workspace.getWorkspaceFolder(editor.document.uri).uri.fsPath;
-    const buildPath = config.get<string>("zigPath") || 'zig';
+    const buildPath = config.get<string>("zigPath");
 
     logChannel.appendLine(`Starting building the current workspace at ${cwd}`);
 

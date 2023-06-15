@@ -80,8 +80,8 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
 }
 
 function zigFormat(document: vscode.TextDocument) {
-    const config = vscode.workspace.getConfiguration('zig');
-    const zigPath = config.get<string>('zigPath') || 'zig';
+    const config = vscode.workspace.getConfiguration("zig");
+    const zigPath = config.get<string>("zigPath");
 
     const options = {
         cmdArguments: ['fmt', '--stdin'],

@@ -63,7 +63,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     if (textDocument.languageId !== "zig") {
       return;
     }
-    const zig_path = config.get("zigPath") || "zig";
+    const zig_path = config.get("zigPath");
     const cwd = vscode.workspace.getWorkspaceFolder(textDocument.uri).uri
       .fsPath;
 
