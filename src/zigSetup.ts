@@ -193,7 +193,7 @@ export async function setupZig(context: ExtensionContext) {
             });
 
             if (uris) {
-                await configuration.update("zigPath", uris[0].path, true);
+                await configuration.update("zigPath", uris[0].fsPath, true);
             }
         }
     }
