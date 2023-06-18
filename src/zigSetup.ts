@@ -6,6 +6,7 @@ import * as fs from "fs";
 import mkdirp from "mkdirp";
 import semver from "semver";
 import * as vscode from "vscode";
+import which from "which";
 import { shouldCheckUpdate } from "./extension";
 import { execCmd, isWindows } from "./zigUtil";
 
@@ -172,9 +173,12 @@ export async function setupZig(context: ExtensionContext) {
 
     const configuration = workspace.getConfiguration("zig", null);
     if (!configuration.get<string | null>("zigPath", null)) {
+        const zigInPath = which.sync("zig", { nothrow: true });
+        const options = ["Install", "Specify path"];
+        if (zigInPath) options.push("Use Zig in PATH");
         const response = await window.showInformationMessage(
             "Zig path hasn't been set, do you want to specify the path or install Zig?",
-            "Install", "Specify path"
+            ...options
         );
 
         if (response === "Install") {
@@ -195,7 +199,9 @@ export async function setupZig(context: ExtensionContext) {
             if (uris) {
                 await configuration.update("zigPath", uris[0].fsPath, true);
             }
-        }
+        } else if (response == "Use Zig in PATH") {
+            await configuration.update("zigPath", zigInPath, true);
+        } else throw "zigPath not specified";
     }
 
     if (!shouldCheckUpdate(context, "zigUpdate")) return;
