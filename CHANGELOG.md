@@ -1,3 +1,5 @@
+- Fix path given to `tar` being quoted
+
 ## 0.4.1
 - Fix formatting when `zigPath` includes spaces
 - Do not default to `zig` in `PATH` anymore

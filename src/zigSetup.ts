@@ -72,7 +72,7 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
 
         progress.report({ message: "Decompressing..." });
         const tar = execCmd("tar", {
-            cmdArguments: ["-xJf", "-", "-C", `"${installDir.fsPath}"`, "--strip-components=1"],
+            cmdArguments: ["-xJf", "-", "-C", `${installDir.fsPath}`, "--strip-components=1"],
             notFoundText: 'Could not find tar',
         });
         tar.stdin.write(tarball);
