@@ -187,8 +187,8 @@ export async function promptAfterFailure(context: ExtensionContext): Promise<str
         });
 
         if (uris) {
-            await configuration.update("path", uris[0].path, true);
-            return uris[0].path;
+            await configuration.update("path", uris[0].fsPath, true);
+            return uris[0].fsPath;
         }
     }
 

@@ -1,3 +1,4 @@
+- Fix `Specify path` adding a leading slash on windows (@sebastianhoffmann)
 - Fix path given to `tar` being quoted
 
 ## 0.4.1
