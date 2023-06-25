@@ -1,3 +1,4 @@
+## 0.4.2
 - Fix `Specify path` adding a leading slash on windows (@sebastianhoffmann)
 - Fix path given to `tar` being quoted
 - Add option to use `zig` found in `PATH` as `zigPath`
