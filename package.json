@@ -101,7 +101,7 @@
         "zig.zigPath": {
           "type": "string",
           "default": null,
-          "description": "Set a custom path to the Zig binary."
+          "description": "Set a custom path to the Zig binary. Empty string will lookup zig in PATH."
         },
         "zig.zigVersion": {
           "type": "string",

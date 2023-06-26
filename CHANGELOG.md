@@ -1,4 +1,5 @@
 - Fix checking for ZLS updates
+- Always check `PATH` when `zigPath` is set to empty string
 
 ## 0.4.2
 - Fix `Specify path` adding a leading slash on windows (@sebastianhoffmann)

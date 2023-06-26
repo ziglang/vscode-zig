@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { TextEdit, OutputChannel } from 'vscode';
-import { execCmd } from './zigUtil';
+import { execCmd, getZigPath } from './zigUtil';
 
 export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {
     private _channel: OutputChannel;
@@ -80,8 +80,7 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
 }
 
 function zigFormat(document: vscode.TextDocument) {
-    const config = vscode.workspace.getConfiguration("zig");
-    const zigPath = config.get<string>("zigPath");
+    const zigPath = getZigPath();
 
     const options = {
         cmdArguments: ['fmt', '--stdin'],
