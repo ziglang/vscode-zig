@@ -5,6 +5,7 @@ import * as cp from "child_process";
 import * as vscode from "vscode";
 // This will be treeshaked to only the debounce function
 import { throttle } from "lodash-es";
+import { getZigPath } from "./zigUtil";
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
   private buildDiagnostics: vscode.DiagnosticCollection;
@@ -58,16 +59,15 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
   }
 
   private _doASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
-    let config = vscode.workspace.getConfiguration("zig");
     const textDocument = change.document;
     if (textDocument.languageId !== "zig") {
       return;
     }
-    const zig_path = config.get("zigPath");
+    const zigPath = getZigPath();
     const cwd = vscode.workspace.getWorkspaceFolder(textDocument.uri).uri
       .fsPath;
 
-    let childProcess = cp.spawn(zig_path as string, ["ast-check"], { cwd });
+    let childProcess = cp.spawn(zigPath, ["ast-check"], { cwd });
 
     if (!childProcess.pid) {
       return;

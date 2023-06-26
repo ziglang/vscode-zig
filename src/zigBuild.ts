@@ -1,6 +1,7 @@
 import { buildDiagnosticCollection, logChannel } from './extension';
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
+import { getZigPath } from './zigUtil';
 
 export function zigBuild(): void {
     const editor = vscode.window.activeTextEditor;
@@ -28,7 +29,7 @@ export function zigBuild(): void {
     });
 
     const cwd = vscode.workspace.getWorkspaceFolder(editor.document.uri).uri.fsPath;
-    const buildPath = config.get<string>("zigPath");
+    const buildPath = getZigPath();
 
     logChannel.appendLine(`Starting building the current workspace at ${cwd}`);
 

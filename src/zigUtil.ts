@@ -2,6 +2,7 @@ import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { window, workspace } from 'vscode';
+import which from 'which';
 
 export const isWindows = process.platform === 'win32';
 
@@ -50,7 +51,7 @@ export function execCmd
     let cmdArguments = options ? options.cmdArguments : [];
 
     childProcess =
-      cp.execFile(cmd, cmdArguments, { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName'), maxBuffer: 10 * 1024 * 1024}, handleExit);
+      cp.execFile(cmd, cmdArguments, { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName'), maxBuffer: 10 * 1024 * 1024 }, handleExit);
 
 
     childProcess.stdout.on('data', (data: Buffer) => {
@@ -142,4 +143,17 @@ export function detectProjectRoot(fileName: string): string {
     return proj;
   }
   return undefined;
+}
+
+export function getZigPath(): string {
+  const configuration = workspace.getConfiguration("zig");
+  let zigPath = configuration.get<string | null>("zigPath", null);
+  if (!zigPath) {
+    zigPath = which.sync("zig", { nothrow: true });
+    if (!zigPath) {
+      window.showErrorMessage("zig not found in PATH");
+      throw "zig not found in PATH";
+    }
+  }
+  return zigPath;
 }
