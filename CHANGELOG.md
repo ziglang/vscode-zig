@@ -1,3 +1,5 @@
+- Fix checking for ZLS updates
+
 ## 0.4.2
 - Fix `Specify path` adding a leading slash on windows (@sebastianhoffmann)
 - Fix path given to `tar` being quoted

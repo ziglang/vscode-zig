@@ -291,14 +291,14 @@ export async function isZLSPrebuildBinary(context: ExtensionContext): Promise<bo
 export async function isUpdateAvailable(zlsPath: string): Promise<boolean | null> {
     // get current version
     const buffer = child_process.execFileSync(zlsPath, ["--version"]);
-    const version = semver(buffer.toString("utf8"));
+    const version = semver.parse(buffer.toString("utf8"));
     if (!version) return null;
 
     // compare version triple if commit id is available
     if (version.prerelease.length === 0 || version.build.length === 0) {
         // get latest tagged version
         const tagsResponse = await axios.get("https://api.github.com/repos/zigtools/zls/tags");
-        const latestVersion = semver(tagsResponse.data[0].name);
+        const latestVersion = tagsResponse.data[0].name;
         return semver.gt(latestVersion, version);
     }
 
