@@ -388,6 +388,12 @@
         "title": "Check for Server Updates",
         "category": "Zig Language Server"
       }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "zls.json",
+        "url": "https://raw.githubusercontent.com/zigtools/zls/master/schema.json"
+      }
     ]
   },
   "scripts": {
