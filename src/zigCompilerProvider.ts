@@ -17,11 +17,8 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     this.buildDiagnostics = vscode.languages.createDiagnosticCollection("zig");
     this.astDiagnostics = vscode.languages.createDiagnosticCollection("zig");
 
-    // vscode.workspace.onDidSaveTextDocument(this.doCompile, this);
-    vscode.workspace.onDidChangeTextDocument(
-      this.maybeDoASTGenErrorCheck,
-      this
-    );
+    vscode.workspace.onDidChangeTextDocument(this.maybeDoASTGenErrorCheck, this);
+    vscode.workspace.onDidChangeTextDocument(this.maybeDoBuildOnSave, this);
   }
 
   maybeDoASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
@@ -35,20 +32,23 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     }
 
     this.doASTGenErrorCheck(change);
+  }
 
-    if (!change.document.isUntitled) {
-      let config = vscode.workspace.getConfiguration("zig");
-      if (
-        config.get<boolean>("buildOnSave") &&
-        this.dirtyChange.has(change.document.uri) &&
-        this.dirtyChange.get(change.document.uri) !== change.document.isDirty &&
-        !change.document.isDirty
-      ) {
-        this.doCompile(change.document);
-      }
+  maybeDoBuildOnSave(change: vscode.TextDocumentChangeEvent) {
+    if (change.document.languageId !== "zig") return;
+    if (change.document.isUntitled) return;
 
-      this.dirtyChange.set(change.document.uri, change.document.isDirty);
+    let config = vscode.workspace.getConfiguration("zig");
+    if (
+      config.get<boolean>("buildOnSave") &&
+      this.dirtyChange.has(change.document.uri) &&
+      this.dirtyChange.get(change.document.uri) !== change.document.isDirty &&
+      !change.document.isDirty
+    ) {
+      this.doCompile(change.document);
     }
+
+    this.dirtyChange.set(change.document.uri, change.document.isDirty);
   }
 
   public dispose(): void {
@@ -132,7 +132,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
           processArg.push(
             path.resolve(buildFilePath.replace("${workspaceFolder}", cwd))
           );
-        } catch {}
+        } catch { }
 
         break;
       default:
@@ -167,7 +167,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             if (!path.includes(cwd)) {
               path = require("path").resolve(workspaceFolder.uri.fsPath, path);
             }
-          } catch {}
+          } catch { }
 
           let line = parseInt(match[2]) - 1;
           let column = parseInt(match[3]) - 1;
