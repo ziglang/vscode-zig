@@ -193,12 +193,24 @@
         "zig.zls.debugLog": {
           "scope": "resource",
           "type": "boolean",
-          "description": "Enable debug logging in release builds of zig.zls."
+          "description": "Enable debug logging in release builds of zls."
         },
         "zig.zls.enableSnippets": {
           "scope": "resource",
           "type": "boolean",
           "description": "Enables snippet completions when the client also supports them",
+          "default": true
+        },
+        "zig.zls.enableArgumentPlaceholders": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Whether to enable function argument placeholder completions",
+          "default": true
+        },
+        "zig.zls.enableAstCheckDiagnostics": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Whether to enable ast-check diagnostics",
           "default": true
         },
         "zig.zls.enableAutofix": {
@@ -272,7 +284,7 @@
           "description": "Whether to highlight global var declarations",
           "default": false
         },
-        "zig.zls.useComptimeInterpreter": {
+        "zig.zls.dangerousComptimeExperimentsDoNotEnable": {
           "scope": "resource",
           "type": "boolean",
           "description": "Whether to use the comptime interpreter",
@@ -295,6 +307,12 @@
           "type": "integer",
           "description": "The detail field of completions is truncated to be no longer than this (in bytes)",
           "default": 1048576
+        },
+        "zig.zls.preferAstCheckAsChildProcess": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Can be used in conjuction with `enable_ast_check_diagnostics` to favor using `zig ast-check` instead of ZLS's fork",
+          "default": true
         },
         "zig.zls.recordSession": {
           "scope": "resource",
