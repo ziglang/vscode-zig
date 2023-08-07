@@ -83,6 +83,7 @@ export async function installExecutable(context: ExtensionContext): Promise<stri
         // https://developer.apple.com/documentation/security/updating_mac_software
         fs.writeFileSync(zlsBinTempPath, exe, "binary");
         fs.chmodSync(zlsBinTempPath, 0o755);
+        if (fs.existsSync(zlsBinPath)) fs.rmSync(zlsBinPath);
         fs.renameSync(zlsBinTempPath, zlsBinPath);
 
         let config = workspace.getConfiguration("zig.zls");
