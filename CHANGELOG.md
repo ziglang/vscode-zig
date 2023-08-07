@@ -1,5 +1,8 @@
+## 0.4.3
 - Fix checking for ZLS updates
 - Always check `PATH` when `zigPath` is set to empty string
+- Fix build on save when ast check provider is ZLS
+- Delete old zls binary before renaming to avoid Windows permission error
 
 ## 0.4.2
 - Fix `Specify path` adding a leading slash on windows (@sebastianhoffmann)
