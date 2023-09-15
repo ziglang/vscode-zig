@@ -418,13 +418,17 @@
     "vscode:prepublish": "npm run compile",
     "compile": "esbuild --bundle --sourcemap=external --minify --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
     "watch": "esbuild --watch --bundle --sourcemap=external --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
-    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    "test": "npm run compile && node ./node_modules/vscode/bin/test",
+    "lint": "eslint . --ext .ts"
   },
   "devDependencies": {
     "@types/mocha": "^2.2.48",
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.68.0",
     "@types/which": "^2.0.1",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.49.0",
     "vscode-test": "^1.4.0"
   },
   "dependencies": {
