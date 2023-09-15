@@ -58,7 +58,7 @@ export function getDefaultInstallationName(): InstallationName | null {
 export async function installExecutable(context: ExtensionContext): Promise<string | null> {
     const def = getDefaultInstallationName();
     if (!def) {
-        window.showInformationMessage(`Your system isn"t built by our CI!\nPlease follow the instructions [here](https://github.com/zigtools/zls#from-source) to get started!`);
+        window.showInformationMessage("Your system isn\"t built by our CI!\nPlease follow the instructions [here](https://github.com/zigtools/zls#from-source) to get started!");
         return null;
     }
 
@@ -86,7 +86,7 @@ export async function installExecutable(context: ExtensionContext): Promise<stri
         if (fs.existsSync(zlsBinPath)) fs.rmSync(zlsBinPath);
         fs.renameSync(zlsBinTempPath, zlsBinPath);
 
-        let config = workspace.getConfiguration("zig.zls");
+        const config = workspace.getConfiguration("zig.zls");
         await config.update("path", zlsBinPath, true);
 
         return zlsBinPath;
@@ -99,10 +99,10 @@ export async function checkUpdateMaybe(context: ExtensionContext) {
     if (checkForUpdate) {
         try {
             await checkUpdate(context, true);
-        } catch (err: any) {
+        } catch (err) {
             outputChannel.appendLine(`Failed to check for update. Reason: ${err.message}`);
         }
-    };
+    }
 }
 
 export async function startClient(context: ExtensionContext) {
@@ -116,13 +116,13 @@ export async function startClient(context: ExtensionContext) {
         return null;
     }
 
-    let serverOptions: ServerOptions = {
+    const serverOptions: ServerOptions = {
         command: zlsPath,
         args: debugLog ? ["--enable-debug-log"] : [],
     };
 
     // Options to control the language client
-    let clientOptions: LanguageClientOptions = {
+    const clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: "file", language: "zig" }],
         outputChannel,
         middleware: {
@@ -133,7 +133,7 @@ export async function startClient(context: ExtensionContext) {
 
                     for (const [index, param] of Object.entries(params.items)) {
                         if (param.section === "zls.zig_exe_path") {
-                            param.section = `zig.zigPath`;
+                            param.section = "zig.zigPath";
                             indexOfZigPath = index;
                         } else if (param.section === "zls.enable_ast_check_diagnostics") {
                             indexOfAstCheck = index;
@@ -215,7 +215,7 @@ export async function promptAfterFailure(context: ExtensionContext): Promise<str
 // returns the file system path to the zls executable
 export async function getZLSPath(context: ExtensionContext): Promise<string | null> {
     const configuration = workspace.getConfiguration("zig.zls");
-    var zlsPath = configuration.get<string | null>("path", null);
+    let zlsPath = configuration.get<string | null>("path", null);
 
     // Allow passing the ${workspaceFolder} predefined variable
     // See https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
@@ -235,7 +235,7 @@ export async function getZLSPath(context: ExtensionContext): Promise<string | nu
         zlsPath = which.sync(zlsPath, { nothrow: true });
     }
 
-    var message: string | null = null;
+    let message: string | null = null;
 
     const zlsPathExists = zlsPath !== null && fs.existsSync(zlsPath);
     if (zlsPath && zlsPathExists) {
@@ -257,7 +257,7 @@ export async function getZLSPath(context: ExtensionContext): Promise<string | nu
             if (await isZLSPrebuildBinary(context)) {
                 return null;
             }
-            message = `Couldn't find Zig Language Server (ZLS) executable at "${zlsPath.replace(/"/gm, '\\"')}"`;
+            message = `Couldn't find Zig Language Server (ZLS) executable at "${zlsPath.replace(/"/gm, "\\\"")}"`;
         }
     }
 
@@ -297,7 +297,7 @@ export async function checkUpdate(context: ExtensionContext, autoInstallPrebuild
 // checks whether zls has been installed with `installExecutable`
 export async function isZLSPrebuildBinary(context: ExtensionContext): Promise<boolean> {
     const configuration = workspace.getConfiguration("zig.zls");
-    var zlsPath = configuration.get<string | null>("path", null);
+    const zlsPath = configuration.get<string | null>("path", null);
     if (!zlsPath) return false;
 
     const zlsBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;

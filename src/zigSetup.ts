@@ -6,7 +6,6 @@ import * as fs from "fs";
 import mkdirp from "mkdirp";
 import semver from "semver";
 import * as vscode from "vscode";
-import which from "which";
 import { shouldCheckUpdate } from "./extension";
 import { execCmd, isWindows } from "./zigUtil";
 
@@ -37,7 +36,9 @@ async function getVersions(): Promise<ZigVersion[]> {
     })).data;
     const indexJson = JSON.parse(tarball);
     const result: ZigVersion[] = [];
-    for (let [key, value] of Object.entries(indexJson)) {
+    for (const entry of Object.entries(indexJson)) {
+        let [key] = entry;
+        const [, value] = entry;
         if (key == "master") key = "nightly";
         if (value[hostName]) {
             result.push({
@@ -74,7 +75,7 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
         progress.report({ message: "Decompressing..." });
         const tar = execCmd("tar", {
             cmdArguments: ["-xJf", "-", "-C", `${installDir.fsPath}`, "--strip-components=1"],
-            notFoundText: 'Could not find tar',
+            notFoundText: "Could not find tar",
         });
         tar.stdin.write(tarball);
         tar.stdin.end();
@@ -95,7 +96,7 @@ async function selectVersionAndInstall(context: ExtensionContext): Promise<void>
     try {
         const available = await getVersions();
 
-        let items: vscode.QuickPickItem[] = [];
+        const items: vscode.QuickPickItem[] = [];
         for (const option of available) {
             items.push({ label: option.name });
         }
@@ -137,7 +138,7 @@ async function checkUpdate(context: ExtensionContext): Promise<void> {
 
 async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion | null> {
     const configuration = workspace.getConfiguration("zig");
-    let zigPath = configuration.get<string | null>("zigPath", null);
+    const zigPath = configuration.get<string | null>("zigPath", null);
     if (zigPath) {
         const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
         if (!zigPath.startsWith(zigBinPath)) return null;

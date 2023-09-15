@@ -1,22 +1,22 @@
-'use strict';
-import * as vscode from 'vscode';
-import ZigCompilerProvider from './zigCompilerProvider';
-import { zigBuild } from './zigBuild';
-import { ZigFormatProvider, ZigRangeFormatProvider } from './zigFormat';
-import { activate as activateZls, deactivate as deactivateZls } from './zls';
-import { setupZig } from './zigSetup';
+"use strict";
+import * as vscode from "vscode";
+import ZigCompilerProvider from "./zigCompilerProvider";
+import { zigBuild } from "./zigBuild";
+import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";
+import { activate as activateZls, deactivate as deactivateZls } from "./zls";
+import { setupZig } from "./zigSetup";
 
-const ZIG_MODE: vscode.DocumentFilter = { language: 'zig', scheme: 'file' };
+const ZIG_MODE: vscode.DocumentFilter = { language: "zig", scheme: "file" };
 
 export let buildDiagnosticCollection: vscode.DiagnosticCollection;
-export const logChannel = vscode.window.createOutputChannel('zig');
+export const logChannel = vscode.window.createOutputChannel("zig");
 export const zigFormatStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 
 export function activate(context: vscode.ExtensionContext) {
     setupZig(context).then(() => {
-        let compiler = new ZigCompilerProvider();
+        const compiler = new ZigCompilerProvider();
         compiler.activate(context.subscriptions);
-        vscode.languages.registerCodeActionsProvider('zig', compiler);
+        vscode.languages.registerCodeActionsProvider("zig", compiler);
     
         context.subscriptions.push(logChannel);
     
@@ -35,13 +35,13 @@ export function activate(context: vscode.ExtensionContext) {
             );
         }
     
-        buildDiagnosticCollection = vscode.languages.createDiagnosticCollection('zig');
+        buildDiagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
         context.subscriptions.push(buildDiagnosticCollection);
     
         // Commands
-        context.subscriptions.push(vscode.commands.registerCommand('zig.build.workspace', () => zigBuild()));
+        context.subscriptions.push(vscode.commands.registerCommand("zig.build.workspace", () => zigBuild()));
     
-        activateZls(context)
+        activateZls(context);
     });
 }
 

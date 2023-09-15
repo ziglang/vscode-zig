@@ -1,10 +1,10 @@
-import * as cp from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import { window, workspace } from 'vscode';
-import which from 'which';
+import * as cp from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import { window, workspace } from "vscode";
+import which from "which";
 
-export const isWindows = process.platform === 'win32';
+export const isWindows = process.platform === "win32";
 
 /** Options for execCmd */
 export interface ExecCmdOptions {
@@ -42,118 +42,120 @@ export interface ExecutingCmd
 
 /** Executes a command. Shows an error message if the command isn't found */
 export function execCmd
-  (cmd: string, options: ExecCmdOptions = {}): ExecutingCmd {
+(cmd: string, options: ExecCmdOptions = {}): ExecutingCmd {
 
-  const { fileName, onStart, onStdout, onStderr, onExit, cmdArguments } = options;
-  let childProcess, firstResponse = true, wasKilledbyUs = false;
+    const { fileName, onStart, onStdout, onStderr, onExit } = options;
+    let childProcess, firstResponse = true, wasKilledbyUs = false;
 
-  const executingCmd: any = new Promise((resolve, reject) => {
-    let cmdArguments = options ? options.cmdArguments : [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const executingCmd: any = new Promise((resolve, reject) => {
+        const cmdArguments = options ? options.cmdArguments : [];
 
-    childProcess =
-      cp.execFile(cmd, cmdArguments, { cwd: detectProjectRoot(fileName || workspace.rootPath + '/fakeFileName'), maxBuffer: 10 * 1024 * 1024 }, handleExit);
+        childProcess =
+      cp.execFile(cmd, cmdArguments, { cwd: detectProjectRoot(fileName || workspace.rootPath + "/fakeFileName"), maxBuffer: 10 * 1024 * 1024 }, handleExit);
 
 
-    childProcess.stdout.on('data', (data: Buffer) => {
-      if (firstResponse && onStart) {
-        onStart();
-      }
-      firstResponse = false;
-      if (onStdout) {
-        onStdout(data.toString());
-      }
-    });
+        childProcess.stdout.on("data", (data: Buffer) => {
+            if (firstResponse && onStart) {
+                onStart();
+            }
+            firstResponse = false;
+            if (onStdout) {
+                onStdout(data.toString());
+            }
+        });
 
-    childProcess.stderr.on('data', (data: Buffer) => {
-      if (firstResponse && onStart) {
-        onStart();
-      }
-      firstResponse = false;
-      if (onStderr) {
-        onStderr(data.toString());
-      }
-    });
+        childProcess.stderr.on("data", (data: Buffer) => {
+            if (firstResponse && onStart) {
+                onStart();
+            }
+            firstResponse = false;
+            if (onStderr) {
+                onStderr(data.toString());
+            }
+        });
 
-    function handleExit(err: Error, stdout: string, stderr: string) {
-      executingCmd.isRunning = false;
-      if (onExit) {
-        onExit();
-      }
-      if (!wasKilledbyUs) {
-        if (err) {
-          if (options.showMessageOnError) {
-            const cmdName = cmd.split(' ', 1)[0];
-            const cmdWasNotFound =
+        function handleExit(err: Error, stdout: string, stderr: string) {
+            executingCmd.isRunning = false;
+            if (onExit) {
+                onExit();
+            }
+            if (!wasKilledbyUs) {
+                if (err) {
+                    if (options.showMessageOnError) {
+                        const cmdName = cmd.split(" ", 1)[0];
+                        const cmdWasNotFound =
               // Windows method apparently still works on non-English systems
               (isWindows &&
                 err.message.includes(`'${cmdName}' is not recognized`)) ||
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (!isWindows && (<any>err).code === 127);
 
-            if (cmdWasNotFound) {
-              let notFoundText = options ? options.notFoundText : '';
-              window.showErrorMessage(
-                `${cmdName} is not available in your path. ` + notFoundText,
-              );
-            } else {
-              window.showErrorMessage(err.message);
+                        if (cmdWasNotFound) {
+                            const notFoundText = options ? options.notFoundText : "";
+                            window.showErrorMessage(
+                                `${cmdName} is not available in your path. ` + notFoundText,
+                            );
+                        } else {
+                            window.showErrorMessage(err.message);
+                        }
+                    } else {
+                        reject(err);
+                    }
+                } else {
+                    resolve({ stdout: stdout, stderr: stderr });
+                }
             }
-          } else {
-            reject(err);
-          }
-        } else {
-          resolve({ stdout: stdout, stderr: stderr });
         }
-      }
-    }
-  });
-  executingCmd.stdin = childProcess.stdin;
-  executingCmd.kill = killProcess;
-  executingCmd.isRunning = true;
+    });
+    executingCmd.stdin = childProcess.stdin;
+    executingCmd.kill = killProcess;
+    executingCmd.isRunning = true;
 
-  return executingCmd as ExecutingCmd;
+    return executingCmd as ExecutingCmd;
 
-  function killProcess() {
-    wasKilledbyUs = true;
-    if (isWindows) {
-      cp.spawn('taskkill', ['/pid', childProcess.pid.toString(), '/f', '/t']);
-    } else {
-      childProcess.kill('SIGINT');
+    function killProcess() {
+        wasKilledbyUs = true;
+        if (isWindows) {
+            cp.spawn("taskkill", ["/pid", childProcess.pid.toString(), "/f", "/t"]);
+        } else {
+            childProcess.kill("SIGINT");
+        }
     }
-  }
 }
 
-const buildFile = 'build.zig';
+const buildFile = "build.zig";
 
 export function findProj(dir: string, parent: string): string {
-  if (dir === '' || dir === parent) {
-    return '';
-  }
-  if (fs.lstatSync(dir).isDirectory()) {
-    const build = path.join(dir, buildFile);
-    if (fs.existsSync(build)) {
-      return dir;
+    if (dir === "" || dir === parent) {
+        return "";
     }
-  }
-  return findProj(path.dirname(dir), dir)
+    if (fs.lstatSync(dir).isDirectory()) {
+        const build = path.join(dir, buildFile);
+        if (fs.existsSync(build)) {
+            return dir;
+        }
+    }
+    return findProj(path.dirname(dir), dir);
 }
 
 export function detectProjectRoot(fileName: string): string {
-  const proj = findProj(path.dirname(fileName), '');
-  if (proj !== '') {
-    return proj;
-  }
-  return undefined;
+    const proj = findProj(path.dirname(fileName), "");
+    if (proj !== "") {
+        return proj;
+    }
+    return undefined;
 }
 
 export function getZigPath(): string {
-  const configuration = workspace.getConfiguration("zig");
-  let zigPath = configuration.get<string | null>("zigPath", null);
-  if (!zigPath) {
-    zigPath = which.sync("zig", { nothrow: true });
+    const configuration = workspace.getConfiguration("zig");
+    let zigPath = configuration.get<string | null>("zigPath", null);
     if (!zigPath) {
-      window.showErrorMessage("zig not found in PATH");
-      throw "zig not found in PATH";
+        zigPath = which.sync("zig", { nothrow: true });
+        if (!zigPath) {
+            window.showErrorMessage("zig not found in PATH");
+            throw "zig not found in PATH";
+        }
     }
-  }
-  return zigPath;
+    return zigPath;
 }

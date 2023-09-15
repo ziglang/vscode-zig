@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
-import { TextEdit, OutputChannel } from 'vscode';
-import { execCmd, getZigPath } from './zigUtil';
+import * as vscode from "vscode";
+import { OutputChannel, TextEdit } from "vscode";
+import { execCmd, getZigPath } from "./zigUtil";
 
 export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {
     private _channel: OutputChannel;
@@ -11,8 +11,6 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
 
     provideDocumentFormattingEdits(
         document: vscode.TextDocument,
-        options?: vscode.FormattingOptions,
-        token?: vscode.CancellationToken,
     ): Thenable<TextEdit[]> {
         const logger = this._channel;
         return zigFormat(document)
@@ -28,12 +26,12 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
                 return [new TextEdit(wholeDocument, stdout),];
             })
             .catch((reason) => {
-                let config = vscode.workspace.getConfiguration('zig');
+                const config = vscode.workspace.getConfiguration("zig");
 
                 logger.clear();
-                logger.appendLine(reason.toString().replace('<stdin>', document.fileName));
+                logger.appendLine(reason.toString().replace("<stdin>", document.fileName));
                 if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
-                    logger.show(true)
+                    logger.show(true);
                 }
                 return null;
             });
@@ -49,9 +47,6 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
 
     provideDocumentRangeFormattingEdits(
         document: vscode.TextDocument,
-        range: vscode.Range,
-        options?: vscode.FormattingOptions,
-        token?: vscode.CancellationToken,
     ): Thenable<TextEdit[]> {
         const logger = this._channel;
         return zigFormat(document)
@@ -67,12 +62,12 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
                 return [new TextEdit(wholeDocument, stdout),];
             })
             .catch((reason) => {
-                const config = vscode.workspace.getConfiguration('zig');
+                const config = vscode.workspace.getConfiguration("zig");
 
                 logger.clear();
-                logger.appendLine(reason.toString().replace('<stdin>', document.fileName));
+                logger.appendLine(reason.toString().replace("<stdin>", document.fileName));
                 if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
-                    logger.show(true)
+                    logger.show(true);
                 }
                 return null;
             });
@@ -83,8 +78,8 @@ function zigFormat(document: vscode.TextDocument) {
     const zigPath = getZigPath();
 
     const options = {
-        cmdArguments: ['fmt', '--stdin'],
-        notFoundText: 'Could not find zig. Please add zig to your PATH or specify a custom path to the zig binary in your settings.',
+        cmdArguments: ["fmt", "--stdin"],
+        notFoundText: "Could not find zig. Please add zig to your PATH or specify a custom path to the zig binary in your settings.",
     };
     const format = execCmd(zigPath, options);
 
