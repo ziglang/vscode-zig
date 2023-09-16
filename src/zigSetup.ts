@@ -13,14 +13,14 @@ const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
 function getHostZigName(): string {
     let os: string = process.platform;
-    if (os == "darwin") os = "macos";
-    if (os == "win32") os = "windows";
+    if (os === "darwin") {os = "macos";}
+    if (os === "win32") {os = "windows";}
     let arch: string = process.arch;
-    if (arch == "ia32") arch = "x86";
-    if (arch == "x64") arch = "x86_64";
-    if (arch == "arm64") arch = "aarch64";
-    if (arch == "ppc") arch = "powerpc";
-    if (arch == "ppc64") arch = "powerpc64le";
+    if (arch === "ia32") {arch = "x86";}
+    if (arch === "x64") {arch = "x86_64";}
+    if (arch === "arm64") {arch = "aarch64";}
+    if (arch === "ppc") {arch = "powerpc";}
+    if (arch === "ppc64") {arch = "powerpc64le";}
     return `${arch}-${os}`;
 }
 
@@ -39,7 +39,7 @@ async function getVersions(): Promise<ZigVersion[]> {
     for (const entry of Object.entries(indexJson)) {
         let [key] = entry;
         const [, value] = entry;
-        if (key == "master") key = "nightly";
+        if (key === "master") {key = "nightly";}
         if (value[hostName]) {
             result.push({
                 name: key,
@@ -48,8 +48,8 @@ async function getVersions(): Promise<ZigVersion[]> {
             });
         }
     }
-    if (result.length == 0) {
-        throw `no pre-built Zig is available for your system '${hostName}', you can build it yourself using https://github.com/ziglang/zig-bootstrap`;
+    if (result.length === 0) {
+        throw Error(`no pre-built Zig is available for your system '${hostName}', you can build it yourself using https://github.com/ziglang/zig-bootstrap`);
     }
     return result;
 }
@@ -64,12 +64,12 @@ async function installZig(context: ExtensionContext, version: ZigVersion): Promi
             responseType: "arraybuffer"
         })).data;
         const tarHash = createHash("sha256").update(tarball).digest("hex");
-        if (tarHash != version.sha) {
-            throw `hash of downloaded tarball ${tarHash} does not match expected hash ${version.sha}`;
+        if (tarHash !== version.sha) {
+            throw Error(`hash of downloaded tarball ${tarHash} does not match expected hash ${version.sha}`);
         }
 
         const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zig_install");
-        if (fs.existsSync(installDir.fsPath)) fs.rmSync(installDir.fsPath, { recursive: true, force: true });
+        if (fs.existsSync(installDir.fsPath)) {fs.rmSync(installDir.fsPath, { recursive: true, force: true });}
         mkdirp.sync(installDir.fsPath);
 
         progress.report({ message: "Decompressing..." });
@@ -107,10 +107,10 @@ async function selectVersionAndInstall(context: ExtensionContext): Promise<void>
             canPickMany: false,
             placeHolder,
         });
-        if (selection === undefined) return;
+        if (selection === undefined) {return;}
         for (const option of available) {
             if (option.name === selection.label) {
-                if (option.name == "nightly") {
+                if (option.name === "nightly") {
                     option.name = `nightly-${getNightlySemVer(option.url)}`;
                 }
                 await installZig(context, option);
@@ -125,7 +125,7 @@ async function selectVersionAndInstall(context: ExtensionContext): Promise<void>
 async function checkUpdate(context: ExtensionContext): Promise<void> {
     try {
         const update = await getUpdatedVersion(context);
-        if (!update) return;
+        if (!update) {return;}
 
         const response = await window.showInformationMessage(`New version of Zig available: ${update.name}`, "Install", "Cancel");
         if (response === "Install") {
@@ -141,15 +141,15 @@ async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion 
     const zigPath = configuration.get<string | null>("zigPath", null);
     if (zigPath) {
         const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
-        if (!zigPath.startsWith(zigBinPath)) return null;
+        if (!zigPath.startsWith(zigBinPath)) {return null;}
     }
 
     const version = configuration.get<string | null>("zigVersion", null);
-    if (!version) return null;
+    if (!version) {return null;}
 
     const available = await getVersions();
     if (version.startsWith("nightly")) {
-        if (available[0].name == "nightly") {
+        if (available[0].name === "nightly") {
             const curVersion = version.slice("nightly-".length);
             const newVersion = getNightlySemVer(available[0].url);
             if (semver.gt(newVersion, curVersion)) {
@@ -183,7 +183,7 @@ export async function setupZig(context: ExtensionContext) {
             await selectVersionAndInstall(context);
             const configuration = workspace.getConfiguration("zig", null);
             const zigPath = configuration.get<string | null>("zigPath", null);
-            if (!zigPath) return;
+            if (!zigPath) {return;}
             window.showInformationMessage(`Zig was installed at '${zigPath}', add it to PATH to use it from the terminal`);
             return;
         } else if (response === "Specify path") {
@@ -197,12 +197,12 @@ export async function setupZig(context: ExtensionContext) {
             if (uris) {
                 await configuration.update("zigPath", uris[0].fsPath, true);
             }
-        } else if (response == "Use Zig in PATH") {
+        } else if (response === "Use Zig in PATH") {
             await configuration.update("zigPath", "", true);
-        } else throw "zigPath not specified";
+        } else {throw Error("zigPath not specified");}
     }
 
-    if (!shouldCheckUpdate(context, "zigUpdate")) return;
-    if (!configuration.get<boolean>("checkForUpdate", true)) return;
+    if (!shouldCheckUpdate(context, "zigUpdate")) {return;}
+    if (!configuration.get<boolean>("checkForUpdate", true)) {return;}
     await checkUpdate(context);
 }

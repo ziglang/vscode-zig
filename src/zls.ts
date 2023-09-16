@@ -41,15 +41,15 @@ export function getDefaultInstallationName(): InstallationName | null {
     const plat = process.platform;
     const arch = process.arch;
     if (arch === "ia32") {
-        if (plat === "linux") return InstallationName.x86_linux;
-        else if (plat === "win32") return InstallationName.x86_windows;
+        if (plat === "linux") {return InstallationName.x86_linux;}
+        else if (plat === "win32") {return InstallationName.x86_windows;}
     } else if (arch === "x64") {
-        if (plat === "linux") return InstallationName.x86_64_linux;
-        else if (plat === "darwin") return InstallationName.x86_64_macos;
-        else if (plat === "win32") return InstallationName.x86_64_windows;
+        if (plat === "linux") {return InstallationName.x86_64_linux;}
+        else if (plat === "darwin") {return InstallationName.x86_64_macos;}
+        else if (plat === "win32") {return InstallationName.x86_64_windows;}
     } else if (arch === "arm64") {
-        if (plat === "darwin") return InstallationName.arm_64_macos;
-        if (plat === "linux") return InstallationName.arm_64_linux;
+        if (plat === "darwin") {return InstallationName.arm_64_macos;}
+        if (plat === "linux") {return InstallationName.arm_64_linux;}
     }
 
     return null;
@@ -73,7 +73,7 @@ export async function installExecutable(context: ExtensionContext): Promise<stri
 
         progress.report({ message: "Installing..." });
         const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
-        if (!fs.existsSync(installDir.fsPath)) mkdirp.sync(installDir.fsPath);
+        if (!fs.existsSync(installDir.fsPath)) {mkdirp.sync(installDir.fsPath);}
 
         const zlsBinPath = vscode.Uri.joinPath(installDir, `zls${def.endsWith("windows") ? ".exe" : ""}`).fsPath;
         const zlsBinTempPath = zlsBinPath + ".tmp";
@@ -83,7 +83,7 @@ export async function installExecutable(context: ExtensionContext): Promise<stri
         // https://developer.apple.com/documentation/security/updating_mac_software
         fs.writeFileSync(zlsBinTempPath, exe, "binary");
         fs.chmodSync(zlsBinTempPath, 0o755);
-        if (fs.existsSync(zlsBinPath)) fs.rmSync(zlsBinPath);
+        if (fs.existsSync(zlsBinPath)) {fs.rmSync(zlsBinPath);}
         fs.renameSync(zlsBinTempPath, zlsBinPath);
 
         const config = workspace.getConfiguration("zig.zls");
@@ -174,12 +174,12 @@ export async function startClient(context: ExtensionContext) {
         client = null;
     }).then(() => {
         if (workspace.getConfiguration("zig").get<string>("formattingProvider", "zls") !== "zls")
-            client.getFeature("textDocument/formatting").dispose();
+        {client.getFeature("textDocument/formatting").dispose();}
     });
 }
 
 export async function stopClient(): Promise<void> {
-    if (client) client.stop();
+    if (client) {client.stop();}
     client = null;
 }
 
@@ -273,9 +273,9 @@ export async function checkUpdate(context: ExtensionContext, autoInstallPrebuild
     const configuration = workspace.getConfiguration("zig.zls");
 
     const zlsPath = await getZLSPath(context);
-    if (!zlsPath) return;
+    if (!zlsPath) {return;}
 
-    if (!await isUpdateAvailable(zlsPath)) return;
+    if (!await isUpdateAvailable(zlsPath)) {return;}
 
     const isPrebuild = await isZLSPrebuildBinary(context);
 
@@ -298,7 +298,7 @@ export async function checkUpdate(context: ExtensionContext, autoInstallPrebuild
 export async function isZLSPrebuildBinary(context: ExtensionContext): Promise<boolean> {
     const configuration = workspace.getConfiguration("zig.zls");
     const zlsPath = configuration.get<string | null>("path", null);
-    if (!zlsPath) return false;
+    if (!zlsPath) {return false;}
 
     const zlsBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;
     return zlsPath.startsWith(zlsBinPath);
@@ -309,7 +309,7 @@ export async function isUpdateAvailable(zlsPath: string): Promise<boolean | null
     // get current version
     const buffer = child_process.execFileSync(zlsPath, ["--version"]);
     const version = semver.parse(buffer.toString("utf8"));
-    if (!version) return null;
+    if (!version) {return null;}
 
     // compare version triple if commit id is available
     if (version.prerelease.length === 0 || version.build.length === 0) {
@@ -329,7 +329,7 @@ export async function isUpdateAvailable(zlsPath: string): Promise<boolean | null
 
 export async function openConfig(context: ExtensionContext): Promise<void> {
     const zlsPath = await getZLSPath(context);
-    if (!zlsPath) return;
+    if (!zlsPath) {return;}
 
     const buffer = child_process.execFileSync(zlsPath, ["--show-config-path"]);
     const path: string = buffer.toString("utf8").trimEnd();
@@ -395,7 +395,7 @@ export async function activate(context: ExtensionContext) {
     });
 
     if (!isEnabled())
-        return;
+    {return;}
 
     const configuration = workspace.getConfiguration("zig.zls", null);
     if (!configuration.get<string | null>("path", null)) {

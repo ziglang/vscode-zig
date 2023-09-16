@@ -154,7 +154,7 @@ export function getZigPath(): string {
         zigPath = which.sync("zig", { nothrow: true });
         if (!zigPath) {
             window.showErrorMessage("zig not found in PATH");
-            throw "zig not found in PATH";
+            throw Error("zig not found in PATH");
         }
     }
     return zigPath;
