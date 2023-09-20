@@ -36,9 +36,8 @@ async function getVersions(): Promise<ZigVersion[]> {
     })).data;
     const indexJson = JSON.parse(tarball);
     const result: ZigVersion[] = [];
-    for (const entry of Object.entries(indexJson)) {
-        let [key] = entry;
-        const [, value] = entry;
+    // eslint-disable-next-line prefer-const
+    for (let [key, value] of Object.entries(indexJson)) {
         if (key === "master") {key = "nightly";}
         if (value[hostName]) {
             result.push({
