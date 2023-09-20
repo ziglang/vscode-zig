@@ -1,29 +1,32 @@
-import { buildDiagnosticCollection, logChannel } from './extension';
-import * as cp from 'child_process';
-import * as vscode from 'vscode';
-import { getZigPath } from './zigUtil';
+import * as cp from "child_process";
+import Path from "path";
+import * as vscode from "vscode";
+import { buildDiagnosticCollection, logChannel } from "./extension";
+import { getZigPath } from "./zigUtil";
+
+
 
 export function zigBuild(): void {
     const editor = vscode.window.activeTextEditor;
 
     const textDocument = editor.document;
-    if (textDocument.languageId !== 'zig') {
+    if (textDocument.languageId !== "zig") {
         return;
     }
 
-    const config = vscode.workspace.getConfiguration('zig');
+    const config = vscode.workspace.getConfiguration("zig");
     const buildOption = config.get<string>("buildOption");
-    let processArg: string[] = [buildOption];
+    const processArg: string[] = [buildOption];
 
     switch (buildOption) {
-        case "build":
-            break;
-        default:
-            processArg.push(textDocument.fileName);
-            break;
+    case "build":
+        break;
+    default:
+        processArg.push(textDocument.fileName);
+        break;
     }
 
-    let extraArgs = config.get<string[]>("buildArgs");;
+    const extraArgs = config.get<string[]>("buildArgs");
     extraArgs.forEach(element => {
         processArg.push(element);
     });
@@ -33,10 +36,11 @@ export function zigBuild(): void {
 
     logChannel.appendLine(`Starting building the current workspace at ${cwd}`);
 
-    let childProcess = cp.execFile(buildPath, processArg, { cwd }, (err, stdout, stderr) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const childProcess = cp.execFile(buildPath, processArg, { cwd }, (err, stdout, stderr) => {
         logChannel.appendLine(stderr);
-        var diagnostics: { [id: string]: vscode.Diagnostic[]; } = {};
-        let regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
+        const diagnostics: { [id: string]: vscode.Diagnostic[]; } = {};
+        const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
 
         buildDiagnosticCollection.clear();
         for (let match = regex.exec(stderr); match;
@@ -44,28 +48,28 @@ export function zigBuild(): void {
             let path = match[1].trim();
             try {
                 if (!path.includes(cwd)) {
-                    path = require("path").resolve(cwd, path);
+                    path = Path.resolve(cwd, path);
                 }
             } catch {
-
+                // 
             }
-            let line = parseInt(match[2]) - 1;
-            let column = parseInt(match[3]) - 1;
-            let type = match[4];
-            let message = match[5];
+            const line = parseInt(match[2]) - 1;
+            const column = parseInt(match[3]) - 1;
+            const type = match[4];
+            const message = match[5];
 
-            let severity = type.trim().toLowerCase() === "error" ?
+            const severity = type.trim().toLowerCase() === "error" ?
                 vscode.DiagnosticSeverity.Error :
                 vscode.DiagnosticSeverity.Information;
 
-            let range = new vscode.Range(line, column, line, Infinity);
+            const range = new vscode.Range(line, column, line, Infinity);
 
-            if (diagnostics[path] == null) diagnostics[path] = [];
+            if (diagnostics[path] === null) {diagnostics[path] = [];}
             diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
         }
 
-        for (let path in diagnostics) {
-            let diagnostic = diagnostics[path];
+        for (const path in diagnostics) {
+            const diagnostic = diagnostics[path];
             buildDiagnosticCollection.set(vscode.Uri.file(path), diagnostic);
         }
     });
