@@ -242,6 +242,18 @@
           "description": "Enables inlay hint support when the client also supports it",
           "default": true
         },
+        "zig.zls.inlayHintsShowVariableDeclaration": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Enable inlay hints for variable declarations",
+          "default": true
+        },
+        "zig.zls.inlayHintsShowParameterName": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Enable inlay hints for parameter names",
+          "default": true
+        },
         "zig.zls.inlayHintsShowBuiltin": {
           "scope": "resource",
           "type": "boolean",
