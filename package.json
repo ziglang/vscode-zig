@@ -98,15 +98,10 @@
           "default": "${workspaceFolder}/build.zig",
           "description": "The path to build.zig. This is only required if zig.buildOptions = build."
         },
-        "zig.zigPath": {
+        "zig.path": {
           "type": "string",
           "default": null,
           "description": "Set a custom path to the Zig binary. Empty string will lookup zig in PATH."
-        },
-        "zig.zigVersion": {
-          "type": "string",
-          "default": null,
-          "description": "Version of Zig to install"
         },
         "zig.checkForUpdate": {
           "scope": "resource",
@@ -161,12 +156,6 @@
           ],
           "default": "extension"
         },
-        "zig.zls.enabled": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to enable zls",
-          "default": true
-        },
         "zig.trace.server": {
           "scope": "window",
           "type": "string",
@@ -181,7 +170,7 @@
         "zig.zls.checkForUpdate": {
           "scope": "resource",
           "type": "boolean",
-          "description": "Whether to automatically check for new updates",
+          "description": "Whether to automatically check for new updates for nightly version",
           "default": true
         },
         "zig.zls.path": {

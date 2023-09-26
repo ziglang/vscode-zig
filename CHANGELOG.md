@@ -1,3 +1,7 @@
+## 0.5.0
+- Rework initial setup and installation management
+- Add new zls hint settings (@leecannon)
+
 ## 0.4.3
 - Fix checking for ZLS updates
 - Always check `PATH` when `zigPath` is set to empty string
