@@ -5,7 +5,7 @@ import camelCase from "camelcase";
 import * as child_process from "child_process";
 import * as fs from "fs";
 import mkdirp from "mkdirp";
-import semver from "semver";
+import semver, { SemVer } from "semver";
 import * as vscode from "vscode";
 import {
     LanguageClient,
@@ -94,6 +94,32 @@ export function getZLSPath(): string {
     return getExePath(zlsPath, "zls", "zig.zls.path");
 }
 
+const downloadsRoot = "https://zigtools-releases.nyc3.digitaloceanspaces.com/zls";
+
+interface Version {
+    date: string,
+    builtWithZigVersion: string,
+    zlsVersion: string,
+    zlsMinimumBuildVersion: string,
+    commit: string,
+    targets: string[],
+}
+
+interface VersionIndex {
+    latest: string,
+    releases: Record<string, string>,
+    versions: Record<string, Version>,
+}
+
+async function getVersionIndex(): Promise<VersionIndex> {
+    const index = (await axios.get(`${downloadsRoot}/index.json`)).data;
+    if (!index.versions[index.latest]) {
+        window.showErrorMessage("Invalid ZLS version index; please contact a ZLS maintainer.");
+        throw "Invalid ZLS version";
+    }
+    return index;
+}
+
 // checks whether there is newer version on master
 async function checkUpdate(context: ExtensionContext) {
     const configuration = workspace.getConfiguration("zig.zls");
@@ -107,17 +133,15 @@ async function checkUpdate(context: ExtensionContext) {
     if (!version) return;
 
     // compare version triple if commit id is available
-    if (version.prerelease.length === 0 || version.build.length === 0) {
+    if (version.build.length === 0) {
         // get latest tagged version
-        const tagsResponse = await axios.get("https://api.github.com/repos/zigtools/zls/tags");
-        const latestVersion = tagsResponse.data[0].name;
-        return semver.gt(latestVersion, version);
+        // TODO update when releases are included
+        window.showWarningMessage("Checking for new ZLS tagged releases does not work yet")
+        return;
     }
 
-    const masterCommits = await axios.get("https://api.github.com/repos/zigtools/zls/commits/master");
-    const masterHash: string = masterCommits.data.sha;
-
-    if (masterHash.startsWith(version.build[0])) return;
+    const index = await getVersionIndex();
+    if (semver.eq(version, index.latest)) return;
 
     const response = await window.showInformationMessage(`New version of ZLS available`, "Install", "Ignore");
     if (response === "Install") {
@@ -126,40 +150,48 @@ async function checkUpdate(context: ExtensionContext) {
 }
 
 export async function install(context: ExtensionContext, ask: boolean) {
-    try {
-        const path = getZigPath();
+    const path = getZigPath();
 
-        const buffer = child_process.execFileSync(path, ["version"]);
-        let zigVersion = semver.parse(buffer.toString("utf8"));
+    const buffer = child_process.execFileSync(path, ["version"]);
+    let zigVersion = semver.parse(buffer.toString("utf8"));
+    // Zig 0.9.0 was the first version to have a tagged zls release
+    const zlsConfiguration = workspace.getConfiguration("zig.zls", null);
+    if (semver.lt(zigVersion, "0.9.0")) {
+        if (zlsConfiguration.get("path")) {
+            window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion}`);
+        }
+        await zlsConfiguration.update("path", undefined);
+        return;
+    }
 
-        // Zig 0.9.0 was the first version to have a tagged zls release
-        const zlsConfiguration = workspace.getConfiguration("zig.zls", null);
-        if (semver.lt(zigVersion, "0.9.0")) {
-            if (zlsConfiguration.get("path")) {
-                window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion}`);
-            }
+    if (ask) {
+        const result = await window.showInformationMessage(
+            `Do you want to install ZLS (the Zig Language Server) for Zig version ${zigVersion}`,
+            "Install", "Ignore"
+        );
+        if (result === "Ignore") {
             await zlsConfiguration.update("path", undefined);
             return;
         }
+    }
+    let zlsVersion;
+    if (zigVersion.build.length !== 0) {
+        // Nightly, install latest ZLS
+        zlsVersion = semver.parse((await getVersionIndex()).latest);
+    } else {
+        // ZLS does not make releases for patches
+        zlsVersion = zigVersion;
+        zlsVersion.patch = 0;
+    }
 
-        if (ask) {
-            const result = await window.showInformationMessage(
-                `Do you want to install ZLS (the Zig Language Server) for Zig version ${zigVersion}`,
-                "Install", "Ignore"
-            );
-            if (result === "Ignore") {
-                await zlsConfiguration.update("path", undefined);
-                return;
-            }
-        }
-
-        await installVersion(context, zigVersion);
+    try {
+        await installVersion(context, zlsVersion);
     } catch (err) {
-        window.showErrorMessage(`Unable to install ZLS: ${err}`);
+        window.showErrorMessage(`Unable to install ZLS ${zlsVersion} for Zig version ${zigVersion}: ${err}`);
     }
 }
 
-async function installVersion(context: ExtensionContext, version) {
+async function installVersion(context: ExtensionContext, version: SemVer) {
     const hostName = getHostZigName();
 
     await window.withProgress({
@@ -174,54 +206,24 @@ async function installVersion(context: ExtensionContext, version) {
         const zlsBinPath = vscode.Uri.joinPath(installDir, binName).fsPath;
 
         progress.report({ message: "Downloading ZLS executable..." });
+        let exe: Buffer;
         try {
-            if (version.prerelease.length !== 0) {
-                // nightly
-                const exe = (await axios.get(`https://zig.pm/zls/downloads/${hostName}/bin/${binName}`, {
-                    responseType: "arraybuffer"
-                })).data;
-                progress.report({ message: "Installing..." });
-                fs.writeFileSync(zlsBinPath, exe, "binary");
-            } else {
-                // ZLS does not make releases for patches
-                version.patch = 0;
-                let tarball: Buffer;
-                try {
-                    tarball = (await axios.get(`https://github.com/zigtools/zls/releases/download/${version}/zls-${hostName}.${isWindows ? "zip" : "tar.gz"}`, {
-                        responseType: "arraybuffer"
-                    })).data;
-                } catch (err) {
-                    if (err.response.status == 404) {
-                        window.showErrorMessage(`A prebuilt ZLS binary for Zig ${version} is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`);
-                        return;
-                    }
-                    throw err;
-                }
-
-                progress.report({ message: "Extracting..." });
-                const tar = execCmd("tar", {
-                    cmdArguments: isWindows
-                        ? ["-xJf", "-", "-C", installDir.fsPath, "--strip-components=1"]
-                        : ["--zstd", "-xf", "-", "-C", installDir.fsPath, "--strip-components=2"],
-                    notFoundText: 'Could not find tar',
-                });
-                tar.stdin.write(tarball);
-                tar.stdin.end();
-                await tar;
-            }
-            fs.chmodSync(zlsBinPath, 0o755);
-
-            let config = workspace.getConfiguration("zig.zls");
-            await config.update("path", zlsBinPath, true);
+            exe = (await axios.get(`${downloadsRoot}/${version.raw}/${hostName}/zls${isWindows ? ".exe" : ""}`, {
+                responseType: "arraybuffer"
+            })).data;
         } catch (err) {
-            let config = workspace.getConfiguration("zig.zls");
-            await config.update("path", undefined);
-            if (err.response && err.response.status == 404) {
-                window.showErrorMessage(`A prebuilt ZLS binary for Zig ${version} is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`);
+            // Missing prebuilt binary is reported as AccessDenied
+            if (err.response.status == 403) {
+                window.showErrorMessage(`A prebuilt ZLS ${version} binary is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`);
                 return;
             }
             throw err;
         }
+        fs.writeFileSync(zlsBinPath, exe, "binary");
+        fs.chmodSync(zlsBinPath, 0o755);
+
+        let config = workspace.getConfiguration("zig.zls");
+        await config.update("path", zlsBinPath, true);
     });
 }
 
