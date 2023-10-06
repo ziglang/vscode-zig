@@ -21,7 +21,7 @@ import { getZigPath } from "./zigUtil";
 export let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
 
-export const downloadsRoot = "https://zig.pm/zls/downloads";
+const downloadsRoot = "https://zigtools-releases.nyc3.digitaloceanspaces.com/zls/";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export enum InstallationName {
@@ -34,6 +34,21 @@ export enum InstallationName {
     arm_64_linux = "aarch64-linux",
 }
 /* eslint-enable @typescript-eslint/naming-convention */
+
+function getInstallationNameExtension(install: InstallationName) {
+    switch (install) {
+    case InstallationName.x86_windows:
+    case InstallationName.x86_64_windows:
+        return ".exe";
+    case InstallationName.x86_linux:
+    case InstallationName.x86_64_linux:
+    case InstallationName.x86_64_macos:
+    case InstallationName.arm_64_macos:
+    case InstallationName.arm_64_linux:
+    default:
+        return "";
+    }
+}
 
 export function getDefaultInstallationName(): InstallationName | null {
     // NOTE: Not using a JS switch because they're very clunky :(
@@ -55,6 +70,25 @@ export function getDefaultInstallationName(): InstallationName | null {
     return null;
 }
 
+export interface Version {
+    date: string,
+    builtWithZigVersion: string,
+    zlsVersion: string,
+    zlsMinimumBuildVersion: string,
+    commit: string,
+    targets: string[],
+}
+
+export interface VersionIndex {
+    latest: string,
+    releases: Record<string, string>,
+    versions: Record<string, Version>,
+}
+
+export async function getVersionIndex(): Promise<VersionIndex> {
+    return (await axios.get(`${downloadsRoot}index.json`)).data;
+}
+
 export async function installExecutable(context: ExtensionContext): Promise<string | null> {
     const def = getDefaultInstallationName();
     if (!def) {
@@ -66,8 +100,18 @@ export async function installExecutable(context: ExtensionContext): Promise<stri
         title: "Installing zls...",
         location: vscode.ProgressLocation.Notification,
     }, async progress => {
+        progress.report({ message: "Fetching ZLS version index..." });
+        const index = await getVersionIndex();
+
+        const latestVersion = index.versions[index.latest];
+
+        if (!latestVersion) {
+            window.showErrorMessage("Invalid ZLS version index; please contact a ZLS maintainer.");
+            return null;
+        }
+
         progress.report({ message: "Downloading zls executable..." });
-        const exe = (await axios.get(`${downloadsRoot}/${def}/bin/zls${def.endsWith("windows") ? ".exe" : ""}`, {
+        const exe = (await axios.get(`${downloadsRoot}${index.latest}/${def}/zls${getInstallationNameExtension(def)}`, {
             responseType: "arraybuffer"
         })).data;
 
