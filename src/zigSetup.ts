@@ -121,7 +121,7 @@ async function checkUpdate(context: ExtensionContext) {
 
 async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion | null> {
     const configuration = workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string | null>("path");
+    const zigPath = configuration.get<string>("path");
     if (zigPath) {
         const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
         if (!zigPath.startsWith(zigBinPath)) return null;
@@ -156,29 +156,31 @@ export async function setupZig(context: ExtensionContext) {
     });
 
     if (!context.globalState.get<boolean>("initialSetupDone")) {
-        await initialSetup(context);
-        await context.globalState.update("initialSetupDone", true);
+        await context.globalState.update("initialSetupDone",
+            await initialSetup(context)
+        );
     }
 
-    const configuration = workspace.getConfiguration("zig", null);
-    if (configuration.get<string | null>("path") === null) return;
+    const configuration = workspace.getConfiguration("zig");
+    if (!configuration.get<string>("path")) return;
     if (!configuration.get<boolean>("checkForUpdate")) return;
     if (!shouldCheckUpdate(context, "zigUpdate")) return;
     await checkUpdate(context);
 }
 
-async function initialSetup(context: ExtensionContext) {
-    const zigConfig = workspace.getConfiguration("zig", null);
+async function initialSetup(context: ExtensionContext): Promise<boolean> {
+    const zigConfig = workspace.getConfiguration("zig");
     const zigResponse = await window.showInformationMessage(
         "Zig path hasn't been set, do you want to specify the path or install Zig?",
+        { modal: true },
         "Install", "Specify path", "Use Zig in PATH"
     );
 
     if (zigResponse === "Install") {
         await selectVersionAndInstall(context);
-        const configuration = workspace.getConfiguration("zig", null);
-        const path = configuration.get<string | null>("path");
-        if (!path) return;
+        const configuration = workspace.getConfiguration("zig");
+        const path = configuration.get<string>("path");
+        if (!path) return false;
         window.showInformationMessage(`Zig was installed at '${path}', add it to PATH to use it from the terminal`);
     } else if (zigResponse === "Specify path") {
         const uris = await window.showOpenDialog({
@@ -187,21 +189,22 @@ async function initialSetup(context: ExtensionContext) {
             canSelectMany: false,
             title: "Select Zig executable",
         });
-        if (!uris) return;
+        if (!uris) return false;
 
         const buffer = child_process.execFileSync(uris[0].path, ["version"]);
         const version = semver.parse(buffer.toString("utf8"));
-        if (!version) return;
+        if (!version) return false;
 
         await zigConfig.update("path", uris[0].path, true);
     } else if (zigResponse === "Use Zig in PATH") {
         await zigConfig.update("path", "", true);
-    } else return;
+    } else return false;
 
-    const zlsConfig = workspace.getConfiguration("zig.zls", null);
+    const zlsConfig = workspace.getConfiguration("zig.zls");
     const zlsResponse = await window.showInformationMessage(
         "We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to install it?",
-        "Install", "Specify path", "Use ZLS in PATH", "Ignore"
+        { modal: true },
+        "Install", "Specify path", "Use ZLS in PATH"
     );
 
     if (zlsResponse === "Install") {
@@ -213,14 +216,16 @@ async function initialSetup(context: ExtensionContext) {
             canSelectMany: false,
             title: "Select Zig Language Server (ZLS) executable",
         });
-        if (!uris) return;
+        if (!uris) return true;
 
         const buffer = child_process.execFileSync(uris[0].path, ["--version"]);
         const version = semver.parse(buffer.toString("utf8"));
-        if (!version) return;
+        if (!version) return true;
 
         await zlsConfig.update("path", uris[0].path, true);
     } else if (zlsResponse === "Use ZLS in PATH") {
         await zlsConfig.update("path", "", true);
     }
+
+    return true;
 }

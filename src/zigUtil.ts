@@ -186,7 +186,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
 
 export function getZigPath(): string {
     const configuration = workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string | null>("path");
+    const zigPath = configuration.get<string>("path");
     return getExePath(zigPath, "zig", "zig.path");
 }
 

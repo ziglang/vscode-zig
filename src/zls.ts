@@ -90,7 +90,7 @@ export async function stopClient() {
 // returns the file system path to the zls executable
 export function getZLSPath(): string {
     const configuration = workspace.getConfiguration("zig.zls");
-    const zlsPath = configuration.get<string | null>("path");
+    const zlsPath = configuration.get<string>("path");
     return getExePath(zlsPath, "zls", "zig.zls.path");
 }
 
@@ -124,8 +124,8 @@ async function getVersionIndex(): Promise<VersionIndex> {
 async function checkUpdate(context: ExtensionContext) {
     const configuration = workspace.getConfiguration("zig.zls");
     const zlsPath = configuration.get<string>("path");
-    const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;
-    if (!zlsPath.startsWith(zigBinPath)) return;
+    const zlsBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;
+    if (!zlsPath.startsWith(zlsBinPath)) return;
 
     // get current version
     const buffer = child_process.execFileSync(zlsPath, ["--version"]);
@@ -235,9 +235,9 @@ async function openConfig() {
 }
 
 function checkInstalled(): boolean {
-    const zlsPath = workspace.getConfiguration("zig.zls").get<string | null>("path");
-    if (zlsPath === null) window.showErrorMessage("This command cannot be run without setting 'zig.zls.path'.");
-    return zlsPath !== null;
+    const zlsPath = workspace.getConfiguration("zig.zls").get<string>("path");
+    if (!zlsPath) window.showErrorMessage("This command cannot be run without setting 'zig.zls.path'.", { modal: true });
+    return !!zlsPath;
 }
 
 export async function activate(context: ExtensionContext) {
@@ -246,7 +246,7 @@ export async function activate(context: ExtensionContext) {
     vscode.commands.registerCommand("zig.zls.install", async () => {
         const zigPath = workspace.getConfiguration("zig").get<string | null>("path");
         if (zigPath === null) {
-            window.showErrorMessage("This command cannot be run without setting 'zig.path'.");
+            window.showErrorMessage("This command cannot be run without setting 'zig.path'.", { modal: true });
             return;
         }
 
