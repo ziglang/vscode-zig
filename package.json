@@ -164,30 +164,25 @@
         "zig.trace.server": {
           "scope": "window",
           "type": "string",
+          "description": "Traces the communication between VS Code and the language server.",
           "enum": [
             "off",
             "messages",
             "verbose"
           ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
+          "default": "off"
         },
         "zig.zls.checkForUpdate": {
           "scope": "resource",
           "type": "boolean",
-          "description": "Whether to automatically check for new updates for nightly version",
+          "description": "Whether to automatically check for new updates",
           "default": true
         },
         "zig.zls.path": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. If ${workspaceFolder} is used, it will resolve to the first workspace folder.",
+          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`.",
           "format": "path"
-        },
-        "zig.zls.debugLog": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Enable debug logging in release builds of zls."
         },
         "zig.zls.enableSnippets": {
           "scope": "resource",
@@ -207,27 +202,27 @@
           "description": "Whether to enable ast-check diagnostics",
           "default": true
         },
+        "zig.zls.enableBuildOnSave": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Whether to enable build-on-save diagnostics",
+          "default": false
+        },
         "zig.zls.enableAutofix": {
           "scope": "resource",
           "type": "boolean",
           "description": "Whether to automatically fix errors on save. Currently supports adding and removing discards.",
           "default": true
         },
-        "zig.zls.enableImportEmbedfileArgumentCompletions": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to enable import/embedFile argument completions",
-          "default": true
-        },
         "zig.zls.semanticTokens": {
           "scope": "resource",
           "type": "string",
+          "description": "Set level of semantic tokens. Partial only includes information that requires semantic analysis.",
           "enum": [
             "none",
             "partial",
             "full"
           ],
-          "description": "Set level of semantic tokens. Partial only includes information that requires semantic analysis.",
           "default": "partial"
         },
         "zig.zls.enableInlayHints": {
@@ -272,12 +267,6 @@
           "description": "Hides inlay hints when parameter name matches the last token of a parameter node (e.g. foo: bar.foo, foo: &foo)",
           "default": false
         },
-        "zig.zls.operatorCompletions": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Enables `*` and `?` operators in completion lists",
-          "default": true
-        },
         "zig.zls.warnStyle": {
           "scope": "resource",
           "type": "boolean",
@@ -296,23 +285,11 @@
           "description": "Whether to use the comptime interpreter",
           "default": false
         },
-        "zig.zls.includeAtInBuiltins": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Whether the @ sign should be part of the completion of builtins",
-          "default": false
-        },
         "zig.zls.skipStdReferences": {
           "scope": "resource",
           "type": "boolean",
           "description": "When true, skips searching for references in std. Improves lookup speed for functions in user's code. Renaming and go-to-definition will continue to work as is",
           "default": false
-        },
-        "zig.zls.maxDetailLength": {
-          "scope": "resource",
-          "type": "integer",
-          "description": "The detail field of completions is truncated to be no longer than this (in bytes)",
-          "default": 1048576
         },
         "zig.zls.preferAstCheckAsChildProcess": {
           "scope": "resource",
@@ -367,6 +344,12 @@
           "type": "string",
           "description": "Path to a directory that will be used as the global cache path when executing a projects build.zig. null is equivalent to the path shown by `zig env`",
           "format": "path"
+        },
+        "zig.zls.completionsWithReplace": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Completions confirm behavior. If 'true', replace the text after the cursor",
+          "default": true
         }
       }
     },
