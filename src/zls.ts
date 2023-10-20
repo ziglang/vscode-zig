@@ -107,6 +107,7 @@ interface Version {
 
 interface VersionIndex {
     latest: string,
+    latestTagged: string,
     releases: Record<string, string>,
     versions: Record<string, Version>,
 }
@@ -132,20 +133,16 @@ async function checkUpdate(context: ExtensionContext) {
     const version = semver.parse(buffer.toString("utf8"));
     if (!version) return;
 
-    // compare version triple if commit id is available
-    if (version.build.length === 0) {
-        // get latest tagged version
-        // TODO update when releases are included
-        window.showWarningMessage("Checking for new ZLS tagged releases does not work yet")
-        return;
-    }
-
     const index = await getVersionIndex();
-    if (semver.eq(version, index.latest)) return;
+    // having a build number implies nightly version
+    const latestVersion = version.build.length === 0 ?
+        semver.parse(index.latestTagged) : semver.parse(index.latest);
+
+    if (semver.gte(version, latestVersion)) return;
 
     const response = await window.showInformationMessage(`New version of ZLS available`, "Install", "Ignore");
     if (response === "Install") {
-        await installVersion(context, version);
+        await installVersion(context, latestVersion);
     }
 }
 
