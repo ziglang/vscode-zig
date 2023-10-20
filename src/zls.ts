@@ -5,116 +5,23 @@ import camelCase from "camelcase";
 import * as child_process from "child_process";
 import * as fs from "fs";
 import mkdirp from "mkdirp";
-import * as os from "os";
-import * as path from "path";
-import semver from "semver";
+import semver, { SemVer } from "semver";
 import * as vscode from "vscode";
 import {
     LanguageClient,
     LanguageClientOptions,
     ServerOptions
 } from "vscode-languageclient/node";
-import which from "which";
-import { shouldCheckUpdate } from "./extension";
-import { getZigPath } from "./zigUtil";
+import { execCmd, getExePath, getHostZigName, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
 
-export let outputChannel: vscode.OutputChannel;
-export let client: LanguageClient | null = null;
+let outputChannel: vscode.OutputChannel;
+let client: LanguageClient | null = null;
 
-export const downloadsRoot = "https://zig.pm/zls/downloads";
-
-/* eslint-disable @typescript-eslint/naming-convention */
-export enum InstallationName {
-    x86_linux = "x86-linux",
-    x86_windows = "x86-windows",
-    x86_64_linux = "x86_64-linux",
-    x86_64_macos = "x86_64-macos",
-    x86_64_windows = "x86_64-windows",
-    arm_64_macos = "aarch64-macos",
-    arm_64_linux = "aarch64-linux",
-}
-/* eslint-enable @typescript-eslint/naming-convention */
-
-export function getDefaultInstallationName(): InstallationName | null {
-    // NOTE: Not using a JS switch because they're very clunky :(
-
-    const plat = process.platform;
-    const arch = process.arch;
-    if (arch === "ia32") {
-        if (plat === "linux") {return InstallationName.x86_linux;}
-        else if (plat === "win32") {return InstallationName.x86_windows;}
-    } else if (arch === "x64") {
-        if (plat === "linux") {return InstallationName.x86_64_linux;}
-        else if (plat === "darwin") {return InstallationName.x86_64_macos;}
-        else if (plat === "win32") {return InstallationName.x86_64_windows;}
-    } else if (arch === "arm64") {
-        if (plat === "darwin") {return InstallationName.arm_64_macos;}
-        if (plat === "linux") {return InstallationName.arm_64_linux;}
-    }
-
-    return null;
-}
-
-export async function installExecutable(context: ExtensionContext): Promise<string | null> {
-    const def = getDefaultInstallationName();
-    if (!def) {
-        window.showInformationMessage("Your system isn\"t built by our CI!\nPlease follow the instructions [here](https://github.com/zigtools/zls#from-source) to get started!");
-        return null;
-    }
-
-    return window.withProgress({
-        title: "Installing zls...",
-        location: vscode.ProgressLocation.Notification,
-    }, async progress => {
-        progress.report({ message: "Downloading zls executable..." });
-        const exe = (await axios.get(`${downloadsRoot}/${def}/bin/zls${def.endsWith("windows") ? ".exe" : ""}`, {
-            responseType: "arraybuffer"
-        })).data;
-
-        progress.report({ message: "Installing..." });
-        const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
-        if (!fs.existsSync(installDir.fsPath)) {mkdirp.sync(installDir.fsPath);}
-
-        const zlsBinPath = vscode.Uri.joinPath(installDir, `zls${def.endsWith("windows") ? ".exe" : ""}`).fsPath;
-        const zlsBinTempPath = zlsBinPath + ".tmp";
-
-        // Create a new executable file.
-        // Do not update the existing file in place, to avoid code-signing crashes on macOS.
-        // https://developer.apple.com/documentation/security/updating_mac_software
-        fs.writeFileSync(zlsBinTempPath, exe, "binary");
-        fs.chmodSync(zlsBinTempPath, 0o755);
-        if (fs.existsSync(zlsBinPath)) {fs.rmSync(zlsBinPath);}
-        fs.renameSync(zlsBinTempPath, zlsBinPath);
-
-        const config = workspace.getConfiguration("zig.zls");
-        await config.update("path", zlsBinPath, true);
-
-        return zlsBinPath;
-    });
-}
-
-export async function checkUpdateMaybe(context: ExtensionContext) {
-    const configuration = workspace.getConfiguration("zig.zls");
-    const checkForUpdate = configuration.get<boolean>("checkForUpdate", true);
-    if (checkForUpdate) {
-        try {
-            await checkUpdate(context, true);
-        } catch (err) {
-            outputChannel.appendLine(`Failed to check for update. Reason: ${err.message}`);
-        }
-    }
-}
-
-export async function startClient(context: ExtensionContext) {
+async function startClient() {
     const configuration = workspace.getConfiguration("zig.zls");
     const debugLog = configuration.get<boolean>("debugLog", false);
 
-    const zlsPath = await getZLSPath(context);
-
-    if (!zlsPath) {
-        promptAfterFailure(context);
-        return null;
-    }
+    const zlsPath = getZLSPath();
 
     const serverOptions: ServerOptions = {
         command: zlsPath,
@@ -133,7 +40,7 @@ export async function startClient(context: ExtensionContext) {
 
                     for (const [index, param] of Object.entries(params.items)) {
                         if (param.section === "zls.zig_exe_path") {
-                            param.section = "zig.zigPath";
+                            param.section = "zig.path";
                             indexOfZigPath = index;
                         } else if (param.section === "zls.enable_ast_check_diagnostics") {
                             indexOfAstCheck = index;
@@ -145,14 +52,10 @@ export async function startClient(context: ExtensionContext) {
                     const result = await next(params, token);
 
                     if (indexOfAstCheck !== null) {
-                        result[indexOfAstCheck] = workspace.getConfiguration("zig").get<string>("astCheckProvider", "zls") === "zls";
+                        result[indexOfAstCheck] = workspace.getConfiguration("zig").get<string>("astCheckProvider") === "zls";
                     }
                     if (indexOfZigPath !== null) {
-                        try {
-                            result[indexOfZigPath] = getZigPath();
-                        } catch {
-                            result[indexOfZigPath] = "zig";
-                        }
+                        result[indexOfZigPath] = getZigPath();
                     }
 
                     return result;
@@ -173,261 +76,216 @@ export async function startClient(context: ExtensionContext) {
         window.showWarningMessage(`Failed to run Zig Language Server (ZLS): ${reason}`);
         client = null;
     }).then(() => {
-        if (workspace.getConfiguration("zig").get<string>("formattingProvider", "zls") !== "zls")
-        {client.getFeature("textDocument/formatting").dispose();}
+        if (workspace.getConfiguration("zig").get<string>("formattingProvider") !== "zls") {
+            client.getFeature("textDocument/formatting").dispose();
+        }
     });
 }
 
-export async function stopClient(): Promise<void> {
-    if (client) {client.stop();}
+export async function stopClient() {
+    if (client) client.stop();
     client = null;
 }
 
-export async function promptAfterFailure(context: ExtensionContext): Promise<string | null> {
-    const configuration = workspace.getConfiguration("zig.zls");
-    const response = await window.showWarningMessage("Couldn't find Zig Language Server (ZLS) executable",
-        "Install", "Specify path", "Use ZLS in PATH", "Disable"
-    );
-
-    if (response === "Install") {
-        return await installExecutable(context);
-    } else if (response === "Specify path") {
-        const uris = await window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: false,
-            canSelectMany: false,
-            title: "Select Zig Language Server (ZLS) executable",
-        });
-
-        if (uris) {
-            await configuration.update("path", uris[0].fsPath, true);
-            return uris[0].fsPath;
-        }
-    } else if (response === "Use ZLS in PATH") {
-        await configuration.update("path", "", true);
-    } else {
-        await configuration.update("enabled", false, true);
-    }
-
-    return null;
-}
-
 // returns the file system path to the zls executable
-export async function getZLSPath(context: ExtensionContext): Promise<string | null> {
+export function getZLSPath(): string {
     const configuration = workspace.getConfiguration("zig.zls");
-    let zlsPath = configuration.get<string | null>("path", null);
-
-    // Allow passing the ${workspaceFolder} predefined variable
-    // See https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
-    if (zlsPath && zlsPath.includes("${workspaceFolder}")) {
-        // We choose the first workspaceFolder since it is ambiguous which one to use in this context
-        if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-            // older versions of Node (which VSCode uses) may not have String.prototype.replaceAll
-            zlsPath = zlsPath.replace(/\$\{workspaceFolder\}/gm, workspace.workspaceFolders[0].uri.fsPath);
-        }
-    }
-
-    if (!zlsPath) {
-        zlsPath = which.sync("zls", { nothrow: true });
-    } else if (zlsPath.startsWith("~")) {
-        zlsPath = path.join(os.homedir(), zlsPath.substring(1));
-    } else if (!path.isAbsolute(zlsPath)) {
-        zlsPath = which.sync(zlsPath, { nothrow: true });
-    }
-
-    let message: string | null = null;
-
-    const zlsPathExists = zlsPath !== null && fs.existsSync(zlsPath);
-    if (zlsPath && zlsPathExists) {
-        try {
-            fs.accessSync(zlsPath, fs.constants.R_OK | fs.constants.X_OK);
-        } catch {
-            message = `\`zls.path\` ${zlsPath} is not an executable`;
-        }
-        const stat = fs.statSync(zlsPath);
-        if (!stat.isFile()) {
-            message = `\`zls.path\` ${zlsPath} is not a file`;
-        }
-    }
-
-    if (message === null) {
-        if (!zlsPath) {
-            return null;
-        } else if (!zlsPathExists) {
-            if (await isZLSPrebuildBinary(context)) {
-                return null;
-            }
-            message = `Couldn't find Zig Language Server (ZLS) executable at "${zlsPath.replace(/"/gm, "\\\"")}"`;
-        }
-    }
-
-    if (message) {
-        await window.showErrorMessage(message);
-        return null;
-    }
-
-    return zlsPath;
+    const zlsPath = configuration.get<string>("path");
+    return getExePath(zlsPath, "zls", "zig.zls.path");
 }
 
-export async function checkUpdate(context: ExtensionContext, autoInstallPrebuild: boolean): Promise<void> {
-    const configuration = workspace.getConfiguration("zig.zls");
+const downloadsRoot = "https://zigtools-releases.nyc3.digitaloceanspaces.com/zls";
 
-    const zlsPath = await getZLSPath(context);
-    if (!zlsPath) {return;}
-
-    if (!await isUpdateAvailable(zlsPath)) {return;}
-
-    const isPrebuild = await isZLSPrebuildBinary(context);
-
-    if (autoInstallPrebuild && isPrebuild) {
-        await installExecutable(context);
-    } else {
-        const message = `There is a new update available for ZLS. ${!isPrebuild ? "It would replace your installation with a prebuilt binary." : ""}`;
-        const response = await window.showInformationMessage(message, "Install update", "Never ask again");
-
-        if (response === "Install update") {
-            await installExecutable(context);
-        } else if (response === "Never ask again") {
-            await configuration.update("checkForUpdate", false, true);
-        }
-    }
-
+interface Version {
+    date: string,
+    builtWithZigVersion: string,
+    zlsVersion: string,
+    zlsMinimumBuildVersion: string,
+    commit: string,
+    targets: string[],
 }
 
-// checks whether zls has been installed with `installExecutable`
-export async function isZLSPrebuildBinary(context: ExtensionContext): Promise<boolean> {
-    const configuration = workspace.getConfiguration("zig.zls");
-    const zlsPath = configuration.get<string | null>("path", null);
-    if (!zlsPath) {return false;}
+interface VersionIndex {
+    latest: string,
+    latestTagged: string,
+    releases: Record<string, string>,
+    versions: Record<string, Version>,
+}
 
-    const zlsBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;
-    return zlsPath.startsWith(zlsBinPath);
+async function getVersionIndex(): Promise<VersionIndex> {
+    const index = (await axios.get(`${downloadsRoot}/index.json`)).data;
+    if (!index.versions[index.latest]) {
+        window.showErrorMessage("Invalid ZLS version index; please contact a ZLS maintainer.");
+        throw "Invalid ZLS version";
+    }
+    return index;
 }
 
 // checks whether there is newer version on master
-export async function isUpdateAvailable(zlsPath: string): Promise<boolean | null> {
+async function checkUpdate(context: ExtensionContext) {
+    const configuration = workspace.getConfiguration("zig.zls");
+    const zlsPath = configuration.get<string>("path");
+    const zlsBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;
+    if (!zlsPath.startsWith(zlsBinPath)) return;
+
     // get current version
     const buffer = child_process.execFileSync(zlsPath, ["--version"]);
     const version = semver.parse(buffer.toString("utf8"));
-    if (!version) {return null;}
+    if (!version) return;
 
-    // compare version triple if commit id is available
-    if (version.prerelease.length === 0 || version.build.length === 0) {
-        // get latest tagged version
-        const tagsResponse = await axios.get("https://api.github.com/repos/zigtools/zls/tags");
-        const latestVersion = tagsResponse.data[0].name;
-        return semver.gt(latestVersion, version);
+    const index = await getVersionIndex();
+    // having a build number implies nightly version
+    const latestVersion = version.build.length === 0 ?
+        semver.parse(index.latestTagged) : semver.parse(index.latest);
+
+    if (semver.gte(version, latestVersion)) return;
+
+    const response = await window.showInformationMessage(`New version of ZLS available`, "Install", "Ignore");
+    if (response === "Install") {
+        await installVersion(context, latestVersion);
     }
-
-    const response = await axios.get("https://api.github.com/repos/zigtools/zls/commits/master");
-    const masterHash: string = response.data.sha;
-
-    const isMaster = masterHash.startsWith(version.build[0]);
-
-    return !isMaster;
 }
 
-export async function openConfig(context: ExtensionContext): Promise<void> {
-    const zlsPath = await getZLSPath(context);
-    if (!zlsPath) {return;}
+export async function install(context: ExtensionContext, ask: boolean) {
+    const path = getZigPath();
 
+    const buffer = child_process.execFileSync(path, ["version"]);
+    let zigVersion = semver.parse(buffer.toString("utf8"));
+    // Zig 0.9.0 was the first version to have a tagged zls release
+    const zlsConfiguration = workspace.getConfiguration("zig.zls", null);
+    if (semver.lt(zigVersion, "0.9.0")) {
+        if (zlsConfiguration.get("path")) {
+            window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion}`);
+        }
+        await zlsConfiguration.update("path", undefined);
+        return;
+    }
+
+    if (ask) {
+        const result = await window.showInformationMessage(
+            `Do you want to install ZLS (the Zig Language Server) for Zig version ${zigVersion}`,
+            "Install", "Ignore"
+        );
+        if (result === "Ignore") {
+            await zlsConfiguration.update("path", undefined);
+            return;
+        }
+    }
+    let zlsVersion;
+    if (zigVersion.build.length !== 0) {
+        // Nightly, install latest ZLS
+        zlsVersion = semver.parse((await getVersionIndex()).latest);
+    } else {
+        // ZLS does not make releases for patches
+        zlsVersion = zigVersion;
+        zlsVersion.patch = 0;
+    }
+
+    try {
+        await installVersion(context, zlsVersion);
+    } catch (err) {
+        window.showErrorMessage(`Unable to install ZLS ${zlsVersion} for Zig version ${zigVersion}: ${err}`);
+    }
+}
+
+async function installVersion(context: ExtensionContext, version: SemVer) {
+    const hostName = getHostZigName();
+
+    await window.withProgress({
+        title: "Installing zls...",
+        location: vscode.ProgressLocation.Notification,
+    }, async progress => {
+        const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
+        if (fs.existsSync(installDir.fsPath)) fs.rmSync(installDir.fsPath, { recursive: true, force: true });
+        mkdirp.sync(installDir.fsPath);
+
+        const binName = `zls${isWindows ? ".exe" : ""}`;
+        const zlsBinPath = vscode.Uri.joinPath(installDir, binName).fsPath;
+
+        progress.report({ message: "Downloading ZLS executable..." });
+        let exe: Buffer;
+        try {
+            exe = (await axios.get(`${downloadsRoot}/${version.raw}/${hostName}/zls${isWindows ? ".exe" : ""}`, {
+                responseType: "arraybuffer"
+            })).data;
+        } catch (err) {
+            // Missing prebuilt binary is reported as AccessDenied
+            if (err.response.status == 403) {
+                window.showErrorMessage(`A prebuilt ZLS ${version} binary is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`);
+                return;
+            }
+            throw err;
+        }
+        fs.writeFileSync(zlsBinPath, exe, "binary");
+        fs.chmodSync(zlsBinPath, 0o755);
+
+        let config = workspace.getConfiguration("zig.zls");
+        await config.update("path", zlsBinPath, true);
+    });
+}
+
+async function openConfig() {
+    const zlsPath = getZLSPath();
     const buffer = child_process.execFileSync(zlsPath, ["--show-config-path"]);
     const path: string = buffer.toString("utf8").trimEnd();
     await vscode.window.showTextDocument(vscode.Uri.file(path), { preview: false });
 }
 
-function isEnabled(): boolean {
-    return workspace.getConfiguration("zig.zls", null).get<boolean>("enabled", true);
+function checkInstalled(): boolean {
+    const zlsPath = workspace.getConfiguration("zig.zls").get<string>("path");
+    if (!zlsPath) window.showErrorMessage("This command cannot be run without setting 'zig.zls.path'.", { modal: true });
+    return !!zlsPath;
 }
 
-const zlsDisabledMessage = "zls is not enabled; if you'd like to enable it, please set 'zig.zls.enabled' to true.";
 export async function activate(context: ExtensionContext) {
     outputChannel = window.createOutputChannel("Zig Language Server");
 
     vscode.commands.registerCommand("zig.zls.install", async () => {
-        if (!isEnabled()) {
-            window.showErrorMessage(zlsDisabledMessage);
+        const zigPath = workspace.getConfiguration("zig").get<string | null>("path");
+        if (zigPath === null) {
+            window.showErrorMessage("This command cannot be run without setting 'zig.path'.", { modal: true });
             return;
         }
 
         await stopClient();
-        await installExecutable(context);
+        await install(context, true);
     });
 
     vscode.commands.registerCommand("zig.zls.stop", async () => {
-        if (!isEnabled()) {
-            window.showErrorMessage(zlsDisabledMessage);
-            return;
-        }
+        if (!checkInstalled()) return;
 
         await stopClient();
     });
 
     vscode.commands.registerCommand("zig.zls.startRestart", async () => {
-        if (!isEnabled()) {
-            window.showErrorMessage(zlsDisabledMessage);
-            return;
-        }
+        if (!checkInstalled()) return;
 
         await stopClient();
-        await checkUpdateMaybe(context);
-        await startClient(context);
+        await startClient();
     });
 
     vscode.commands.registerCommand("zig.zls.openconfig", async () => {
-        if (!isEnabled()) {
-            window.showErrorMessage(zlsDisabledMessage);
-            return;
-        }
+        if (!checkInstalled()) return;
 
-        await openConfig(context);
+        await openConfig();
     });
 
     vscode.commands.registerCommand("zig.zls.update", async () => {
-        if (!isEnabled()) {
-            window.showErrorMessage(zlsDisabledMessage);
-            return;
-        }
+        if (!checkInstalled()) return;
 
         await stopClient();
-        await checkUpdate(context, false);
-        await startClient(context);
+        await checkUpdate(context);
+        await startClient();
     });
 
-    if (!isEnabled())
-    {return;}
-
-    const configuration = workspace.getConfiguration("zig.zls", null);
-    if (!configuration.get<string | null>("path", null)) {
-        const response = await window.showInformationMessage(
-            "We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to install it? You can always change this later by modifying `zig.zls.enabled` in your settings.",
-            "Install", "Specify path", "Use ZLS in PATH", "Disable"
-        );
-
-        if (response === "Install") {
-            await configuration.update("enabled", true, true);
-            await installExecutable(context);
-        } else if (response === "Specify path") {
-            await configuration.update("enabled", true, true);
-            const uris = await window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-                title: "Select Zig Language Server (ZLS) executable",
-            });
-
-            if (uris) {
-                await configuration.update("path", uris[0].fsPath, true);
-            }
-        } else {
-            await configuration.update("enabled", response === "Use ZLS in PATH", true);
-        }
+    const zigConfig = vscode.workspace.getConfiguration("zig");
+    if (zigConfig.get<string | null>("path") === null) return;
+    const zlsConfig = workspace.getConfiguration("zig.zls");
+    if (zlsConfig.get<string | null>("path") === null) return;
+    if (zlsConfig.get<boolean>("checkForUpdate") && shouldCheckUpdate(context, "zlsUpdate")) {
+        await checkUpdate(context);
     }
-
-    if (shouldCheckUpdate(context, "zlsUpdate")) {
-        await checkUpdateMaybe(context);
-    }
-    await startClient(context);
+    await startClient();
 }
 
 export function deactivate(): Thenable<void> {

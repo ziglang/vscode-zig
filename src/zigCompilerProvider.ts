@@ -24,7 +24,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
     maybeDoASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
         if (change.document.languageId !== "zig") {return;}
-        if (vscode.workspace.getConfiguration("zig").get<string>("astCheckProvider", "zls") !== "extension") {
+        if (vscode.workspace.getConfiguration("zig").get<string>("astCheckProvider") !== "extension") {
             this.astDiagnostics.clear();
             return;
         }
