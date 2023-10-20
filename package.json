@@ -2,7 +2,7 @@
   "name": "vscode-zig",
   "displayName": "Zig Language",
   "description": "Language support for the Zig programming language",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "publisher": "ziglang",
   "icon": "images/zig-icon.png",
   "license": "MIT",

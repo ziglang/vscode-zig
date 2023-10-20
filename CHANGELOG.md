@@ -1,6 +1,8 @@
 ## 0.5.0
 - Rework initial setup and installation management
 - Add new zls hint settings (@leecannon)
+- Update zls settings
+- Fix C pointer highlighting (@tokyo4j)
 
 ## 0.4.3
 - Fix checking for ZLS updates
