@@ -1,3 +1,4 @@
+## 0.5.1
 - Always use global configuration.
 
 ## 0.5.0
