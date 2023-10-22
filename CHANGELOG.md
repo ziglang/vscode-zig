@@ -1,3 +1,5 @@
+- Always use global configuration.
+
 ## 0.5.0
 - Rework initial setup and installation management
 - Add new zls hint settings (@leecannon)

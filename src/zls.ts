@@ -157,7 +157,7 @@ export async function install(context: ExtensionContext, ask: boolean) {
         if (zlsConfiguration.get("path")) {
             window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion}`);
         }
-        await zlsConfiguration.update("path", undefined);
+        await zlsConfiguration.update("path", undefined, true);
         return;
     }
 
@@ -167,7 +167,7 @@ export async function install(context: ExtensionContext, ask: boolean) {
             "Install", "Ignore"
         );
         if (result === "Ignore") {
-            await zlsConfiguration.update("path", undefined);
+            await zlsConfiguration.update("path", undefined, true);
             return;
         }
     }

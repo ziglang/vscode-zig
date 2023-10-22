@@ -158,8 +158,7 @@ export async function setupZig(context: ExtensionContext) {
     const configuration = workspace.getConfiguration("zig");
     if (!configuration.get<boolean>("initialSetupDone")) {
         await configuration.update("initialSetupDone",
-            await initialSetup(context)
-        );
+            await initialSetup(context), true);
     }
 
     if (!configuration.get<string>("path")) return;
