@@ -55,7 +55,13 @@ async function startClient() {
                         result[indexOfAstCheck] = workspace.getConfiguration("zig").get<string>("astCheckProvider") === "zls";
                     }
                     if (indexOfZigPath !== null) {
-                        result[indexOfZigPath] = getZigPath();
+                        try {
+                            result[indexOfZigPath] = getZigPath();
+                        } catch {
+                            // This might lead to ZLS not finding some library paths
+                            // but at least other settings will be correct.
+                            result[indexOfZigPath] = "zig";
+                        }
                     }
 
                     return result;
