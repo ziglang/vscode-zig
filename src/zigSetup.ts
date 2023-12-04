@@ -214,9 +214,6 @@ async function initialSetup(context: ExtensionContext): Promise<boolean> {
         });
         if (!uris) return true;
 
-        const version = getVersion(uris[0].path, "--version");
-        if (!version) return true;
-
         await zlsConfig.update("path", uris[0].path, true);
     } else if (zlsResponse === "Use ZLS in PATH") {
         await zlsConfig.update("path", "", true);
