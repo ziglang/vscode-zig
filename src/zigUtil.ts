@@ -2,6 +2,7 @@ import * as cp from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import semver, { SemVer } from "semver";
 import { ExtensionContext, window, workspace } from "vscode";
 import which from "which";
 
@@ -212,4 +213,13 @@ export function getHostZigName(): string {
     if (arch == "ppc") arch = "powerpc";
     if (arch == "ppc64") arch = "powerpc64le";
     return `${arch}-${os}`;
+}
+
+export function getVersion(path: string, arg: string): SemVer | null {
+    try {
+        const buffer = cp.execFileSync(path, [arg]);
+        return semver.parse(buffer.toString("utf8"));
+    } catch {
+        return null;
+    }
 }

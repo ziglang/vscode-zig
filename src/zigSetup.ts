@@ -1,13 +1,12 @@
 import { ExtensionContext, window, workspace } from "vscode";
 
 import axios from "axios";
-import * as child_process from "child_process";
 import { createHash } from "crypto";
 import * as fs from "fs";
 import mkdirp from "mkdirp";
 import semver from "semver";
 import * as vscode from "vscode";
-import { execCmd, getHostZigName, isWindows, shouldCheckUpdate } from "./zigUtil";
+import { execCmd, getHostZigName, getVersion, isWindows, shouldCheckUpdate } from "./zigUtil";
 import { install as installZLS } from "./zls";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
@@ -127,8 +126,7 @@ async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion 
         if (!zigPath.startsWith(zigBinPath)) return null;
     }
 
-    const buffer = child_process.execFileSync(zigPath, ["version"]);
-    const curVersion = semver.parse(buffer.toString("utf8"));
+    const curVersion = getVersion(zigPath, "version");
 
     const available = await getVersions();
     if (curVersion.prerelease.length != 0) {
@@ -190,8 +188,7 @@ async function initialSetup(context: ExtensionContext): Promise<boolean> {
         });
         if (!uris) return false;
 
-        const buffer = child_process.execFileSync(uris[0].path, ["version"]);
-        const version = semver.parse(buffer.toString("utf8"));
+        const version = getVersion(uris[0].path, "version");
         if (!version) return false;
 
         await zigConfig.update("path", uris[0].path, true);
@@ -217,8 +214,7 @@ async function initialSetup(context: ExtensionContext): Promise<boolean> {
         });
         if (!uris) return true;
 
-        const buffer = child_process.execFileSync(uris[0].path, ["--version"]);
-        const version = semver.parse(buffer.toString("utf8"));
+        const version = getVersion(uris[0].path, "--version");
         if (!version) return true;
 
         await zlsConfig.update("path", uris[0].path, true);

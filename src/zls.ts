@@ -12,7 +12,7 @@ import {
     LanguageClientOptions,
     ServerOptions
 } from "vscode-languageclient/node";
-import { execCmd, getExePath, getHostZigName, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
+import { getExePath, getHostZigName, getVersion, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
 
 let outputChannel: vscode.OutputChannel;
 let client: LanguageClient | null = null;
@@ -135,8 +135,7 @@ async function checkUpdate(context: ExtensionContext) {
     if (!zlsPath.startsWith(zlsBinPath)) return;
 
     // get current version
-    const buffer = child_process.execFileSync(zlsPath, ["--version"]);
-    const version = semver.parse(buffer.toString("utf8"));
+    const version = getVersion(zlsPath, "--version");
     if (!version) return;
 
     const index = await getVersionIndex();
@@ -155,8 +154,7 @@ async function checkUpdate(context: ExtensionContext) {
 export async function install(context: ExtensionContext, ask: boolean) {
     const path = getZigPath();
 
-    const buffer = child_process.execFileSync(path, ["version"]);
-    let zigVersion = semver.parse(buffer.toString("utf8"));
+    let zigVersion = getVersion(path, "version");
     // Zig 0.9.0 was the first version to have a tagged zls release
     const zlsConfiguration = workspace.getConfiguration("zig.zls", null);
     if (semver.lt(zigVersion, "0.9.0")) {
