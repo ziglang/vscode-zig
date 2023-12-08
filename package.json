@@ -212,7 +212,7 @@
           "scope": "resource",
           "type": "boolean",
           "description": "Whether to automatically fix errors on save. Currently supports adding and removing discards.",
-          "default": true
+          "default": false
         },
         "zig.zls.semanticTokens": {
           "scope": "resource",
