@@ -170,6 +170,8 @@ export async function install(context: ExtensionContext, ask: boolean) {
             `Do you want to install ZLS (the Zig Language Server) for Zig version ${zigVersion}`,
             "Install", "Ignore"
         );
+
+        if (result === undefined) { return; }
         if (result === "Ignore") {
             await zlsConfiguration.update("path", undefined, true);
             return;
