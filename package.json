@@ -106,7 +106,7 @@
         "zig.path": {
           "scope": "machine-overridable",
           "type": "string",
-          "default": null,
+          "default": "",
           "description": "Set a custom path to the Zig binary. Empty string will lookup zig in PATH."
         },
         "zig.checkForUpdate": {
@@ -182,6 +182,7 @@
         "zig.zls.path": {
           "scope": "machine-overridable",
           "type": "string",
+          "default": "",
           "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`.",
           "format": "path"
         },
