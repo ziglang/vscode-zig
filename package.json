@@ -179,7 +179,7 @@
           "default": true
         },
         "zig.zls.path": {
-          "scope": "resource",
+          "scope": "machine-overridable",
           "type": "string",
           "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`.",
           "format": "path"
