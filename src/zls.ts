@@ -72,7 +72,7 @@ async function startClient() {
 
     // Create the language client and start the client.
     client = new LanguageClient(
-        "zls",
+        "zig.zls",
         "Zig Language Server",
         serverOptions,
         clientOptions

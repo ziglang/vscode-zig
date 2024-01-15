@@ -162,7 +162,7 @@
           ],
           "default": "extension"
         },
-        "zig.trace.server": {
+        "zig.zls.trace.server": {
           "scope": "window",
           "type": "string",
           "description": "Traces the communication between VS Code and the language server.",
