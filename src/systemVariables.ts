@@ -28,18 +28,6 @@ import { Range, Uri, workspace, window } from 'vscode';
  *--------------------------------------------------------------------------------------------*/
 
 export class SystemVariables {
-    // https://code.visualstudio.com/docs/editor/variables-reference#_configuration-variables
-    public resolveString(value: string): string {
-        const regexp = /\$\{(.*?)\}/g;
-        return value.replace(regexp, (match: string, name: string) => {
-            const newValue = this.resolveVariable(name);
-            if (typeof newValue == "string") {
-                return newValue;
-            } else {
-                return match && (match.indexOf('env:') > 0) ? '' : match;
-            }
-        });
-    }
 
     private _workspaceFolder: string;
     private _workspaceFolderName: string;
@@ -50,39 +38,27 @@ export class SystemVariables {
     private _selectedText: string | undefined;
     private _execPath: string;
 
-    constructor(
-        file: Uri | undefined,
-        rootFolder: string | undefined,
-    ) {
+    constructor(file: Uri | undefined, rootFolder: string) {
         const workspaceFolder = workspace && file ? workspace.getWorkspaceFolder(file) : undefined;
-        this._workspaceFolder = workspaceFolder ? workspaceFolder.uri.fsPath : rootFolder || __dirname;
+        this._workspaceFolder = workspaceFolder ? workspaceFolder.uri.fsPath : rootFolder;
         this._workspaceFolderName = Path.basename(this._workspaceFolder);
         this._filePath = file ? file.fsPath : undefined;
-
-        if (window && window.activeTextEditor) {
-            this._lineNumber = window.activeTextEditor.selection.anchor.line + 1;
-            this._selectedText = window.activeTextEditor.document.getText(
-                new Range(
-                    window.activeTextEditor.selection.start,
-                    window.activeTextEditor.selection.end,
-                ),
-            );
-        }
+        const editor = window.activeTextEditor;
+        
+        this._lineNumber = editor ? editor.selection.anchor.line + 1 : undefined;
+        this._selectedText = editor ? editor.document.getText(editor.selection) : undefined;
         this._execPath = process.execPath;
-        this._env = new Map();
-        Object.keys(process.env).forEach((key) => {
-            this._env.set(key, process.env[key]);
-        });
-        try {
-            this._workspaceFolders = new Map();
-            workspace.workspaceFolders.forEach((folder) => {
-                const basename = Path.basename(folder.uri.fsPath);
-                this._workspaceFolders.set(basename, folder.uri.fsPath);
-                this._workspaceFolders.set(folder.name, folder.uri.fsPath);
-            });
-        } catch {
-            // This try...catch block is here to support pre-existing tests, ignore error.
+        this._env = new Map(Object.entries(process.env));
+        this._workspaceFolders = new Map();
+        for (const folder of workspace.workspaceFolders) {
+            this._workspaceFolders.set(Path.basename(folder.uri.fsPath), folder.uri.fsPath);
+            this._workspaceFolders.set(folder.name, folder.uri.fsPath);
         }
+    }
+    // https://code.visualstudio.com/docs/editor/variables-reference#_configuration-variables
+    public resolveString(value: string): string {
+        const regexp = /\$\{(.*?)\}/g;
+        return value.replace(regexp, (match: string, name: string) => this.resolveVariable(name) ?? match);
     }
 
     resolveVariable(variable: string): string | undefined {
@@ -103,7 +79,7 @@ export class SystemVariables {
             case "lineNumber": return this._lineNumber ? this._lineNumber.toString() : undefined;
             case "selectedText": return this._selectedText;
             case "execPath": return this._execPath;
-            case "env": return this._env.get(group[1] || null);
+            case "env": return this._env.get(group[1] || null) ?? "";
             default: return undefined;
         }
     }
