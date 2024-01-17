@@ -2,7 +2,6 @@
 import * as Path from 'path';
 import { Range, Uri, workspace, window } from 'vscode';
 
-type IStringDictionary<T> = { [P in string]?: T};
 /*---------------------------------------------------------------------------------------------
  *  Derived from https://github.com/microsoft/vscode-python/blob/2f3102fe0bb007df0d80276f488c2d0257f4f3b1/src/client/common/variables/systemVariables.ts
  *  Copyright (c) Microsoft Corporation. All rights reserved.
@@ -40,40 +39,9 @@ class Types {
     }
 
 }
-abstract class AbstractSystemVariables  {
-    public resolve(value: string): string;
-    public resolve(value: string[]): string[];
-    public resolve(value: IStringDictionary<string>): IStringDictionary<string>;
-    public resolve(value: IStringDictionary<string[]>): IStringDictionary<string[]>;
-    public resolve(value: IStringDictionary<IStringDictionary<string>>): IStringDictionary<IStringDictionary<string>>;
+export class SystemVariables {
 
-    public resolve(value: any): any {
-        if (Types.isString(value)) {
-            return this.__resolveString(value);
-        } else if (Types.isArray(value)) {
-            return this.__resolveArray(value);
-        } else if (Types.isObject(value)) {
-            return this.__resolveLiteral(value);
-        }
-
-        return value;
-    }
-
-    public resolveAny<T>(value: T): T;
-
-    public resolveAny(value: any): any {
-        if (Types.isString(value)) {
-            return this.__resolveString(value);
-        } else if (Types.isArray(value)) {
-            return this.__resolveAnyArray(value);
-        } else if (Types.isObject(value)) {
-            return this.__resolveAnyLiteral(value);
-        }
-
-        return value;
-    }
-
-    private __resolveString(value: string): string {
+    public resolveString(value: string): string {
         const regexp = /\$\{(.*?)\}/g;
         return value.replace(regexp, (match: string, name: string) => {
             const newValue = (<any>this)[name];
@@ -85,42 +53,6 @@ abstract class AbstractSystemVariables  {
         });
     }
 
-    private __resolveLiteral(
-        values: IStringDictionary<string | IStringDictionary<string> | string[]>,
-    ): IStringDictionary<string | IStringDictionary<string> | string[]> {
-        const result: IStringDictionary<string | IStringDictionary<string> | string[]> = Object.create(null);
-        Object.keys(values).forEach((key) => {
-            const value = values[key];
-
-            result[key] = <any>this.resolve(<any>value);
-        });
-        return result;
-    }
-
-    private __resolveAnyLiteral<T>(values: T): T;
-
-    private __resolveAnyLiteral(values: any): any {
-        const result: IStringDictionary<string | IStringDictionary<string> | string[]> = Object.create(null);
-        Object.keys(values).forEach((key) => {
-            const value = values[key];
-
-            result[key] = <any>this.resolveAny(<any>value);
-        });
-        return result;
-    }
-
-    private __resolveArray(value: string[]): string[] {
-        return value.map((s) => this.__resolveString(s));
-    }
-
-    private __resolveAnyArray<T>(value: T[]): T[];
-
-    private __resolveAnyArray(value: any[]): any[] {
-        return value.map((s) => this.resolveAny(s));
-    }
-}
-
-export class SystemVariables extends AbstractSystemVariables {
     private _workspaceFolder: string;
     private _workspaceFolderName: string;
     private _filePath: string | undefined;
@@ -132,7 +64,6 @@ export class SystemVariables extends AbstractSystemVariables {
         file: Uri | undefined,
         rootFolder: string | undefined,
     ) {
-        super();
         const workspaceFolder = workspace && file ? workspace.getWorkspaceFolder(file) : undefined;
         this._workspaceFolder = workspaceFolder ? workspaceFolder.uri.fsPath : rootFolder || __dirname;
         this._workspaceFolderName = Path.basename(this._workspaceFolder);
@@ -155,7 +86,7 @@ export class SystemVariables extends AbstractSystemVariables {
             >)[`env.${key}`] = process.env[key];
         });
         try {
-            workspace.workspaceFolders?.forEach((folder) => {
+            workspace.workspaceFolders.forEach((folder) => {
                 const basename = Path.basename(folder.uri.fsPath);
                 ((this as any) as Record<string, string | undefined>)[`workspaceFolder:${basename}`] =
                     folder.uri.fsPath;

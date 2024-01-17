@@ -163,7 +163,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
     if (workspace.workspaceFolders.length !== 1) {
         throw Error("TODO: support multiple workspace folders");
     }
-    exePath = new SystemVariables(undefined, workspace.workspaceFolders[0].uri.fsPath).resolveAny(exePath);
+    exePath = new SystemVariables(undefined, workspace.workspaceFolders[0].uri.fsPath).resolveString(exePath);
 
     if (!exePath) {
         exePath = which.sync(exeName, { nothrow: true });
