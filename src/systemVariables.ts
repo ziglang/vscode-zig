@@ -27,34 +27,24 @@ import { Range, Uri, workspace, window } from 'vscode';
  *  SOFTWARE.
  *--------------------------------------------------------------------------------------------*/
 
-class Types {
-    static isString(value: any): value is string {
-        return typeof value === 'string';
-    }
-    static isArray(value: any): value is any[] {
-        return Array.isArray(value);
-    }
-    static isObject(value: any): value is object {
-        return typeof value === 'object' && value !== null;
-    }
-
-}
 export class SystemVariables {
-
+    // https://code.visualstudio.com/docs/editor/variables-reference#_configuration-variables
     public resolveString(value: string): string {
         const regexp = /\$\{(.*?)\}/g;
         return value.replace(regexp, (match: string, name: string) => {
-            const newValue = (<any>this)[name];
-            if (Types.isString(newValue)) {
+            const newValue = this.resolveVariable(name);
+            if (typeof newValue == "string") {
                 return newValue;
             } else {
-                return match && (match.indexOf('env.') > 0 || match.indexOf('env:') > 0) ? '' : match;
+                return match && (match.indexOf('env:') > 0) ? '' : match;
             }
         });
     }
 
     private _workspaceFolder: string;
     private _workspaceFolderName: string;
+    private _workspaceFolders: Map<string, string>;
+    private _env: Map<string, string>;
     private _filePath: string | undefined;
     private _lineNumber: number | undefined;
     private _selectedText: string | undefined;
@@ -79,82 +69,42 @@ export class SystemVariables {
             );
         }
         this._execPath = process.execPath;
+        this._env = new Map();
         Object.keys(process.env).forEach((key) => {
-            ((this as any) as Record<string, string | undefined>)[`env:${key}`] = ((this as any) as Record<
-                string,
-                string | undefined
-            >)[`env.${key}`] = process.env[key];
+            this._env.set(key, process.env[key]);
         });
         try {
+            this._workspaceFolders = new Map();
             workspace.workspaceFolders.forEach((folder) => {
                 const basename = Path.basename(folder.uri.fsPath);
-                ((this as any) as Record<string, string | undefined>)[`workspaceFolder:${basename}`] =
-                    folder.uri.fsPath;
-                ((this as any) as Record<string, string | undefined>)[`workspaceFolder:${folder.name}`] =
-                    folder.uri.fsPath;
+                this._workspaceFolders.set(basename, folder.uri.fsPath);
+                this._workspaceFolders.set(folder.name, folder.uri.fsPath);
             });
         } catch {
             // This try...catch block is here to support pre-existing tests, ignore error.
         }
     }
 
-    public get cwd(): string {
-        return this.workspaceFolder;
-    }
-
-    public get workspaceRoot(): string {
-        return this._workspaceFolder;
-    }
-
-    public get workspaceFolder(): string {
-        return this._workspaceFolder;
-    }
-
-    public get workspaceRootFolderName(): string {
-        return this._workspaceFolderName;
-    }
-
-    public get workspaceFolderBasename(): string {
-        return this._workspaceFolderName;
-    }
-
-    public get file(): string | undefined {
-        return this._filePath;
-    }
-
-    public get relativeFile(): string | undefined {
-        return this.file ? Path.relative(this._workspaceFolder, this.file) : undefined;
-    }
-
-    public get relativeFileDirname(): string | undefined {
-        return this.relativeFile ? Path.dirname(this.relativeFile) : undefined;
-    }
-
-    public get fileBasename(): string | undefined {
-        return this.file ? Path.basename(this.file) : undefined;
-    }
-
-    public get fileBasenameNoExtension(): string | undefined {
-        return this.file ? Path.parse(this.file).name : undefined;
-    }
-
-    public get fileDirname(): string | undefined {
-        return this.file ? Path.dirname(this.file) : undefined;
-    }
-
-    public get fileExtname(): string | undefined {
-        return this.file ? Path.extname(this.file) : undefined;
-    }
-
-    public get lineNumber(): number | undefined {
-        return this._lineNumber;
-    }
-
-    public get selectedText(): string | undefined {
-        return this._selectedText;
-    }
-
-    public get execPath(): string {
-        return this._execPath;
+    resolveVariable(variable: string): string | undefined {
+        const group = variable.split(":", 2);
+        switch (group[0]) {
+            case "cwd": return this._workspaceFolder;
+            case "workspaceRoot": return group.length == 2 ? this._workspaceFolders.get(group[1]) : this._workspaceFolder;
+            case "workspaceFolder": return this._workspaceFolder;
+            case "workspaceRootFolderName": return this._workspaceFolderName;
+            case "workspaceFolderBasename": return this._workspaceFolderName;
+            case "file": return this._filePath;
+            case "relativeFile": return this._filePath ? Path.relative(this._workspaceFolder, this._filePath) : undefined;
+            case "relativeFileDirname": return this._filePath ? Path.relative(this._workspaceFolder, Path.dirname(this._filePath)) : undefined;
+            case "fileBasename": return this._filePath ? Path.basename(this._filePath) : undefined;
+            case "fileBasenameNoExtension": return this._filePath ? Path.parse(this._filePath).name : undefined;
+            case "fileDirname": return this._filePath ? Path.dirname(this._filePath) : undefined;
+            case "fileExtname": return this._filePath ? Path.extname(this._filePath) : undefined;
+            case "lineNumber": return this._lineNumber ? this._lineNumber.toString() : undefined;
+            case "selectedText": return this._selectedText;
+            case "execPath": return this._execPath;
+            case "env": return this._env.get(group[1] || null);
+            default: return undefined;
+        }
     }
 }
