@@ -169,7 +169,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
         exePath = which.sync(exeName, { nothrow: true });
     } else if (exePath.startsWith("~")) {
         exePath = path.join(os.homedir(), exePath.substring(1));
-    } else if (!path.isAbsolute(exePath)) {
+    } else {
         exePath = which.sync(exePath, { nothrow: true });
     }
 
