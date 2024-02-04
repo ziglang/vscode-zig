@@ -1,3 +1,10 @@
+## 0.5.2
+- Update ZLS config even when Zig is not found
+- Disable autofix by default
+- Make `zig.zls.path` and `zig.path` scoped as `machine-overridable` (@alexrp)
+- Fix ZLS debug trace (@alexrp)
+- Default `zig.path` and `zig.zls.path` to look up in PATH (@alexrp)
+
 ## 0.5.1
 - Always use global configuration.
 
