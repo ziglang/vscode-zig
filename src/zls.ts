@@ -154,9 +154,13 @@ async function checkUpdate(context: ExtensionContext) {
 export async function install(context: ExtensionContext, ask: boolean) {
     const path = getZigPath();
 
-    let zigVersion = getVersion(path, "version");
-    // Zig 0.9.0 was the first version to have a tagged zls release
     const zlsConfiguration = workspace.getConfiguration("zig.zls", null);
+    let zigVersion = getVersion(path, "version");
+    if (!zigVersion)  {
+        await zlsConfiguration.update("path", undefined, true);
+        return;
+    }
+    // Zig 0.9.0 was the first version to have a tagged zls release
     if (semver.lt(zigVersion, "0.9.0")) {
         if (zlsConfiguration.get("path")) {
             window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion}`);

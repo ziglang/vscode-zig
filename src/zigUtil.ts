@@ -218,7 +218,12 @@ export function getHostZigName(): string {
 export function getVersion(path: string, arg: string): SemVer | null {
     try {
         const buffer = cp.execFileSync(path, [arg]);
-        return semver.parse(buffer.toString("utf8"));
+        const version_str = buffer.toString("utf8").trim();
+        if (version_str === "0.2.0.83a2a36a") {
+            // Zig 0.2.0 reports the verion in a non-semver format
+            return semver.parse("0.2.0");
+        }
+        return semver.parse(version_str);
     } catch {
         return null;
     }

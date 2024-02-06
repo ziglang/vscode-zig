@@ -127,6 +127,7 @@ async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion 
     }
 
     const curVersion = getVersion(zigPath, "version");
+    if (!curVersion) return;
 
     const available = await getVersions();
     if (curVersion.prerelease.length != 0) {
