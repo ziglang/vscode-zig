@@ -120,27 +120,6 @@
           "default": true,
           "description": "Should output channel be raised on formatting error."
         },
-        "zig.astCheckProvider": {
-          "scope": "resource",
-          "type": "string",
-          "description": "Whether to enable ast-check diagnostics",
-          "enum": [
-            "off",
-            "extension",
-            "zls"
-          ],
-          "enumItemLabels": [
-            "Off",
-            "Extension",
-            "Zig Language Server"
-          ],
-          "enumDescriptions": [
-            "Disable ast-check diagnostics",
-            "Use extension ast-check diagnostics (fewer features)",
-            "Use ZLS ast-check diagnostics (includes code actions)"
-          ],
-          "default": "zls"
-        },
         "zig.formattingProvider": {
           "scope": "resource",
           "type": "string",
@@ -198,17 +177,17 @@
           "description": "Whether to enable function argument placeholder completions",
           "default": true
         },
-        "zig.zls.enableAstCheckDiagnostics": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to enable ast-check diagnostics",
-          "default": true
-        },
         "zig.zls.enableBuildOnSave": {
           "scope": "resource",
           "type": "boolean",
           "description": "Whether to enable build-on-save diagnostics",
           "default": false
+        },
+        "zig.zls.buildOnSaveStep": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Select which step should be executed on build-on-save",
+          "default": "install"
         },
         "zig.zls.enableAutofix": {
           "scope": "resource",
@@ -233,10 +212,10 @@
           "description": "Enables inlay hint support when the client also supports it",
           "default": true
         },
-        "zig.zls.inlayHintsShowVariableDeclaration": {
+        "zig.zls.inlayHintsShowVariableTypeHints": {
           "scope": "resource",
           "type": "boolean",
-          "description": "Enable inlay hints for variable declarations",
+          "description": "Enable inlay hints for variable types",
           "default": true
         },
         "zig.zls.inlayHintsShowParameterName": {
@@ -296,7 +275,7 @@
         "zig.zls.preferAstCheckAsChildProcess": {
           "scope": "resource",
           "type": "boolean",
-          "description": "Can be used in conjuction with `enable_ast_check_diagnostics` to favor using `zig ast-check` instead of ZLS's fork",
+          "description": "Favor using `zig ast-check` instead of ZLS's fork",
           "default": true
         },
         "zig.zls.recordSession": {
@@ -351,6 +330,12 @@
           "scope": "resource",
           "type": "boolean",
           "description": "Completions confirm behavior. If 'true', replace the text after the cursor",
+          "default": true
+        },
+        "zig.zls.completionLabelDetails": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "When false, the function signature of completion results is hidden. Improves readability in some editors",
           "default": true
         }
       }
