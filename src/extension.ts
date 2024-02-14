@@ -12,7 +12,7 @@ export const logChannel = vscode.window.createOutputChannel("zig");
 export const zigFormatStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 
 export function activate(context: vscode.ExtensionContext) {
-    setupZig(context).then(() => {
+    setupZig(context).finally(() => {
         const compiler = new ZigCompilerProvider();
         compiler.activate(context.subscriptions);
         vscode.languages.registerCodeActionsProvider("zig", compiler);
