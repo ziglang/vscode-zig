@@ -119,6 +119,8 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     private _doCompile(textDocument: vscode.TextDocument) {
         const config = vscode.workspace.getConfiguration("zig");
 
+        const zigPath = getZigPath();
+
         const buildOption = config.get<string>("buildOption");
         const processArg: string[] = [buildOption];
         let workspaceFolder = vscode.workspace.getWorkspaceFolder(textDocument.uri);
@@ -151,7 +153,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         });
 
         let decoded = "";
-        const childProcess = cp.spawn("zig", processArg, { cwd });
+        const childProcess = cp.spawn(zigPath, processArg, { cwd });
         if (childProcess.pid) {
             childProcess.stderr.on("data", (data: Buffer) => {
                 decoded += data;
