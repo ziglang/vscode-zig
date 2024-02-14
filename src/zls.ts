@@ -15,7 +15,7 @@ import {
 import { getExePath, getHostZigName, getVersion, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
 
 let outputChannel: vscode.OutputChannel;
-let client: LanguageClient | null = null;
+export let client: LanguageClient | null = null;
 
 async function startClient() {
     const configuration = workspace.getConfiguration("zig.zls");
@@ -35,15 +35,12 @@ async function startClient() {
         middleware: {
             workspace: {
                 async configuration(params, token, next) {
-                    let indexOfAstCheck = null;
                     let indexOfZigPath = null;
 
                     for (const [index, param] of Object.entries(params.items)) {
                         if (param.section === "zls.zig_exe_path") {
                             param.section = "zig.path";
                             indexOfZigPath = index;
-                        } else if (param.section === "zls.enable_ast_check_diagnostics") {
-                            indexOfAstCheck = index;
                         } else {
                             param.section = `zig.zls.${camelCase(param.section.slice(4))}`;
                         }
@@ -51,9 +48,6 @@ async function startClient() {
 
                     const result = await next(params, token);
 
-                    if (indexOfAstCheck !== null) {
-                        result[indexOfAstCheck] = workspace.getConfiguration("zig").get<string>("astCheckProvider") === "zls";
-                    }
                     if (indexOfZigPath !== null) {
                         try {
                             result[indexOfZigPath] = getZigPath();

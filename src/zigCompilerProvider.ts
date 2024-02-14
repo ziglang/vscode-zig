@@ -3,6 +3,7 @@
 import * as cp from "child_process";
 import * as path from "path";
 import * as vscode from "vscode";
+import * as zls from "./zls";
 // This will be treeshaked to only the debounce function
 import { throttle } from "lodash-es";
 import Path from "path";
@@ -24,7 +25,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
     maybeDoASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
         if (change.document.languageId !== "zig") {return;}
-        if (vscode.workspace.getConfiguration("zig").get<string>("astCheckProvider") !== "extension") {
+        if (zls.client !== null) {
             this.astDiagnostics.clear();
             return;
         }
