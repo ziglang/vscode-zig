@@ -20,6 +20,8 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
         vscode.workspace.onDidChangeTextDocument(this.maybeDoASTGenErrorCheck, this);
         vscode.workspace.onDidChangeTextDocument(this.maybeDoBuildOnSave, this);
+
+        subscriptions.push(vscode.commands.registerCommand("zig.build.workspace", () => this.doCompile(vscode.window.activeTextEditor.document)));
     }
 
     maybeDoASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {

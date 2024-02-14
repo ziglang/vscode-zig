@@ -1,6 +1,5 @@
 "use strict";
 import * as vscode from "vscode";
-import { zigBuild } from "./zigBuild";
 import ZigCompilerProvider from "./zigCompilerProvider";
 import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";
 import { setupZig } from "./zigSetup";
@@ -37,9 +36,6 @@ export function activate(context: vscode.ExtensionContext) {
 
         buildDiagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
         context.subscriptions.push(buildDiagnosticCollection);
-
-        // Commands
-        context.subscriptions.push(vscode.commands.registerCommand("zig.build.workspace", () => zigBuild()));
 
         activateZls(context)
     });
