@@ -64,7 +64,7 @@ export function zigBuild(): void {
 
             const range = new vscode.Range(line, column, line, Infinity);
 
-            if (diagnostics[path] === null) {diagnostics[path] = [];}
+            if (!diagnostics[path]) {diagnostics[path] = [];}
             diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
         }
 
