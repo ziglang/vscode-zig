@@ -21,6 +21,8 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
         vscode.workspace.onDidChangeTextDocument(this.maybeDoASTGenErrorCheck, this);
         vscode.workspace.onDidChangeTextDocument(this.maybeDoBuildOnSave, this);
+
+        subscriptions.push(vscode.commands.registerCommand("zig.build.workspace", () => this.doCompile(vscode.window.activeTextEditor.document)));
     }
 
     maybeDoASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
@@ -104,7 +106,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
               : vscode.DiagnosticSeverity.Information;
                 const range = new vscode.Range(line, column, line, Infinity);
 
-                if (diagnostics[path] === null) {diagnostics[path] = [];}
+                if (!diagnostics[path]) {diagnostics[path] = [];}
                 diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
             }
 
@@ -117,6 +119,8 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
     private _doCompile(textDocument: vscode.TextDocument) {
         const config = vscode.workspace.getConfiguration("zig");
+
+        const zigPath = getZigPath();
 
         const buildOption = config.get<string>("buildOption");
         const processArg: string[] = [buildOption];
@@ -150,7 +154,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         });
 
         let decoded = "";
-        const childProcess = cp.spawn("zig", processArg, { cwd });
+        const childProcess = cp.spawn(zigPath, processArg, { cwd });
         if (childProcess.pid) {
             childProcess.stderr.on("data", (data: Buffer) => {
                 decoded += data;
@@ -198,7 +202,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                 : vscode.DiagnosticSeverity.Information;
                     const range = new vscode.Range(line, column, line, Infinity);
 
-                    if (diagnostics[path] === null) {diagnostics[path] = [];}
+                    if (!diagnostics[path]) {diagnostics[path] = [];}
                     diagnostics[path].push(
                         new vscode.Diagnostic(range, message, severity)
                     );
