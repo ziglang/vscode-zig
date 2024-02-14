@@ -1,3 +1,8 @@
+## 0.5.3
+- Fix checks on config values and versions
+- Fix diagnostics from Zig compiler provider (@Techatrix)
+- Ensure all commands are registered properly on extension startup
+
 ## 0.5.2
 - Update ZLS config even when Zig is not found
 - Disable autofix by default
