@@ -245,7 +245,7 @@ export async function activate(context: ExtensionContext) {
     outputChannel = window.createOutputChannel("Zig Language Server");
 
     vscode.commands.registerCommand("zig.zls.install", async () => {
-        if (!workspace.getConfiguration("zig").get<string>("path")) {
+        if (workspace.getConfiguration("zig").get<string>("path") === undefined) {
             window.showErrorMessage("This command cannot be run without setting 'zig.path'.", { modal: true });
             return;
         }
@@ -282,9 +282,9 @@ export async function activate(context: ExtensionContext) {
     });
 
     const zigConfig = vscode.workspace.getConfiguration("zig");
-    if (!zigConfig.get<string>("path")) return;
+    if (zigConfig.get<string>("path") === undefined) return;
     const zlsConfig = workspace.getConfiguration("zig.zls");
-    if (!zlsConfig.get<string>("path")) return;
+    if (zlsConfig.get<string>("path") === undefined) return;
     if (zlsConfig.get<boolean>("checkForUpdate") && shouldCheckUpdate(context, "zlsUpdate")) {
         await checkUpdate(context);
     }
