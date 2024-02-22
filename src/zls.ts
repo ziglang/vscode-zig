@@ -245,8 +245,13 @@ export async function activate(context: ExtensionContext) {
     outputChannel = window.createOutputChannel("Zig Language Server");
 
     vscode.commands.registerCommand("zig.zls.install", async () => {
-        if (workspace.getConfiguration("zig").get<string>("path") === undefined) {
-            window.showErrorMessage("This command cannot be run without setting 'zig.path'.", { modal: true });
+        try {
+            getZigPath();
+        } catch {
+            window.showErrorMessage(
+                "This command cannot be run without a valid zig path.",
+                { modal: true }
+            );
             return;
         }
 
