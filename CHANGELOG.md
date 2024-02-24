@@ -1,3 +1,7 @@
+## 0.5.4
+- Fix incorrect comparisons that caused ZLS not to be started automatically (@SuperAuguste)
+- Ensure `zig.path` is valid in `zig.zls.install` (@unlsycn) 
+
 ## 0.5.3
 - Fix checks on config values and versions
 - Fix diagnostics from Zig compiler provider (@Techatrix)
