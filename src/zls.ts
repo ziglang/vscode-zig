@@ -54,9 +54,9 @@ async function startClient() {
                         try {
                             result[indexOfZigPath] = getZigPath();
                         } catch {
-                            // This might lead to ZLS not finding some library paths
-                            // but at least other settings will be correct.
-                            result[indexOfZigPath] = "zig";
+                            // ZLS will try to find Zig by itself and likely fail as well.
+                            // This will cause two "Zig can't be found in $PATH" error messages to be reported.
+                            result[indexOfZigPath] = null;
                         }
                     }
 
