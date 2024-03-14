@@ -1,0 +1,12 @@
+{
+    "printWidth": 120,
+    "tabWidth": 4,
+    "overrides": [
+        {
+            "files": ["*.yml", "*.yaml", "package-lock.json", "package.json", "syntaxes/*.json"],
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
+}
