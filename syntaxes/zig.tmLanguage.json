@@ -184,7 +184,7 @@
         },
         {
           "name": "keyword.operator.comparison.zig",
-          "match": "(\\b(and|or)\\b)|(==|!=)"
+          "match": "(\\b(and|or)\\b)|(==|!=|<=|>=|<|>)"
         },
         {
           "name": "keyword.operator.arithmetic.zig",
