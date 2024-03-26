@@ -102,10 +102,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             return;
         }
         const zigPath = getZigPath();
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(textDocument.uri);
-        const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : undefined;
-
-        const childProcess = childProcess.spawn(zigPath, ["ast-check"], { cwd: cwd });
+        const childProcess = childProcess.spawn(zigPath, ["ast-check"], {});
 
         if (!child.pid) {
             return;
