@@ -70,6 +70,7 @@ export function getHostZigName(): string {
     let arch: string = process.arch;
     if (arch === "ia32") arch = "x86";
     if (arch === "x64") arch = "x86_64";
+    if (arch === "arm") arch = "armv7a";
     if (arch === "arm64") arch = "aarch64";
     if (arch === "ppc") arch = "powerpc";
     if (arch === "ppc64") arch = "powerpc64le";
