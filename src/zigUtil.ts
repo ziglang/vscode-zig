@@ -5,6 +5,7 @@ import * as path from "path";
 import semver, { SemVer } from "semver";
 import { ExtensionContext, window, workspace } from "vscode";
 import which from "which";
+import { SystemVariables } from "./systemVariables";
 
 export const isWindows = process.platform === "win32";
 
@@ -159,12 +160,16 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
             exePath = exePath.replace(/\$\{workspaceFolder\}/gm, workspace.workspaceFolders[0].uri.fsPath);
         }
     }
+    if (workspace.workspaceFolders.length !== 1) {
+        throw Error("TODO: support multiple workspace folders");
+    }
+    exePath = new SystemVariables(undefined, workspace.workspaceFolders[0].uri.fsPath).resolveString(exePath);
 
     if (!exePath) {
         exePath = which.sync(exeName, { nothrow: true });
     } else if (exePath.startsWith("~")) {
         exePath = path.join(os.homedir(), exePath.substring(1));
-    } else if (!path.isAbsolute(exePath)) {
+    } else {
         exePath = which.sync(exePath, { nothrow: true });
     }
 
