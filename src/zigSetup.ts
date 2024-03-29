@@ -226,62 +226,69 @@ export async function setupZig(context: vscode.ExtensionContext) {
 
 async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> {
     const zigConfig = vscode.workspace.getConfiguration("zig");
-    const zigResponse = await vscode.window.showInformationMessage(
-        "Zig path hasn't been set, do you want to specify the path or install Zig?",
-        { modal: true },
-        "Install",
-        "Specify path",
-        "Use Zig in PATH",
-    );
 
-    if (zigResponse === "Install") {
-        await selectVersionAndInstall(context);
-        const configuration = vscode.workspace.getConfiguration("zig");
-        const path = configuration.get<string>("path");
-        if (!path) return false;
-        void vscode.window.showInformationMessage(
-            `Zig was installed at '${path}', add it to PATH to use it from the terminal`,
+    if (!zigConfig.has("path")) {
+        const zigResponse = await vscode.window.showInformationMessage(
+            "Zig path hasn't been set, do you want to specify the path or install Zig?",
+            { modal: true },
+            "Install",
+            "Specify path",
+            "Use Zig in PATH",
         );
-    } else if (zigResponse === "Specify path") {
-        const uris = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: false,
-            canSelectMany: false,
-            title: "Select Zig executable",
-        });
-        if (!uris) return false;
 
-        const version = getVersion(uris[0].path, "version");
-        if (!version) return false;
+        if (zigResponse === "Install") {
+            await selectVersionAndInstall(context);
+            const path = zigConfig.get<string>("path");
+            if (!path) return false;
+            void vscode.window.showInformationMessage(
+                `Zig was installed at '${path}', add it to PATH to use it from the terminal`,
+            );
+        } else if (zigResponse === "Specify path") {
+            const uris = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                title: "Select Zig executable",
+            });
+            if (!uris) return false;
 
-        await zigConfig.update("path", uris[0].path, true);
-    } else if (zigResponse === "Use Zig in PATH") {
-        await zigConfig.update("path", "", true);
-    } else return false;
+            const version = getVersion(uris[0].path, "version");
+            if (!version) return false;
+
+            await zigConfig.update("path", uris[0].path, true);
+        } else if (zigResponse === "Use Zig in PATH") {
+            await zigConfig.update("path", "", true);
+        } else {
+            return false;
+        }
+    }
 
     const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-    const zlsResponse = await vscode.window.showInformationMessage(
-        "We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to install it?",
-        { modal: true },
-        "Install",
-        "Specify path",
-        "Use ZLS in PATH",
-    );
 
-    if (zlsResponse === "Install") {
-        await installZLS(context, false);
-    } else if (zlsResponse === "Specify path") {
-        const uris = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: false,
-            canSelectMany: false,
-            title: "Select Zig Language Server (ZLS) executable",
-        });
-        if (!uris) return true;
+    if (!zlsConfig.has("path")) {
+        const zlsResponse = await vscode.window.showInformationMessage(
+            "We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to install it?",
+            { modal: true },
+            "Install",
+            "Specify path",
+            "Use ZLS in PATH",
+        );
 
-        await zlsConfig.update("path", uris[0].path, true);
-    } else if (zlsResponse === "Use ZLS in PATH") {
-        await zlsConfig.update("path", "", true);
+        if (zlsResponse === "Install") {
+            await installZLS(context, false);
+        } else if (zlsResponse === "Specify path") {
+            const uris = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                title: "Select Zig Language Server (ZLS) executable",
+            });
+            if (!uris) return true;
+
+            await zlsConfig.update("path", uris[0].path, true);
+        } else if (zlsResponse === "Use ZLS in PATH") {
+            await zlsConfig.update("path", "", true);
+        }
     }
 
     return true;
