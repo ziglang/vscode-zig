@@ -398,7 +398,7 @@
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "lint": "eslint ./src --ext .ts"
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12",
@@ -407,8 +407,6 @@
     "@types/vscode": "^1.68.0",
     "@types/which": "^2.0.1",
     "@vscode/vsce": "^2.24.0",
-    "@typescript-eslint/eslint-plugin": "^6.7.0",
-    "@typescript-eslint/parser": "^6.7.0",
     "esbuild": "^0.12.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",

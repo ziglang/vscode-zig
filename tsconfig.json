@@ -8,6 +8,5 @@
         "lib": ["esnext"],
         "sourceMap": true,
         "rootDir": "src"
-    },
-    "exclude": ["node_modules", ".vscode-test"]
+    }
 }
