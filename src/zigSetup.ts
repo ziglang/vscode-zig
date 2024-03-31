@@ -3,11 +3,13 @@ import { ExtensionContext, window, workspace } from "vscode";
 import axios from "axios";
 import { createHash } from "crypto";
 import * as fs from "fs";
+import * as cp from "child_process";
 import mkdirp from "mkdirp";
 import semver from "semver";
 import * as vscode from "vscode";
-import { execCmd, getHostZigName, getVersion, isWindows, shouldCheckUpdate } from "./zigUtil";
+import { getHostZigName, getVersion, isWindows, shouldCheckUpdate } from "./zigUtil";
 import { install as installZLS } from "./zls";
+import which from "which";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -70,14 +72,25 @@ async function install(context: ExtensionContext, version: ZigVersion) {
             }
             mkdirp.sync(installDir.fsPath);
 
+            const tarPath = which.sync("tar", { nothrow: true });
+            if (!tarPath) {
+                vscode.window.showErrorMessage(
+                    "Downloaded Zig tarball can't be extracted because 'tar' could not be found",
+                );
+                return;
+            }
+
             progress.report({ message: "Extracting..." });
-            const tar = execCmd("tar", {
-                cmdArguments: ["-xJf", "-", "-C", installDir.fsPath, "--strip-components=1"],
-                notFoundText: "Could not find tar",
-            });
-            tar.stdin.write(tarball);
-            tar.stdin.end();
-            await tar;
+            try {
+                cp.execFileSync(tarPath, ["-xJf", "-", "-C", installDir.fsPath, "--strip-components=1"], {
+                    encoding: "buffer",
+                    input: tarball,
+                    maxBuffer: 100 * 1024 * 1024, // 100MB
+                    timeout: 60000, // 60 seconds
+                });
+            } catch (err) {
+                window.showErrorMessage(`Failed to extract Zig tarball: ${err}`);
+            }
 
             progress.report({ message: "Installing..." });
             const exeName = `zig${isWindows ? ".exe" : ""}`;

@@ -1,6 +1,7 @@
+import * as cp from "child_process";
 import * as vscode from "vscode";
 import { OutputChannel, TextEdit } from "vscode";
-import { execCmd, getZigPath } from "./zigUtil";
+import { getZigPath } from "./zigUtil";
 
 export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {
     private _channel: OutputChannel;
@@ -9,25 +10,8 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
         this._channel = logChannel;
     }
 
-    provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<TextEdit[]> {
-        const logger = this._channel;
-        return zigFormat(document)
-            .then(({ stdout }) => {
-                logger.clear();
-                const lastLineId = document.lineCount - 1;
-                const wholeDocument = new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
-                return [new TextEdit(wholeDocument, stdout)];
-            })
-            .catch((reason) => {
-                const config = vscode.workspace.getConfiguration("zig");
-
-                logger.clear();
-                logger.appendLine(reason.toString().replace("<stdin>", document.fileName));
-                if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
-                    logger.show(true);
-                }
-                return null;
-            });
+    async provideDocumentFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[]> {
+        return zigFormat(document, this._channel);
     }
 }
 
@@ -38,40 +22,37 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
         this._channel = logChannel;
     }
 
-    provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Thenable<TextEdit[]> {
-        const logger = this._channel;
-        return zigFormat(document)
-            .then(({ stdout }) => {
-                logger.clear();
-                const lastLineId = document.lineCount - 1;
-                const wholeDocument = new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
-                return [new TextEdit(wholeDocument, stdout)];
-            })
-            .catch((reason) => {
-                const config = vscode.workspace.getConfiguration("zig");
-
-                logger.clear();
-                logger.appendLine(reason.toString().replace("<stdin>", document.fileName));
-                if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
-                    logger.show(true);
-                }
-                return null;
-            });
+    async provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[]> {
+        return zigFormat(document, this._channel);
     }
 }
 
-function zigFormat(document: vscode.TextDocument) {
+function zigFormat(document: vscode.TextDocument, logChannel: OutputChannel): TextEdit[] {
     const zigPath = getZigPath();
 
-    const options = {
-        cmdArguments: ["fmt", "--stdin"],
-        notFoundText:
-            "Could not find zig. Please add zig to your PATH or specify a custom path to the zig binary in your settings.",
-    };
-    const format = execCmd(zigPath, options);
+    const { error, stdout, stderr } = cp.spawnSync(zigPath, ["fmt", "--stdin"], {
+        input: document.getText(),
+        maxBuffer: 10 * 1024 * 1024, // 10MB
+        encoding: "utf8",
+        timeout: 60000, // 60 seconds (this is a very high value because 'zig fmt' is just in time compiled)
+    });
 
-    format.stdin.write(document.getText());
-    format.stdin.end();
+    if (error) {
+        const config = vscode.workspace.getConfiguration("zig");
+        logChannel.clear();
+        if (stderr.length !== 0) {
+            logChannel.appendLine(stderr.replace("<stdin>", document.fileName));
+            if (config.get<boolean>("revealOutputChannelOnFormattingError")) {
+                logChannel.show(true);
+            }
+        } else {
+            vscode.window.showErrorMessage(error.message);
+        }
+        return null;
+    }
 
-    return format;
+    if (stdout.length === 0) return null;
+    const lastLineId = document.lineCount - 1;
+    const wholeDocument = new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
+    return [new TextEdit(wholeDocument, stdout)];
 }
