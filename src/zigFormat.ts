@@ -1,36 +1,37 @@
-import * as cp from "child_process";
-import * as vscode from "vscode";
-import { OutputChannel, TextEdit } from "vscode";
+import vscode from "vscode";
+
+import childProcess from "child_process";
+
 import { getZigPath } from "./zigUtil";
 
 export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {
-    private _channel: OutputChannel;
+    private _channel: vscode.OutputChannel;
 
-    constructor(logChannel: OutputChannel) {
+    constructor(logChannel: vscode.OutputChannel) {
         this._channel = logChannel;
     }
 
-    async provideDocumentFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[] | null> {
+    async provideDocumentFormattingEdits(document: vscode.TextDocument): Promise<vscode.TextEdit[] | null> {
         return Promise.resolve(zigFormat(document, this._channel));
     }
 }
 
 // Same as full document formatter for now
 export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEditProvider {
-    private _channel: OutputChannel;
-    constructor(logChannel: OutputChannel) {
+    private _channel: vscode.OutputChannel;
+    constructor(logChannel: vscode.OutputChannel) {
         this._channel = logChannel;
     }
 
-    provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[] | null> {
+    provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<vscode.TextEdit[] | null> {
         return Promise.resolve(zigFormat(document, this._channel));
     }
 }
 
-function zigFormat(document: vscode.TextDocument, logChannel: OutputChannel): TextEdit[] | null {
+function zigFormat(document: vscode.TextDocument, logChannel: vscode.OutputChannel): vscode.TextEdit[] | null {
     const zigPath = getZigPath();
 
-    const { error, stdout, stderr } = cp.spawnSync(zigPath, ["fmt", "--stdin"], {
+    const { error, stdout, stderr } = childProcess.spawnSync(zigPath, ["fmt", "--stdin"], {
         input: document.getText(),
         maxBuffer: 10 * 1024 * 1024, // 10MB
         encoding: "utf8",
@@ -54,5 +55,5 @@ function zigFormat(document: vscode.TextDocument, logChannel: OutputChannel): Te
     if (stdout.length === 0) return null;
     const lastLineId = document.lineCount - 1;
     const wholeDocument = new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
-    return [new TextEdit(wholeDocument, stdout)];
+    return [new vscode.TextEdit(wholeDocument, stdout)];
 }

@@ -21,6 +21,8 @@
         "@typescript-eslint/naming-convention": "error",
         "eqeqeq": "error",
         "no-throw-literal": "off",
-        "@typescript-eslint/only-throw-error": "error"
+        "@typescript-eslint/only-throw-error": "error",
+        "no-duplicate-imports": "error",
+        "sort-imports": ["error", { "allowSeparatedGroups": true }]
     }
 }

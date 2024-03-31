@@ -1,8 +1,9 @@
-import * as vscode from "vscode";
-import ZigCompilerProvider from "./zigCompilerProvider";
+import vscode from "vscode";
+
 import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";
-import { setupZig } from "./zigSetup";
 import { activate as activateZls, deactivate as deactivateZls } from "./zls";
+import ZigCompilerProvider from "./zigCompilerProvider";
+import { setupZig } from "./zigSetup";
 
 const ZIG_MODE: vscode.DocumentFilter = { language: "zig", scheme: "file" };
 

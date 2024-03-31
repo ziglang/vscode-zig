@@ -1,15 +1,15 @@
-import { ExtensionContext, window, workspace } from "vscode";
+import childProcess from "child_process";
+import crypto from "crypto";
+import fs from "fs";
 
 import axios from "axios";
-import { createHash } from "crypto";
-import * as fs from "fs";
-import * as cp from "child_process";
 import mkdirp from "mkdirp";
 import semver from "semver";
-import * as vscode from "vscode";
+import vscode from "vscode";
+import which from "which";
+
 import { getHostZigName, getVersion, isWindows, shouldCheckUpdate } from "./zigUtil";
 import { install as installZLS } from "./zls";
-import which from "which";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -53,8 +53,8 @@ async function getVersions(): Promise<ZigVersion[]> {
     return result;
 }
 
-async function install(context: ExtensionContext, version: ZigVersion) {
-    await window.withProgress(
+async function install(context: vscode.ExtensionContext, version: ZigVersion) {
+    await vscode.window.withProgress(
         {
             title: "Installing Zig...",
             location: vscode.ProgressLocation.Notification,
@@ -64,7 +64,7 @@ async function install(context: ExtensionContext, version: ZigVersion) {
             const response = await axios.get<Buffer>(version.url, {
                 responseType: "arraybuffer",
             });
-            const tarHash = createHash("sha256").update(response.data).digest("hex");
+            const tarHash = crypto.createHash("sha256").update(response.data).digest("hex");
             if (tarHash !== version.sha) {
                 throw Error(`hash of downloaded tarball ${tarHash} does not match expected hash ${version.sha}`);
             }
@@ -85,7 +85,7 @@ async function install(context: ExtensionContext, version: ZigVersion) {
 
             progress.report({ message: "Extracting..." });
             try {
-                cp.execFileSync(tarPath, ["-xJf", "-", "-C", installDir.fsPath, "--strip-components=1"], {
+                childProcess.execFileSync(tarPath, ["-xJf", "-", "-C", installDir.fsPath, "--strip-components=1"], {
                     encoding: "buffer",
                     input: response.data,
                     maxBuffer: 100 * 1024 * 1024, // 100MB
@@ -93,7 +93,7 @@ async function install(context: ExtensionContext, version: ZigVersion) {
                 });
             } catch (err) {
                 if (err instanceof Error) {
-                    void window.showErrorMessage(`Failed to extract Zig tarball: ${err.message}`);
+                    void vscode.window.showErrorMessage(`Failed to extract Zig tarball: ${err.message}`);
                 } else {
                     throw err;
                 }
@@ -105,13 +105,13 @@ async function install(context: ExtensionContext, version: ZigVersion) {
             const zigPath = vscode.Uri.joinPath(installDir, exeName).fsPath;
             fs.chmodSync(zigPath, 0o755);
 
-            const configuration = workspace.getConfiguration("zig");
+            const configuration = vscode.workspace.getConfiguration("zig");
             await configuration.update("path", zigPath, true);
         },
     );
 }
 
-async function selectVersionAndInstall(context: ExtensionContext) {
+async function selectVersionAndInstall(context: vscode.ExtensionContext) {
     try {
         const available = await getVersions();
 
@@ -121,7 +121,7 @@ async function selectVersionAndInstall(context: ExtensionContext) {
         }
         // Recommend latest stable release.
         const placeHolder = available.length > 2 ? available[1].name : undefined;
-        const selection = await window.showQuickPick(items, {
+        const selection = await vscode.window.showQuickPick(items, {
             title: "Select Zig version to install",
             canPickMany: false,
             placeHolder: placeHolder,
@@ -135,19 +135,19 @@ async function selectVersionAndInstall(context: ExtensionContext) {
         }
     } catch (err) {
         if (err instanceof Error) {
-            void window.showErrorMessage(`Unable to install Zig: ${err.message}`);
+            void vscode.window.showErrorMessage(`Unable to install Zig: ${err.message}`);
         } else {
             throw err;
         }
     }
 }
 
-async function checkUpdate(context: ExtensionContext) {
+async function checkUpdate(context: vscode.ExtensionContext) {
     try {
         const update = await getUpdatedVersion(context);
         if (!update) return;
 
-        const response = await window.showInformationMessage(
+        const response = await vscode.window.showInformationMessage(
             `New version of Zig available: ${update.name}`,
             "Install",
             "Ignore",
@@ -157,15 +157,15 @@ async function checkUpdate(context: ExtensionContext) {
         }
     } catch (err) {
         if (err instanceof Error) {
-            void window.showErrorMessage(`Unable to update Zig: ${err.message}`);
+            void vscode.window.showErrorMessage(`Unable to update Zig: ${err.message}`);
         } else {
             throw err;
         }
     }
 }
 
-async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion | null> {
-    const configuration = workspace.getConfiguration("zig");
+async function getUpdatedVersion(context: vscode.ExtensionContext): Promise<ZigVersion | null> {
+    const configuration = vscode.workspace.getConfiguration("zig");
     const zigPath = configuration.get<string>("path");
     if (zigPath) {
         const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
@@ -192,7 +192,7 @@ async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion 
     return null;
 }
 
-export async function setupZig(context: ExtensionContext) {
+export async function setupZig(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("zig.install", async () => {
         await selectVersionAndInstall(context);
         await installZLS(context, true);
@@ -202,7 +202,7 @@ export async function setupZig(context: ExtensionContext) {
         await checkUpdate(context);
     });
 
-    const configuration = workspace.getConfiguration("zig");
+    const configuration = vscode.workspace.getConfiguration("zig");
     if (!configuration.get<boolean>("initialSetupDone")) {
         await configuration.update("initialSetupDone", await initialSetup(context), true);
     }
@@ -213,9 +213,9 @@ export async function setupZig(context: ExtensionContext) {
     await checkUpdate(context);
 }
 
-async function initialSetup(context: ExtensionContext): Promise<boolean> {
-    const zigConfig = workspace.getConfiguration("zig");
-    const zigResponse = await window.showInformationMessage(
+async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> {
+    const zigConfig = vscode.workspace.getConfiguration("zig");
+    const zigResponse = await vscode.window.showInformationMessage(
         "Zig path hasn't been set, do you want to specify the path or install Zig?",
         { modal: true },
         "Install",
@@ -225,14 +225,14 @@ async function initialSetup(context: ExtensionContext): Promise<boolean> {
 
     if (zigResponse === "Install") {
         await selectVersionAndInstall(context);
-        const configuration = workspace.getConfiguration("zig");
+        const configuration = vscode.workspace.getConfiguration("zig");
         const path = configuration.get<string>("path");
         if (!path) return false;
-        void window.showInformationMessage(
+        void vscode.window.showInformationMessage(
             `Zig was installed at '${path}', add it to PATH to use it from the terminal`,
         );
     } else if (zigResponse === "Specify path") {
-        const uris = await window.showOpenDialog({
+        const uris = await vscode.window.showOpenDialog({
             canSelectFiles: true,
             canSelectFolders: false,
             canSelectMany: false,
@@ -248,8 +248,8 @@ async function initialSetup(context: ExtensionContext): Promise<boolean> {
         await zigConfig.update("path", "", true);
     } else return false;
 
-    const zlsConfig = workspace.getConfiguration("zig.zls");
-    const zlsResponse = await window.showInformationMessage(
+    const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
+    const zlsResponse = await vscode.window.showInformationMessage(
         "We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to install it?",
         { modal: true },
         "Install",
@@ -260,7 +260,7 @@ async function initialSetup(context: ExtensionContext): Promise<boolean> {
     if (zlsResponse === "Install") {
         await installZLS(context, false);
     } else if (zlsResponse === "Specify path") {
-        const uris = await window.showOpenDialog({
+        const uris = await vscode.window.showOpenDialog({
             canSelectFiles: true,
             canSelectFolders: false,
             canSelectMany: false,

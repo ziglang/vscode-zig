@@ -1,9 +1,11 @@
-import * as cp from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import semver, { SemVer } from "semver";
-import { ExtensionContext, window, workspace } from "vscode";
+import vscode from "vscode";
+
+import childProcess from "child_process";
+import fs from "fs";
+import os from "os";
+import path from "path";
+
+import semver from "semver";
 import which from "which";
 
 export const isWindows = process.platform === "win32";
@@ -13,9 +15,9 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
     // See https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
     if (exePath?.includes("${workspaceFolder}")) {
         // We choose the first workspaceFolder since it is ambiguous which one to use in this context
-        if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
             // older versions of Node (which VSCode uses) may not have String.prototype.replaceAll
-            exePath = exePath.replace(/\$\{workspaceFolder\}/gm, workspace.workspaceFolders[0].uri.fsPath);
+            exePath = exePath.replace(/\$\{workspaceFolder\}/gm, vscode.workspace.workspaceFolders[0].uri.fsPath);
         }
     }
 
@@ -40,19 +42,19 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
             message = `\`${optionName}\` ${exePath} is not an executable`;
         }
     }
-    void window.showErrorMessage(message);
+    void vscode.window.showErrorMessage(message);
     throw Error(message);
 }
 
 export function getZigPath(): string {
-    const configuration = workspace.getConfiguration("zig");
+    const configuration = vscode.workspace.getConfiguration("zig");
     const zigPath = configuration.get<string>("path") ?? null;
     return getExePath(zigPath, "zig", "zig.path");
 }
 
 // Check timestamp `key` to avoid automatically checking for updates
 // more than once in an hour.
-export async function shouldCheckUpdate(context: ExtensionContext, key: string): Promise<boolean> {
+export async function shouldCheckUpdate(context: vscode.ExtensionContext, key: string): Promise<boolean> {
     const HOUR = 60 * 60 * 1000;
     const timestamp = new Date().getTime();
     const old = context.globalState.get<number>(key);
@@ -74,9 +76,9 @@ export function getHostZigName(): string {
     return `${arch}-${os}`;
 }
 
-export function getVersion(path: string, arg: string): SemVer | null {
+export function getVersion(path: string, arg: string): semver.SemVer | null {
     try {
-        const buffer = cp.execFileSync(path, [arg]);
+        const buffer = childProcess.execFileSync(path, [arg]);
         const versionString = buffer.toString("utf8").trim();
         if (versionString === "0.2.0.83a2a36a") {
             // Zig 0.2.0 reports the verion in a non-semver format
