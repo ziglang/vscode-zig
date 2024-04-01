@@ -141,6 +141,11 @@
           ],
           "default": "extension"
         },
+        "zig.zls.debugLog": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Enable debug logging in release builds of ZLS."
+        },
         "zig.zls.trace.server": {
           "scope": "window",
           "type": "string",

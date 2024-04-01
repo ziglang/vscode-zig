@@ -323,7 +323,10 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     vscode.workspace.onDidChangeConfiguration(async (change) => {
-        if (change.affectsConfiguration("zig.zls.path", undefined)) {
+        if (
+            change.affectsConfiguration("zig.zls.path", undefined) ||
+            change.affectsConfiguration("zig.zls.debugLog", undefined)
+        ) {
             await stopClient();
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
             if (!!zlsConfig.get<string>("path")) {
