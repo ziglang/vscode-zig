@@ -1,3 +1,9 @@
+## 0.5.5
+- Fix `zig.install` when no project is open
+- Rework extension internals (@Techatrix)
+- Show progress while downloading updates (@Techatrix)
+- Link release notes in new Zig version notification
+
 ## 0.5.4
 - Fix incorrect comparisons that caused ZLS not to be started automatically (@SuperAuguste)
 - Ensure `zig.path` is valid in `zig.zls.install` (@unlsycn) 
