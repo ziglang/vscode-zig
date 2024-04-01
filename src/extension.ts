@@ -21,10 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "extension") {
             context.subscriptions.push(
-                vscode.languages.registerDocumentFormattingEditProvider(
-                    ZIG_MODE,
-                    new ZigFormatProvider(logChannel),
-                ),
+                vscode.languages.registerDocumentFormattingEditProvider(ZIG_MODE, new ZigFormatProvider(logChannel)),
             );
             context.subscriptions.push(
                 vscode.languages.registerDocumentRangeFormattingEditProvider(
@@ -37,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
         buildDiagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
         context.subscriptions.push(buildDiagnosticCollection);
 
-        activateZls(context)
+        activateZls(context);
     });
 }
 

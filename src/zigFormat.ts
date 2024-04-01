@@ -9,21 +9,14 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
         this._channel = logChannel;
     }
 
-    provideDocumentFormattingEdits(
-        document: vscode.TextDocument,
-    ): Thenable<TextEdit[]> {
+    provideDocumentFormattingEdits(document: vscode.TextDocument): Thenable<TextEdit[]> {
         const logger = this._channel;
         return zigFormat(document)
             .then(({ stdout }) => {
                 logger.clear();
                 const lastLineId = document.lineCount - 1;
-                const wholeDocument = new vscode.Range(
-                    0,
-                    0,
-                    lastLineId,
-                    document.lineAt(lastLineId).text.length,
-                );
-                return [new TextEdit(wholeDocument, stdout),];
+                const wholeDocument = new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
+                return [new TextEdit(wholeDocument, stdout)];
             })
             .catch((reason) => {
                 const config = vscode.workspace.getConfiguration("zig");
@@ -45,21 +38,14 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
         this._channel = logChannel;
     }
 
-    provideDocumentRangeFormattingEdits(
-        document: vscode.TextDocument,
-    ): Thenable<TextEdit[]> {
+    provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Thenable<TextEdit[]> {
         const logger = this._channel;
         return zigFormat(document)
             .then(({ stdout }) => {
                 logger.clear();
                 const lastLineId = document.lineCount - 1;
-                const wholeDocument = new vscode.Range(
-                    0,
-                    0,
-                    lastLineId,
-                    document.lineAt(lastLineId).text.length,
-                );
-                return [new TextEdit(wholeDocument, stdout),];
+                const wholeDocument = new vscode.Range(0, 0, lastLineId, document.lineAt(lastLineId).text.length);
+                return [new TextEdit(wholeDocument, stdout)];
             })
             .catch((reason) => {
                 const config = vscode.workspace.getConfiguration("zig");
@@ -79,7 +65,8 @@ function zigFormat(document: vscode.TextDocument) {
 
     const options = {
         cmdArguments: ["fmt", "--stdin"],
-        notFoundText: "Could not find zig. Please add zig to your PATH or specify a custom path to the zig binary in your settings.",
+        notFoundText:
+            "Could not find zig. Please add zig to your PATH or specify a custom path to the zig binary in your settings.",
     };
     const format = execCmd(zigPath, options);
 

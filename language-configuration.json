@@ -31,21 +31,21 @@
         {
             "beforeText": "^\\s*//!.*$",
             "action": {
-                "indent": "none", 
+                "indent": "none",
                 "appendText": "//! "
             }
         },
         {
             "beforeText": "^\\s*///.*$",
             "action": {
-                "indent": "none", 
+                "indent": "none",
                 "appendText": "/// "
             }
         },
         {
             "beforeText": "^\\s*\\\\\\\\.*$",
             "action": {
-                "indent": "none", 
+                "indent": "none",
                 "appendText": "\\\\"
             }
         }
