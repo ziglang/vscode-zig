@@ -25,6 +25,7 @@ interface ZigVersion {
     name: string;
     url: string;
     sha: string;
+    notes?: string;
 }
 
 async function getVersions(): Promise<ZigVersion[]> {
@@ -42,6 +43,7 @@ async function getVersions(): Promise<ZigVersion[]> {
                 name: key,
                 url: release.tarball,
                 sha: release.shasum,
+                notes: (value as { notes?: string }).notes,
             });
         }
     }
@@ -158,8 +160,10 @@ async function checkUpdate(context: vscode.ExtensionContext) {
         const update = await getUpdatedVersion(context);
         if (!update) return;
 
+        const notes = update.notes ? ` [${update.notes}](${update.notes})` : "";
+
         const response = await vscode.window.showInformationMessage(
-            `New version of Zig available: ${update.name}`,
+            `New version of Zig available: ${update.name}${notes}`,
             "Install",
             "Ignore",
         );
