@@ -391,12 +391,14 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "esbuild --bundle --sourcemap=external --minify --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
-    "watch": "esbuild --watch --bundle --sourcemap=external --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
+    "vscode:prepublish": "npm run build-base -- --minify",
+    "build-base": "esbuild --bundle --external:vscode src/extension.ts --outdir=out --platform=node --format=cjs",
+    "build": "npm run build-base -- --sourcemap",
+    "watch": "npm run build-base -- --sourcemap --watch",
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint ./src --ext .ts"
   },
   "devDependencies": {
     "@types/mocha": "^2.2.48",

@@ -4,16 +4,22 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Build Extension in Background",
+            "group": "build",
             "type": "npm",
             "script": "watch",
-            "problemMatcher": "$tsc-watch",
-            "isBackground": true,
-            "presentation": {
-                "reveal": "never"
+            "problemMatcher": {
+                "base": "$tsc-watch"
             },
-            "group": {
-                "kind": "build",
-                "isDefault": true
+            "isBackground": true
+        },
+        {
+            "label": "Build Extension",
+            "group": "build",
+            "type": "npm",
+            "script": "build",
+            "problemMatcher": {
+                "base": "$tsc"
             }
         }
     ]
