@@ -11,7 +11,7 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
     }
 
     async provideDocumentFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[] | null> {
-        return zigFormat(document, this._channel);
+        return Promise.resolve(zigFormat(document, this._channel));
     }
 }
 
@@ -22,8 +22,8 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
         this._channel = logChannel;
     }
 
-    async provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[] | null> {
-        return zigFormat(document, this._channel);
+    provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[] | null> {
+        return Promise.resolve(zigFormat(document, this._channel));
     }
 }
 

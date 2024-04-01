@@ -10,8 +10,8 @@ export let buildDiagnosticCollection: vscode.DiagnosticCollection;
 export const logChannel = vscode.window.createOutputChannel("zig");
 export const zigFormatStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 
-export function activate(context: vscode.ExtensionContext) {
-    setupZig(context).finally(() => {
+export async function activate(context: vscode.ExtensionContext) {
+    await setupZig(context).finally(() => {
         const compiler = new ZigCompilerProvider();
         compiler.activate(context.subscriptions);
         vscode.languages.registerCodeActionsProvider("zig", compiler);
@@ -33,10 +33,10 @@ export function activate(context: vscode.ExtensionContext) {
         buildDiagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
         context.subscriptions.push(buildDiagnosticCollection);
 
-        activateZls(context);
+        void activateZls(context);
     });
 }
 
-export function deactivate() {
-    deactivateZls();
+export async function deactivate() {
+    await deactivateZls();
 }

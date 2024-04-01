@@ -3,22 +3,45 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as zls from "./zls";
 // This will be treeshaked to only the debounce function
-import { throttle } from "lodash-es";
+import { throttle, DebouncedFunc } from "lodash-es";
 import Path from "path";
 import { getZigPath } from "./zigUtil";
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
-    private buildDiagnostics!: vscode.DiagnosticCollection;
-    private astDiagnostics!: vscode.DiagnosticCollection;
+    private buildDiagnostics: vscode.DiagnosticCollection;
+    private astDiagnostics: vscode.DiagnosticCollection;
     private dirtyChange = new WeakMap<vscode.Uri, boolean>();
 
-    public activate(subscriptions: vscode.Disposable[]) {
-        subscriptions.push(this);
+    private doASTGenErrorCheck: DebouncedFunc<(change: vscode.TextDocumentChangeEvent) => void>;
+    private doCompile: DebouncedFunc<(textDocument: vscode.TextDocument) => void>;
+
+    constructor() {
         this.buildDiagnostics = vscode.languages.createDiagnosticCollection("zig");
         this.astDiagnostics = vscode.languages.createDiagnosticCollection("zig");
 
-        vscode.workspace.onDidChangeTextDocument(this.maybeDoASTGenErrorCheck, this);
-        vscode.workspace.onDidChangeTextDocument(this.maybeDoBuildOnSave, this);
+        this.doASTGenErrorCheck = throttle(
+            (change: vscode.TextDocumentChangeEvent) => {
+                this._doASTGenErrorCheck(change);
+            },
+            16,
+            {
+                trailing: true,
+            },
+        );
+        this.doCompile = throttle((textDocument: vscode.TextDocument) => {
+            this._doCompile(textDocument);
+        }, 60);
+    }
+
+    public activate(subscriptions: vscode.Disposable[]) {
+        subscriptions.push(this);
+
+        vscode.workspace.onDidChangeTextDocument((change) => {
+            this.maybeDoASTGenErrorCheck(change);
+        }, this);
+        vscode.workspace.onDidChangeTextDocument((change) => {
+            this.maybeDoBuildOnSave(change);
+        }, this);
 
         subscriptions.push(
             vscode.commands.registerCommand("zig.build.workspace", () => {
@@ -100,7 +123,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             if (stderr.length === 0) {
                 return;
             }
-            const diagnostics: { [id: string]: vscode.Diagnostic[] } = {};
+            const diagnostics: Record<string, vscode.Diagnostic[] | undefined> = {};
             const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
 
             for (let match = regex.exec(stderr); match; match = regex.exec(stderr)) {
@@ -117,10 +140,9 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                         : vscode.DiagnosticSeverity.Information;
                 const range = new vscode.Range(line, column, line, Infinity);
 
-                if (!diagnostics[path]) {
-                    diagnostics[path] = [];
-                }
-                diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
+                const diagnosticArray = diagnostics[path] ?? [];
+                diagnosticArray.push(new vscode.Diagnostic(range, message, severity));
+                diagnostics[path] = diagnosticArray;
             }
 
             for (const path in diagnostics) {
@@ -169,12 +191,12 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         let decoded = "";
         const childProcess = cp.spawn(zigPath, processArg, { cwd });
         if (childProcess.pid) {
-            childProcess.stderr.on("data", (data: Buffer) => {
+            childProcess.stderr.on("data", (data: string) => {
                 decoded += data;
             });
             childProcess.stdout.on("end", () => {
                 this.doCompile.cancel();
-                const diagnostics: { [id: string]: vscode.Diagnostic[] } = {};
+                const diagnostics: Record<string, vscode.Diagnostic[] | undefined> = {};
                 const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
 
                 this.buildDiagnostics.clear();
@@ -208,10 +230,9 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                             : vscode.DiagnosticSeverity.Information;
                     const range = new vscode.Range(line, column, line, Infinity);
 
-                    if (!diagnostics[path]) {
-                        diagnostics[path] = [];
-                    }
-                    diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
+                    const diagnosticArray = diagnostics[path] ?? [];
+                    diagnosticArray.push(new vscode.Diagnostic(range, message, severity));
+                    diagnostics[path] = diagnosticArray;
                 }
 
                 for (const path in diagnostics) {
@@ -222,10 +243,6 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         }
     }
 
-    doASTGenErrorCheck = throttle(this._doASTGenErrorCheck, 16, {
-        trailing: true,
-    });
-    doCompile = throttle(this._doCompile, 60);
     public provideCodeActions(): vscode.ProviderResult<vscode.Command[]> {
         return [];
     }

@@ -7,7 +7,7 @@ import * as fs from "fs";
 import mkdirp from "mkdirp";
 import semver, { SemVer } from "semver";
 import * as vscode from "vscode";
-import { LSPAny, LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node";
+import { LanguageClient, LanguageClientOptions, ResponseError, ServerOptions } from "vscode-languageclient/node";
 import { getExePath, getHostZigName, getVersion, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
 
 let outputChannel: vscode.OutputChannel;
@@ -31,20 +31,25 @@ async function startClient() {
         middleware: {
             workspace: {
                 async configuration(params, token, next) {
-                    let indexOfZigPath: string | null = null;
+                    let indexOfZigPath: number | undefined;
 
-                    for (const [index, param] of Object.entries(params.items)) {
-                        if (param.section === "zls.zig_exe_path") {
-                            param.section = "zig.path";
-                            indexOfZigPath = index;
-                        } else {
-                            param.section = `zig.zls.${camelCase(param.section!.slice(4))}`;
+                    params.items.forEach((param, index) => {
+                        if (param.section) {
+                            if (param.section === "zls.zig_exe_path") {
+                                param.section = "zig.path";
+                                indexOfZigPath = index;
+                            } else {
+                                param.section = `zig.zls.${camelCase(param.section.slice(4))}`;
+                            }
                         }
+                    });
+
+                    const result = await next(params, token);
+                    if (result instanceof ResponseError) {
+                        return result;
                     }
 
-                    const result: LSPAny = await next(params, token);
-
-                    if (indexOfZigPath !== null) {
+                    if (indexOfZigPath !== undefined) {
                         try {
                             result[indexOfZigPath] = getZigPath();
                         } catch {
@@ -54,7 +59,7 @@ async function startClient() {
                         }
                     }
 
-                    return result;
+                    return result as unknown[];
                 },
             },
         },
@@ -66,7 +71,7 @@ async function startClient() {
     return client
         .start()
         .catch((reason) => {
-            window.showWarningMessage(`Failed to run Zig Language Server (ZLS): ${reason}`);
+            void window.showWarningMessage(`Failed to run Zig Language Server (ZLS): ${reason}`);
             client = null;
         })
         .then(() => {
@@ -77,7 +82,7 @@ async function startClient() {
 }
 
 export async function stopClient() {
-    if (client) client.stop();
+    if (client) await client.stop();
     client = null;
 }
 
@@ -102,14 +107,14 @@ interface Version {
 interface VersionIndex {
     latest: string;
     latestTagged: string;
-    releases: Record<string, string>;
-    versions: Record<string, Version>;
+    releases: Record<string, string | undefined>;
+    versions: Record<string, Version | undefined>;
 }
 
 async function getVersionIndex(): Promise<VersionIndex> {
-    const index = (await axios.get(`${downloadsRoot}/index.json`)).data;
+    const index = (await axios.get<VersionIndex>(`${downloadsRoot}/index.json`)).data;
     if (!index.versions[index.latest]) {
-        window.showErrorMessage("Invalid ZLS version index; please contact a ZLS maintainer.");
+        void window.showErrorMessage("Invalid ZLS version index; please contact a ZLS maintainer.");
         throw new Error("Invalid ZLS version");
     }
     return index;
@@ -130,11 +135,7 @@ async function checkUpdate(context: ExtensionContext) {
     const index = await getVersionIndex();
     const latestVersionString = version.build.length === 0 ? index.latestTagged : index.latest;
     // having a build number implies nightly version
-    const latestVersion = semver.parse(latestVersionString);
-
-    if (!latestVersion) {
-        throw new Error(`ZLS index.json reported an invalid semantic version '${latestVersionString}'`);
-    }
+    const latestVersion = new SemVer(latestVersionString);
 
     if (semver.gte(version, latestVersion)) return;
 
@@ -156,7 +157,7 @@ export async function install(context: ExtensionContext, ask: boolean) {
     // Zig 0.9.0 was the first version to have a tagged zls release
     if (semver.lt(zigVersion, "0.9.0")) {
         if (zlsConfiguration.get("path")) {
-            window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion}`);
+            void window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion.version}`);
         }
         await zlsConfiguration.update("path", undefined, true);
         return;
@@ -164,7 +165,7 @@ export async function install(context: ExtensionContext, ask: boolean) {
 
     if (ask) {
         const result = await window.showInformationMessage(
-            `Do you want to install ZLS (the Zig Language Server) for Zig version ${zigVersion}`,
+            `Do you want to install ZLS (the Zig Language Server) for Zig version ${zigVersion.version}`,
             "Install",
             "Ignore",
         );
@@ -178,7 +179,7 @@ export async function install(context: ExtensionContext, ask: boolean) {
     let zlsVersion: semver.SemVer;
     if (zigVersion.build.length !== 0) {
         // Nightly, install latest ZLS
-        zlsVersion = semver.parse((await getVersionIndex()).latest)!;
+        zlsVersion = new SemVer((await getVersionIndex()).latest);
     } else {
         // ZLS does not make releases for patches
         zlsVersion = zigVersion;
@@ -188,7 +189,13 @@ export async function install(context: ExtensionContext, ask: boolean) {
     try {
         await installVersion(context, zlsVersion);
     } catch (err) {
-        window.showErrorMessage(`Unable to install ZLS ${zlsVersion} for Zig version ${zigVersion}: ${err}`);
+        if (err instanceof Error) {
+            void window.showErrorMessage(
+                `Unable to install ZLS ${zlsVersion.version} for Zig version ${zigVersion.version}: ${err.message}`,
+            );
+        } else {
+            throw err;
+        }
     }
 }
 
@@ -213,16 +220,18 @@ async function installVersion(context: ExtensionContext, version: SemVer) {
             progress.report({ message: "Downloading ZLS executable..." });
             let exe: Buffer;
             try {
-                exe = (
-                    await axios.get(`${downloadsRoot}/${version.raw}/${hostName}/zls${isWindows ? ".exe" : ""}`, {
+                const response = await axios.get<Buffer>(
+                    `${downloadsRoot}/${version.raw}/${hostName}/zls${isWindows ? ".exe" : ""}`,
+                    {
                         responseType: "arraybuffer",
-                    })
-                ).data;
+                    },
+                );
+                exe = response.data;
             } catch (err) {
                 // Missing prebuilt binary is reported as AccessDenied
                 if (axios.isAxiosError(err) && err.response?.status === 403) {
-                    window.showErrorMessage(
-                        `A prebuilt ZLS ${version} binary is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`,
+                    void window.showErrorMessage(
+                        `A prebuilt ZLS ${version.version} binary is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`,
                     );
                     return;
                 }
@@ -247,7 +256,7 @@ async function openConfig() {
 function checkInstalled(): boolean {
     const zlsPath = workspace.getConfiguration("zig.zls").get<string>("path");
     if (!zlsPath) {
-        window.showErrorMessage("This command cannot be run without setting 'zig.zls.path'.", { modal: true });
+        void window.showErrorMessage("This command cannot be run without setting 'zig.zls.path'.", { modal: true });
     }
     return !!zlsPath;
 }
@@ -259,7 +268,7 @@ export async function activate(context: ExtensionContext) {
         try {
             getZigPath();
         } catch {
-            window.showErrorMessage("This command cannot be run without a valid zig path.", { modal: true });
+            void window.showErrorMessage("This command cannot be run without a valid zig path.", { modal: true });
             return;
         }
 
@@ -298,7 +307,7 @@ export async function activate(context: ExtensionContext) {
     if (zigConfig.get<string>("path") === undefined) return;
     const zlsConfig = workspace.getConfiguration("zig.zls");
     if (zlsConfig.get<string>("path") === undefined) return;
-    if (zlsConfig.get<boolean>("checkForUpdate") && shouldCheckUpdate(context, "zlsUpdate")) {
+    if (zlsConfig.get<boolean>("checkForUpdate") && (await shouldCheckUpdate(context, "zlsUpdate"))) {
         await checkUpdate(context);
     }
     await startClient();

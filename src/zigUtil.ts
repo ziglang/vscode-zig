@@ -40,7 +40,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
             message = `\`${optionName}\` ${exePath} is not an executable`;
         }
     }
-    window.showErrorMessage(message);
+    void window.showErrorMessage(message);
     throw Error(message);
 }
 
@@ -52,12 +52,12 @@ export function getZigPath(): string {
 
 // Check timestamp `key` to avoid automatically checking for updates
 // more than once in an hour.
-export function shouldCheckUpdate(context: ExtensionContext, key: string): boolean {
+export async function shouldCheckUpdate(context: ExtensionContext, key: string): Promise<boolean> {
     const HOUR = 60 * 60 * 1000;
     const timestamp = new Date().getTime();
     const old = context.globalState.get<number>(key);
     if (old === undefined || timestamp - old < HOUR) return false;
-    context.globalState.update(key, timestamp);
+    await context.globalState.update(key, timestamp);
     return true;
 }
 

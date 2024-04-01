@@ -14,29 +14,34 @@ import which from "which";
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
 function getNightlySemVer(url: string): string {
-    return url.match(/-(\d+\.\d+\.\d+-dev\.\d+\+\w+)\./)![1];
+    const matches = url.match(/-(\d+\.\d+\.\d+-dev\.\d+\+\w+)\./);
+    if (!matches) throw new Error(`url '${url}' does not contain a semantic version!`);
+    return matches[1];
 }
 
-type ZigVersion = { name: string; url: string; sha: string };
+type VersionIndex = Record<string, Record<string, undefined | { tarball: string; shasum: string; size: string }>>;
+
+interface ZigVersion {
+    name: string;
+    url: string;
+    sha: string;
+}
+
 async function getVersions(): Promise<ZigVersion[]> {
     const hostName = getHostZigName();
-    const tarball = (
-        await axios.get(DOWNLOAD_INDEX, {
-            responseType: "arraybuffer",
-        })
-    ).data;
-    const indexJson = JSON.parse(tarball);
+    const indexJson = (await axios.get<VersionIndex>(DOWNLOAD_INDEX, {})).data;
     const result: ZigVersion[] = [];
     for (let key in indexJson) {
         const value = indexJson[key];
         if (key === "master") {
             key = "nightly";
         }
-        if (value[hostName]) {
+        const release = value[hostName];
+        if (release) {
             result.push({
                 name: key,
-                url: value[hostName]["tarball"],
-                sha: value[hostName]["shasum"],
+                url: release.tarball,
+                sha: release.shasum,
             });
         }
     }
@@ -56,12 +61,10 @@ async function install(context: ExtensionContext, version: ZigVersion) {
         },
         async (progress) => {
             progress.report({ message: "Downloading Zig tarball..." });
-            const tarball: Buffer = (
-                await axios.get(version.url, {
-                    responseType: "arraybuffer",
-                })
-            ).data;
-            const tarHash = createHash("sha256").update(tarball).digest("hex");
+            const response = await axios.get<Buffer>(version.url, {
+                responseType: "arraybuffer",
+            });
+            const tarHash = createHash("sha256").update(response.data).digest("hex");
             if (tarHash !== version.sha) {
                 throw Error(`hash of downloaded tarball ${tarHash} does not match expected hash ${version.sha}`);
             }
@@ -74,7 +77,7 @@ async function install(context: ExtensionContext, version: ZigVersion) {
 
             const tarPath = which.sync("tar", { nothrow: true });
             if (!tarPath) {
-                vscode.window.showErrorMessage(
+                void vscode.window.showErrorMessage(
                     "Downloaded Zig tarball can't be extracted because 'tar' could not be found",
                 );
                 return;
@@ -84,12 +87,17 @@ async function install(context: ExtensionContext, version: ZigVersion) {
             try {
                 cp.execFileSync(tarPath, ["-xJf", "-", "-C", installDir.fsPath, "--strip-components=1"], {
                     encoding: "buffer",
-                    input: tarball,
+                    input: response.data,
                     maxBuffer: 100 * 1024 * 1024, // 100MB
                     timeout: 60000, // 60 seconds
                 });
             } catch (err) {
-                window.showErrorMessage(`Failed to extract Zig tarball: ${err}`);
+                if (err instanceof Error) {
+                    void window.showErrorMessage(`Failed to extract Zig tarball: ${err.message}`);
+                } else {
+                    throw err;
+                }
+                return;
             }
 
             progress.report({ message: "Installing..." });
@@ -126,7 +134,11 @@ async function selectVersionAndInstall(context: ExtensionContext) {
             }
         }
     } catch (err) {
-        window.showErrorMessage(`Unable to install Zig: ${err}`);
+        if (err instanceof Error) {
+            void window.showErrorMessage(`Unable to install Zig: ${err.message}`);
+        } else {
+            throw err;
+        }
     }
 }
 
@@ -144,7 +156,11 @@ async function checkUpdate(context: ExtensionContext) {
             await install(context, update);
         }
     } catch (err) {
-        window.showErrorMessage(`Unable to update Zig: ${err}`);
+        if (err instanceof Error) {
+            void window.showErrorMessage(`Unable to update Zig: ${err.message}`);
+        } else {
+            throw err;
+        }
     }
 }
 
@@ -193,7 +209,7 @@ export async function setupZig(context: ExtensionContext) {
 
     if (!configuration.get<string>("path")) return;
     if (!configuration.get<boolean>("checkForUpdate")) return;
-    if (!shouldCheckUpdate(context, "zigUpdate")) return;
+    if (!(await shouldCheckUpdate(context, "zigUpdate"))) return;
     await checkUpdate(context);
 }
 
@@ -212,7 +228,9 @@ async function initialSetup(context: ExtensionContext): Promise<boolean> {
         const configuration = workspace.getConfiguration("zig");
         const path = configuration.get<string>("path");
         if (!path) return false;
-        window.showInformationMessage(`Zig was installed at '${path}', add it to PATH to use it from the terminal`);
+        void window.showInformationMessage(
+            `Zig was installed at '${path}', add it to PATH to use it from the terminal`,
+        );
     } else if (zigResponse === "Specify path") {
         const uris = await window.showOpenDialog({
             canSelectFiles: true,
