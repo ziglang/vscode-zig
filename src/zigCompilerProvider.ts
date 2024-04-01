@@ -102,53 +102,42 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             return;
         }
         const zigPath = getZigPath();
-        const childProcess = childProcess.spawn(zigPath, ["ast-check"], {});
+        const { error, stderr } = childProcess.spawnSync(zigPath, ["ast-check"], {
+            input: textDocument.getText(),
+            maxBuffer: 10 * 1024 * 1024, // 10MB
+            encoding: "utf8",
+            stdio: ["pipe", "ignore", "pipe"],
+            timeout: 60000, // 60 seconds (this is a very high value because 'zig ast-check' is just in time compiled)
+        });
 
-        if (!child.pid) {
-            return;
+        if (error ?? stderr.length === 0) return;
+
+        const diagnostics: Record<string, vscode.Diagnostic[] | undefined> = {};
+        const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
+
+        for (let match = regex.exec(stderr); match; match = regex.exec(stderr)) {
+            const path = textDocument.uri.fsPath;
+
+            const line = parseInt(match[2]) - 1;
+            const column = parseInt(match[3]) - 1;
+            const type = match[4];
+            const message = match[5];
+
+            const severity =
+                type.trim().toLowerCase() === "error"
+                    ? vscode.DiagnosticSeverity.Error
+                    : vscode.DiagnosticSeverity.Information;
+            const range = new vscode.Range(line, column, line, Infinity);
+
+            const diagnosticArray = diagnostics[path] ?? [];
+            diagnosticArray.push(new vscode.Diagnostic(range, message, severity));
+            diagnostics[path] = diagnosticArray;
         }
 
-        let stderr = "";
-        child.stderr.on("data", (chunk) => {
-            stderr += chunk as string;
-        });
-
-        child.stdin.end(change.document.getText());
-
-        child.once("close", () => {
-            this.doASTGenErrorCheck.cancel();
-            this.astDiagnostics.delete(textDocument.uri);
-
-            if (stderr.length === 0) {
-                return;
-            }
-            const diagnostics: Record<string, vscode.Diagnostic[] | undefined> = {};
-            const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
-
-            for (let match = regex.exec(stderr); match; match = regex.exec(stderr)) {
-                const path = textDocument.uri.fsPath;
-
-                const line = parseInt(match[2]) - 1;
-                const column = parseInt(match[3]) - 1;
-                const type = match[4];
-                const message = match[5];
-
-                const severity =
-                    type.trim().toLowerCase() === "error"
-                        ? vscode.DiagnosticSeverity.Error
-                        : vscode.DiagnosticSeverity.Information;
-                const range = new vscode.Range(line, column, line, Infinity);
-
-                const diagnosticArray = diagnostics[path] ?? [];
-                diagnosticArray.push(new vscode.Diagnostic(range, message, severity));
-                diagnostics[path] = diagnosticArray;
-            }
-
-            for (const path in diagnostics) {
-                const diagnostic = diagnostics[path];
-                this.astDiagnostics.set(textDocument.uri, diagnostic);
-            }
-        });
+        for (const path in diagnostics) {
+            const diagnostic = diagnostics[path];
+            this.astDiagnostics.set(textDocument.uri, diagnostic);
+        }
     }
 
     private _doCompile(textDocument: vscode.TextDocument) {
