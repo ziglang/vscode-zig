@@ -64,9 +64,9 @@ export async function shouldCheckUpdate(context: vscode.ExtensionContext, key: s
 }
 
 export function getHostZigName(): string {
-    let os: string = process.platform;
-    if (os === "darwin") os = "macos";
-    if (os === "win32") os = "windows";
+    let platform: string = process.platform;
+    if (platform === "darwin") platform = "macos";
+    if (platform === "win32") platform = "windows";
     let arch: string = process.arch;
     if (arch === "ia32") arch = "x86";
     if (arch === "x64") arch = "x86_64";
@@ -74,12 +74,12 @@ export function getHostZigName(): string {
     if (arch === "arm64") arch = "aarch64";
     if (arch === "ppc") arch = "powerpc";
     if (arch === "ppc64") arch = "powerpc64le";
-    return `${arch}-${os}`;
+    return `${arch}-${platform}`;
 }
 
-export function getVersion(path: string, arg: string): semver.SemVer | null {
+export function getVersion(filePath: string, arg: string): semver.SemVer | null {
     try {
-        const buffer = childProcess.execFileSync(path, [arg]);
+        const buffer = childProcess.execFileSync(filePath, [arg]);
         const versionString = buffer.toString("utf8").trim();
         if (versionString === "0.2.0.83a2a36a") {
             // Zig 0.2.0 reports the verion in a non-semver format

@@ -116,7 +116,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
 
         for (let match = regex.exec(stderr); match; match = regex.exec(stderr)) {
-            const path = textDocument.uri.fsPath;
+            const filePath = textDocument.uri.fsPath;
 
             const line = parseInt(match[2]) - 1;
             const column = parseInt(match[3]) - 1;
@@ -129,13 +129,13 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                     : vscode.DiagnosticSeverity.Information;
             const range = new vscode.Range(line, column, line, Infinity);
 
-            const diagnosticArray = diagnostics[path] ?? [];
+            const diagnosticArray = diagnostics[filePath] ?? [];
             diagnosticArray.push(new vscode.Diagnostic(range, message, severity));
-            diagnostics[path] = diagnosticArray;
+            diagnostics[filePath] = diagnosticArray;
         }
 
-        for (const path in diagnostics) {
-            const diagnostic = diagnostics[path];
+        for (const filePath in diagnostics) {
+            const diagnostic = diagnostics[filePath];
             this.astDiagnostics.set(textDocument.uri, diagnostic);
         }
     }
@@ -223,9 +223,9 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                     diagnostics[resolvedPath] = diagnosticArray;
                 }
 
-                for (const path in diagnostics) {
-                    const diagnostic = diagnostics[path];
-                    this.buildDiagnostics.set(vscode.Uri.file(path), diagnostic);
+                for (const filePath in diagnostics) {
+                    const diagnostic = diagnostics[filePath];
+                    this.buildDiagnostics.set(vscode.Uri.file(filePath), diagnostic);
                 }
             });
         }

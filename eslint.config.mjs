@@ -12,6 +12,8 @@ export default tseslint.config({
         eqeqeq: "error",
         "no-throw-literal": "off",
         "@typescript-eslint/only-throw-error": "error",
+        "no-shadow": "off",
+        "@typescript-eslint/no-shadow": "error",
         "no-duplicate-imports": "error",
         "sort-imports": ["error", { allowSeparatedGroups: true }],
     },
