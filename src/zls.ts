@@ -209,7 +209,7 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
 
     await vscode.window.withProgress(
         {
-            title: "Installing zls...",
+            title: "Installing ZLS",
             location: vscode.ProgressLocation.Notification,
         },
         async (progress) => {
@@ -222,13 +222,24 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
             const binName = `zls${isWindows ? ".exe" : ""}`;
             const zlsBinPath = vscode.Uri.joinPath(installDir, binName).fsPath;
 
-            progress.report({ message: "Downloading ZLS executable..." });
+            progress.report({ message: "downloading executable..." });
             let exe: Buffer;
             try {
                 const response = await axios.get<Buffer>(
                     `${downloadsRoot}/${version.raw}/${hostName}/zls${isWindows ? ".exe" : ""}`,
                     {
                         responseType: "arraybuffer",
+                        onDownloadProgress: (progressEvent) => {
+                            if (progressEvent.total) {
+                                const increment = (progressEvent.bytes / progressEvent.total) * 100;
+                                progress.report({
+                                    message: progressEvent.progress
+                                        ? `downloading executable ${(progressEvent.progress * 100).toFixed()}%`
+                                        : "downloading executable...",
+                                    increment: increment,
+                                });
+                            }
+                        },
                     },
                 );
                 exe = response.data;

@@ -56,13 +56,24 @@ async function getVersions(): Promise<ZigVersion[]> {
 async function install(context: vscode.ExtensionContext, version: ZigVersion) {
     await vscode.window.withProgress(
         {
-            title: "Installing Zig...",
+            title: "Installing Zig",
             location: vscode.ProgressLocation.Notification,
         },
         async (progress) => {
-            progress.report({ message: "Downloading Zig tarball..." });
+            progress.report({ message: "downloading Zig tarball..." });
             const response = await axios.get<Buffer>(version.url, {
                 responseType: "arraybuffer",
+                onDownloadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const increment = (progressEvent.bytes / progressEvent.total) * 100;
+                        progress.report({
+                            message: progressEvent.progress
+                                ? `downloading tarball ${(progressEvent.progress * 100).toFixed()}%`
+                                : "downloading tarball...",
+                            increment: increment,
+                        });
+                    }
+                },
             });
             const tarHash = crypto.createHash("sha256").update(response.data).digest("hex");
             if (tarHash !== version.sha) {
