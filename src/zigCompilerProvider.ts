@@ -1,12 +1,12 @@
-"use strict";
+import vscode from "vscode";
 
-import * as cp from "child_process";
-import * as path from "path";
-import * as vscode from "vscode";
-import * as zls from "./zls";
+import childProcess from "child_process";
+import path from "path";
+
 // This will be treeshaked to only the debounce function
-import { throttle } from "lodash-es";
-import Path from "path";
+import { DebouncedFunc, throttle } from "lodash-es";
+
+import * as zls from "./zls";
 import { getZigPath } from "./zigUtil";
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
@@ -14,19 +14,49 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     private astDiagnostics: vscode.DiagnosticCollection;
     private dirtyChange = new WeakMap<vscode.Uri, boolean>();
 
-    public activate(subscriptions: vscode.Disposable[]) {
-        subscriptions.push(this);
+    private doASTGenErrorCheck: DebouncedFunc<(change: vscode.TextDocumentChangeEvent) => void>;
+    private doCompile: DebouncedFunc<(textDocument: vscode.TextDocument) => void>;
+
+    constructor() {
         this.buildDiagnostics = vscode.languages.createDiagnosticCollection("zig");
         this.astDiagnostics = vscode.languages.createDiagnosticCollection("zig");
 
-        vscode.workspace.onDidChangeTextDocument(this.maybeDoASTGenErrorCheck, this);
-        vscode.workspace.onDidChangeTextDocument(this.maybeDoBuildOnSave, this);
+        this.doASTGenErrorCheck = throttle(
+            (change: vscode.TextDocumentChangeEvent) => {
+                this._doASTGenErrorCheck(change);
+            },
+            16,
+            {
+                trailing: true,
+            },
+        );
+        this.doCompile = throttle((textDocument: vscode.TextDocument) => {
+            this._doCompile(textDocument);
+        }, 60);
+    }
 
-        subscriptions.push(vscode.commands.registerCommand("zig.build.workspace", () => this.doCompile(vscode.window.activeTextEditor.document)));
+    public activate(subscriptions: vscode.Disposable[]) {
+        subscriptions.push(this);
+
+        vscode.workspace.onDidChangeTextDocument((change) => {
+            this.maybeDoASTGenErrorCheck(change);
+        }, this);
+        vscode.workspace.onDidChangeTextDocument((change) => {
+            this.maybeDoBuildOnSave(change);
+        }, this);
+
+        subscriptions.push(
+            vscode.commands.registerCommand("zig.build.workspace", () => {
+                if (!vscode.window.activeTextEditor) return;
+                this.doCompile(vscode.window.activeTextEditor.document);
+            }),
+        );
     }
 
     maybeDoASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
-        if (change.document.languageId !== "zig") {return;}
+        if (change.document.languageId !== "zig") {
+            return;
+        }
         if (zls.client !== null) {
             this.astDiagnostics.clear();
             return;
@@ -39,8 +69,12 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     }
 
     maybeDoBuildOnSave(change: vscode.TextDocumentChangeEvent) {
-        if (change.document.languageId !== "zig") {return;}
-        if (change.document.isUntitled) {return;}
+        if (change.document.languageId !== "zig") {
+            return;
+        }
+        if (change.document.isUntitled) {
+            return;
+        }
 
         const config = vscode.workspace.getConfiguration("zig");
         if (
@@ -68,53 +102,42 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             return;
         }
         const zigPath = getZigPath();
-        const cwd = vscode.workspace.getWorkspaceFolder(textDocument.uri).uri
-            .fsPath;
+        const { error, stderr } = childProcess.spawnSync(zigPath, ["ast-check"], {
+            input: textDocument.getText(),
+            maxBuffer: 10 * 1024 * 1024, // 10MB
+            encoding: "utf8",
+            stdio: ["pipe", "ignore", "pipe"],
+            timeout: 60000, // 60 seconds (this is a very high value because 'zig ast-check' is just in time compiled)
+        });
 
-        const childProcess = cp.spawn(zigPath, ["ast-check"], { cwd });
+        if (error ?? stderr.length === 0) return;
 
-        if (!childProcess.pid) {
-            return;
+        const diagnostics: Record<string, vscode.Diagnostic[] | undefined> = {};
+        const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
+
+        for (let match = regex.exec(stderr); match; match = regex.exec(stderr)) {
+            const filePath = textDocument.uri.fsPath;
+
+            const line = parseInt(match[2]) - 1;
+            const column = parseInt(match[3]) - 1;
+            const type = match[4];
+            const message = match[5];
+
+            const severity =
+                type.trim().toLowerCase() === "error"
+                    ? vscode.DiagnosticSeverity.Error
+                    : vscode.DiagnosticSeverity.Information;
+            const range = new vscode.Range(line, column, line, Infinity);
+
+            const diagnosticArray = diagnostics[filePath] ?? [];
+            diagnosticArray.push(new vscode.Diagnostic(range, message, severity));
+            diagnostics[filePath] = diagnosticArray;
         }
 
-        let stderr = "";
-        childProcess.stderr.on("data", (chunk) => {
-            stderr += chunk;
-        });
-
-        childProcess.stdin.end(change.document.getText(null));
-
-        childProcess.once("close", () => {
-            this.doASTGenErrorCheck.cancel();
-            this.astDiagnostics.delete(textDocument.uri);
-
-            if (stderr.length === 0) {return;}
-            const diagnostics: { [id: string]: vscode.Diagnostic[] } = {};
-            const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
-
-            for (let match = regex.exec(stderr); match; match = regex.exec(stderr)) {
-                const path = textDocument.uri.fsPath;
-
-                const line = parseInt(match[2]) - 1;
-                const column = parseInt(match[3]) - 1;
-                const type = match[4];
-                const message = match[5];
-
-                const severity =
-          type.trim().toLowerCase() === "error"
-              ? vscode.DiagnosticSeverity.Error
-              : vscode.DiagnosticSeverity.Information;
-                const range = new vscode.Range(line, column, line, Infinity);
-
-                if (!diagnostics[path]) {diagnostics[path] = [];}
-                diagnostics[path].push(new vscode.Diagnostic(range, message, severity));
-            }
-
-            for (const path in diagnostics) {
-                const diagnostic = diagnostics[path];
-                this.astDiagnostics.set(textDocument.uri, diagnostic);
-            }
-        });
+        for (const filePath in diagnostics) {
+            const diagnostic = diagnostics[filePath];
+            this.astDiagnostics.set(textDocument.uri, diagnostic);
+        }
     }
 
     private _doCompile(textDocument: vscode.TextDocument) {
@@ -122,61 +145,57 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
         const zigPath = getZigPath();
 
-        const buildOption = config.get<string>("buildOption");
+        const buildOption = config.get<string>("buildOption", "build");
         const processArg: string[] = [buildOption];
         let workspaceFolder = vscode.workspace.getWorkspaceFolder(textDocument.uri);
-        if (!workspaceFolder && vscode.workspace.workspaceFolders.length) {
+        if (!workspaceFolder && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
             workspaceFolder = vscode.workspace.workspaceFolders[0];
         }
+        if (!workspaceFolder) return;
         const cwd = workspaceFolder.uri.fsPath;
 
         switch (buildOption) {
-        case "build":{
-            const buildFilePath = config.get<string>("buildFilePath");
-            processArg.push("--build-file");
-            try {
-                processArg.push(
-                    path.resolve(buildFilePath.replace("${workspaceFolder}", cwd))
-                );
-            } catch {
-                // 
+            case "build": {
+                const buildFilePath = config.get<string>("buildFilePath");
+                if (!buildFilePath) break;
+                processArg.push("--build-file");
+                try {
+                    processArg.push(path.resolve(buildFilePath.replace("${workspaceFolder}", cwd)));
+                } catch {
+                    //
+                }
+                break;
             }
-            break;
-        }
-        default:
-            processArg.push(textDocument.fileName);
-            break;
+            default:
+                processArg.push(textDocument.fileName);
+                break;
         }
 
-        const extraArgs = config.get<string[]>("buildArgs");
+        const extraArgs = config.get<string[]>("buildArgs", []);
         extraArgs.forEach((element) => {
             processArg.push(element);
         });
 
         let decoded = "";
-        const childProcess = cp.spawn(zigPath, processArg, { cwd });
-        if (childProcess.pid) {
-            childProcess.stderr.on("data", (data: Buffer) => {
+        const child = childProcess.spawn(zigPath, processArg, { cwd });
+        if (child.pid) {
+            child.stderr.on("data", (data: string) => {
                 decoded += data;
             });
-            childProcess.stdout.on("end", () => {
+            child.stdout.on("end", () => {
                 this.doCompile.cancel();
-                const diagnostics: { [id: string]: vscode.Diagnostic[] } = {};
+                const diagnostics: Record<string, vscode.Diagnostic[] | undefined> = {};
                 const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
 
                 this.buildDiagnostics.clear();
-                for (
-                    let match = regex.exec(decoded);
-                    match;
-                    match = regex.exec(decoded)
-                ) {
-                    let path = match[1].trim();
+                for (let match = regex.exec(decoded); match; match = regex.exec(decoded)) {
+                    let resolvedPath = match[1].trim();
                     try {
-                        if (!path.includes(cwd)) {
-                            path = Path.resolve(workspaceFolder.uri.fsPath, path);
+                        if (!resolvedPath.includes(cwd)) {
+                            resolvedPath = path.resolve(cwd, resolvedPath);
                         }
                     } catch {
-                        // 
+                        //
                     }
 
                     const line = parseInt(match[2]) - 1;
@@ -186,40 +205,32 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
                     // De-dupe build errors with ast errors
                     if (this.astDiagnostics.has(textDocument.uri)) {
-                        for (const diag of this.astDiagnostics.get(textDocument.uri)) {
-                            if (
-                                diag.range.start.line === line &&
-                diag.range.start.character === column
-                            ) {
+                        for (const diag of this.astDiagnostics.get(textDocument.uri) ?? []) {
+                            if (diag.range.start.line === line && diag.range.start.character === column) {
                                 continue;
                             }
                         }
                     }
 
                     const severity =
-            type.trim().toLowerCase() === "error"
-                ? vscode.DiagnosticSeverity.Error
-                : vscode.DiagnosticSeverity.Information;
+                        type.trim().toLowerCase() === "error"
+                            ? vscode.DiagnosticSeverity.Error
+                            : vscode.DiagnosticSeverity.Information;
                     const range = new vscode.Range(line, column, line, Infinity);
 
-                    if (!diagnostics[path]) {diagnostics[path] = [];}
-                    diagnostics[path].push(
-                        new vscode.Diagnostic(range, message, severity)
-                    );
+                    const diagnosticArray = diagnostics[resolvedPath] ?? [];
+                    diagnosticArray.push(new vscode.Diagnostic(range, message, severity));
+                    diagnostics[resolvedPath] = diagnosticArray;
                 }
 
-                for (const path in diagnostics) {
-                    const diagnostic = diagnostics[path];
-                    this.buildDiagnostics.set(vscode.Uri.file(path), diagnostic);
+                for (const filePath in diagnostics) {
+                    const diagnostic = diagnostics[filePath];
+                    this.buildDiagnostics.set(vscode.Uri.file(filePath), diagnostic);
                 }
             });
         }
     }
 
-    doASTGenErrorCheck = throttle(this._doASTGenErrorCheck, 16, {
-        trailing: true,
-    });
-    doCompile = throttle(this._doCompile, 60);
     public provideCodeActions(): vscode.ProviderResult<vscode.Command[]> {
         return [];
     }

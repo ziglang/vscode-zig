@@ -7,10 +7,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - name: build
+      - uses: actions/checkout@v4
+
+      - run: npm install
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format -- --check
+
+      - name: package extension
         run: |
-          npm install
-          npm run compile
           npx vsce package
           ls -lt *.vsix

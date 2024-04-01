@@ -1,162 +1,23 @@
-import * as cp from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import semver, { SemVer } from "semver";
-import { ExtensionContext, window, workspace } from "vscode";
+import vscode from "vscode";
+
+import childProcess from "child_process";
+import fs from "fs";
+import os from "os";
+import path from "path";
+
+import semver from "semver";
 import which from "which";
 
 export const isWindows = process.platform === "win32";
 
-/** Options for execCmd */
-export interface ExecCmdOptions {
-    /** The project root folder for this file is used as the cwd of the process */
-    fileName?: string;
-    /** Any arguments */
-    cmdArguments?: string[];
-    /** Shows a message if an error occurs (in particular the command not being */
-    /* found), instead of rejecting. If this happens, the promise never resolves */
-    showMessageOnError?: boolean;
-    /** Called after the process successfully starts */
-    onStart?: () => void;
-    /** Called when data is sent to stdout */
-    onStdout?: (data: string) => void;
-    /** Called when data is sent to stderr */
-    onStderr?: (data: string) => void;
-    /** Called after the command (successfully or unsuccessfully) exits */
-    onExit?: () => void;
-    /** Text to add when command is not found (maybe helping how to install) */
-    notFoundText?: string;
-}
-
-/** Type returned from execCmd. Is a promise for when the command completes
- *  and also a wrapper to access ChildProcess-like methods.
- */
-export interface ExecutingCmd
-    extends Promise<{ stdout: string; stderr: string }> {
-    /** The process's stdin */
-    stdin: NodeJS.WritableStream;
-    /** End the process */
-    kill();
-    /** Is the process running */
-    isRunning: boolean; // tslint:disable-line
-}
-
-/** Executes a command. Shows an error message if the command isn't found */
-export function execCmd
-    (cmd: string, options: ExecCmdOptions = {}): ExecutingCmd {
-
-    const { fileName, onStart, onStdout, onStderr, onExit } = options;
-    let childProcess, firstResponse = true, wasKilledbyUs = false;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const executingCmd: any = new Promise((resolve, reject) => {
-        const cmdArguments = options ? options.cmdArguments : [];
-
-        childProcess =
-            cp.execFile(cmd, cmdArguments, { cwd: detectProjectRoot(fileName || ""), maxBuffer: 10 * 1024 * 1024 }, handleExit);
-
-
-        childProcess.stdout.on("data", (data: Buffer) => {
-            if (firstResponse && onStart) {
-                onStart();
-            }
-            firstResponse = false;
-            if (onStdout) {
-                onStdout(data.toString());
-            }
-        });
-
-        childProcess.stderr.on("data", (data: Buffer) => {
-            if (firstResponse && onStart) {
-                onStart();
-            }
-            firstResponse = false;
-            if (onStderr) {
-                onStderr(data.toString());
-            }
-        });
-
-        function handleExit(err: Error, stdout: string, stderr: string) {
-            executingCmd.isRunning = false;
-            if (onExit) {
-                onExit();
-            }
-            if (!wasKilledbyUs) {
-                if (err) {
-                    if (options.showMessageOnError) {
-                        const cmdName = cmd.split(" ", 1)[0];
-                        const cmdWasNotFound =
-                            // Windows method apparently still works on non-English systems
-                            (isWindows &&
-                                err.message.includes(`'${cmdName}' is not recognized`)) ||
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (!isWindows && (<any>err).code === 127);
-
-                        if (cmdWasNotFound) {
-                            const notFoundText = options ? options.notFoundText : "";
-                            window.showErrorMessage(
-                                `${cmdName} is not available in your path. ` + notFoundText,
-                            );
-                        } else {
-                            window.showErrorMessage(err.message);
-                        }
-                    } else {
-                        reject(err);
-                    }
-                } else {
-                    resolve({ stdout: stdout, stderr: stderr });
-                }
-            }
-        }
-    });
-    executingCmd.stdin = childProcess.stdin;
-    executingCmd.kill = killProcess;
-    executingCmd.isRunning = true;
-
-    return executingCmd as ExecutingCmd;
-
-    function killProcess() {
-        wasKilledbyUs = true;
-        if (isWindows) {
-            cp.spawn("taskkill", ["/pid", childProcess.pid.toString(), "/f", "/t"]);
-        } else {
-            childProcess.kill("SIGINT");
-        }
-    }
-}
-
-const buildFile = "build.zig";
-
-export function findProj(dir: string, parent: string): string {
-    if (dir === "" || dir === parent) {
-        return "";
-    }
-    if (fs.lstatSync(dir).isDirectory()) {
-        const build = path.join(dir, buildFile);
-        if (fs.existsSync(build)) {
-            return dir;
-        }
-    }
-    return findProj(path.dirname(dir), dir);
-}
-
-export function detectProjectRoot(fileName: string): string {
-    const proj = findProj(path.dirname(fileName), "");
-    if (proj !== "") {
-        return proj;
-    }
-    return undefined;
-}
-
 export function getExePath(exePath: string | null, exeName: string, optionName: string): string {
     // Allow passing the ${workspaceFolder} predefined variable
     // See https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
-    if (exePath && exePath.includes("${workspaceFolder}")) {
+    if (exePath?.includes("${workspaceFolder}")) {
         // We choose the first workspaceFolder since it is ambiguous which one to use in this context
-        if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
             // older versions of Node (which VSCode uses) may not have String.prototype.replaceAll
-            exePath = exePath.replace(/\$\{workspaceFolder\}/gm, workspace.workspaceFolders[0].uri.fsPath);
+            exePath = exePath.replace(/\$\{workspaceFolder\}/gm, vscode.workspace.workspaceFolders[0].uri.fsPath);
         }
     }
 
@@ -172,7 +33,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
     if (!exePath) {
         message = `Could not find ${exeName} in PATH`;
     } else if (!fs.existsSync(exePath)) {
-        message = `\`${optionName}\` ${exePath} does not exist`
+        message = `\`${optionName}\` ${exePath} does not exist`;
     } else {
         try {
             fs.accessSync(exePath, fs.constants.R_OK | fs.constants.X_OK);
@@ -181,49 +42,50 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
             message = `\`${optionName}\` ${exePath} is not an executable`;
         }
     }
-    window.showErrorMessage(message);
+    void vscode.window.showErrorMessage(message);
     throw Error(message);
 }
 
 export function getZigPath(): string {
-    const configuration = workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string>("path");
+    const configuration = vscode.workspace.getConfiguration("zig");
+    const zigPath = configuration.get<string>("path") ?? null;
     return getExePath(zigPath, "zig", "zig.path");
 }
 
 // Check timestamp `key` to avoid automatically checking for updates
 // more than once in an hour.
-export function shouldCheckUpdate(context: ExtensionContext, key: string): boolean {
+export async function shouldCheckUpdate(context: vscode.ExtensionContext, key: string): Promise<boolean> {
     const HOUR = 60 * 60 * 1000;
     const timestamp = new Date().getTime();
     const old = context.globalState.get<number>(key);
     if (old === undefined || timestamp - old < HOUR) return false;
-    context.globalState.update(key, timestamp);
+    await context.globalState.update(key, timestamp);
     return true;
 }
 
 export function getHostZigName(): string {
-    let os: string = process.platform;
-    if (os == "darwin") os = "macos";
-    if (os == "win32") os = "windows";
+    let platform: string = process.platform;
+    if (platform === "darwin") platform = "macos";
+    if (platform === "win32") platform = "windows";
     let arch: string = process.arch;
-    if (arch == "ia32") arch = "x86";
-    if (arch == "x64") arch = "x86_64";
-    if (arch == "arm64") arch = "aarch64";
-    if (arch == "ppc") arch = "powerpc";
-    if (arch == "ppc64") arch = "powerpc64le";
-    return `${arch}-${os}`;
+    if (arch === "ia32") arch = "x86";
+    if (arch === "x64") arch = "x86_64";
+    if (arch === "arm") arch = "armv7a";
+    if (arch === "arm64") arch = "aarch64";
+    if (arch === "ppc") arch = "powerpc";
+    if (arch === "ppc64") arch = "powerpc64le";
+    return `${arch}-${platform}`;
 }
 
-export function getVersion(path: string, arg: string): SemVer | null {
+export function getVersion(filePath: string, arg: string): semver.SemVer | null {
     try {
-        const buffer = cp.execFileSync(path, [arg]);
-        const version_str = buffer.toString("utf8").trim();
-        if (version_str === "0.2.0.83a2a36a") {
+        const buffer = childProcess.execFileSync(filePath, [arg]);
+        const versionString = buffer.toString("utf8").trim();
+        if (versionString === "0.2.0.83a2a36a") {
             // Zig 0.2.0 reports the verion in a non-semver format
             return semver.parse("0.2.0");
         }
-        return semver.parse(version_str);
+        return semver.parse(versionString);
     } catch {
         return null;
     }

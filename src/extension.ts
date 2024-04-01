@@ -1,9 +1,9 @@
-"use strict";
-import * as vscode from "vscode";
-import ZigCompilerProvider from "./zigCompilerProvider";
+import vscode from "vscode";
+
 import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";
-import { setupZig } from "./zigSetup";
 import { activate as activateZls, deactivate as deactivateZls } from "./zls";
+import ZigCompilerProvider from "./zigCompilerProvider";
+import { setupZig } from "./zigSetup";
 
 const ZIG_MODE: vscode.DocumentFilter = { language: "zig", scheme: "file" };
 
@@ -11,8 +11,8 @@ export let buildDiagnosticCollection: vscode.DiagnosticCollection;
 export const logChannel = vscode.window.createOutputChannel("zig");
 export const zigFormatStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 
-export function activate(context: vscode.ExtensionContext) {
-    setupZig(context).finally(() => {
+export async function activate(context: vscode.ExtensionContext) {
+    await setupZig(context).finally(() => {
         const compiler = new ZigCompilerProvider();
         compiler.activate(context.subscriptions);
         vscode.languages.registerCodeActionsProvider("zig", compiler);
@@ -21,10 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "extension") {
             context.subscriptions.push(
-                vscode.languages.registerDocumentFormattingEditProvider(
-                    ZIG_MODE,
-                    new ZigFormatProvider(logChannel),
-                ),
+                vscode.languages.registerDocumentFormattingEditProvider(ZIG_MODE, new ZigFormatProvider(logChannel)),
             );
             context.subscriptions.push(
                 vscode.languages.registerDocumentRangeFormattingEditProvider(
@@ -37,10 +34,10 @@ export function activate(context: vscode.ExtensionContext) {
         buildDiagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
         context.subscriptions.push(buildDiagnosticCollection);
 
-        activateZls(context)
+        void activateZls(context);
     });
 }
 
-export function deactivate() {
-    deactivateZls();
+export async function deactivate() {
+    await deactivateZls();
 }
