@@ -320,13 +320,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
         await stopClient();
         await checkUpdate(context);
-        await startClient();
     });
 
-    const zigConfig = vscode.workspace.getConfiguration("zig");
-    if (zigConfig.get<string>("path") === undefined) return;
-    const zlsConfig = workspace.getConfiguration("zig.zls");
-    if (zlsConfig.get<string>("path") === undefined) return;
+    vscode.workspace.onDidChangeConfiguration(async (change) => {
+        if (change.affectsConfiguration("zig.zls.path", undefined)) {
+            await stopClient();
+            const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
+            if (!!zlsConfig.get<string>("path")) {
+                await startClient();
+            }
+        }
+    }, context.subscriptions);
+
+    const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
+    if (!zlsConfig.get<string>("path")) return;
     if (zlsConfig.get<boolean>("checkForUpdate") && (await shouldCheckUpdate(context, "zlsUpdate"))) {
         await checkUpdate(context);
     }
