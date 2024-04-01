@@ -10,7 +10,7 @@ export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider 
         this._channel = logChannel;
     }
 
-    async provideDocumentFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[]> {
+    async provideDocumentFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[] | null> {
         return zigFormat(document, this._channel);
     }
 }
@@ -22,12 +22,12 @@ export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEdi
         this._channel = logChannel;
     }
 
-    async provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[]> {
+    async provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<TextEdit[] | null> {
         return zigFormat(document, this._channel);
     }
 }
 
-function zigFormat(document: vscode.TextDocument, logChannel: OutputChannel): TextEdit[] {
+function zigFormat(document: vscode.TextDocument, logChannel: OutputChannel): TextEdit[] | null {
     const zigPath = getZigPath();
 
     const { error, stdout, stderr } = cp.spawnSync(zigPath, ["fmt", "--stdin"], {
@@ -46,7 +46,7 @@ function zigFormat(document: vscode.TextDocument, logChannel: OutputChannel): Te
                 logChannel.show(true);
             }
         } else {
-            vscode.window.showErrorMessage(error.message);
+            void vscode.window.showErrorMessage(error.message);
         }
         return null;
     }

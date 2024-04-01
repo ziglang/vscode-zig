@@ -4,6 +4,7 @@
         "target": "ESNext",
         "outDir": "out",
         "esModuleInterop": true,
+        "strict": true,
         "lib": ["esnext"],
         "sourceMap": true,
         "rootDir": "src"

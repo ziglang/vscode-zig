@@ -1,4 +1,3 @@
-"use strict";
 import * as vscode from "vscode";
 import ZigCompilerProvider from "./zigCompilerProvider";
 import { ZigFormatProvider, ZigRangeFormatProvider } from "./zigFormat";

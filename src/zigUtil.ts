@@ -11,7 +11,7 @@ export const isWindows = process.platform === "win32";
 export function getExePath(exePath: string | null, exeName: string, optionName: string): string {
     // Allow passing the ${workspaceFolder} predefined variable
     // See https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
-    if (exePath && exePath.includes("${workspaceFolder}")) {
+    if (exePath?.includes("${workspaceFolder}")) {
         // We choose the first workspaceFolder since it is ambiguous which one to use in this context
         if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
             // older versions of Node (which VSCode uses) may not have String.prototype.replaceAll
@@ -46,7 +46,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
 
 export function getZigPath(): string {
     const configuration = workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string>("path");
+    const zigPath = configuration.get<string>("path") ?? null;
     return getExePath(zigPath, "zig", "zig.path");
 }
 
@@ -63,26 +63,26 @@ export function shouldCheckUpdate(context: ExtensionContext, key: string): boole
 
 export function getHostZigName(): string {
     let os: string = process.platform;
-    if (os == "darwin") os = "macos";
-    if (os == "win32") os = "windows";
+    if (os === "darwin") os = "macos";
+    if (os === "win32") os = "windows";
     let arch: string = process.arch;
-    if (arch == "ia32") arch = "x86";
-    if (arch == "x64") arch = "x86_64";
-    if (arch == "arm64") arch = "aarch64";
-    if (arch == "ppc") arch = "powerpc";
-    if (arch == "ppc64") arch = "powerpc64le";
+    if (arch === "ia32") arch = "x86";
+    if (arch === "x64") arch = "x86_64";
+    if (arch === "arm64") arch = "aarch64";
+    if (arch === "ppc") arch = "powerpc";
+    if (arch === "ppc64") arch = "powerpc64le";
     return `${arch}-${os}`;
 }
 
 export function getVersion(path: string, arg: string): SemVer | null {
     try {
         const buffer = cp.execFileSync(path, [arg]);
-        const version_str = buffer.toString("utf8").trim();
-        if (version_str === "0.2.0.83a2a36a") {
+        const versionString = buffer.toString("utf8").trim();
+        if (versionString === "0.2.0.83a2a36a") {
             // Zig 0.2.0 reports the verion in a non-semver format
             return semver.parse("0.2.0");
         }
-        return semver.parse(version_str);
+        return semver.parse(versionString);
     } catch {
         return null;
     }

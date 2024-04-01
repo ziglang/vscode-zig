@@ -14,7 +14,7 @@ import which from "which";
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
 function getNightlySemVer(url: string): string {
-    return url.match(/-(\d+\.\d+\.\d+-dev\.\d+\+\w+)\./)[1];
+    return url.match(/-(\d+\.\d+\.\d+-dev\.\d+\+\w+)\./)![1];
 }
 
 type ZigVersion = { name: string; url: string; sha: string };
@@ -27,8 +27,8 @@ async function getVersions(): Promise<ZigVersion[]> {
     ).data;
     const indexJson = JSON.parse(tarball);
     const result: ZigVersion[] = [];
-    // eslint-disable-next-line prefer-const
-    for (let [key, value] of Object.entries(indexJson)) {
+    for (let key in indexJson) {
+        const value = indexJson[key];
         if (key === "master") {
             key = "nightly";
         }
@@ -112,11 +112,11 @@ async function selectVersionAndInstall(context: ExtensionContext) {
             items.push({ label: option.name });
         }
         // Recommend latest stable release.
-        const placeHolder = available.length > 2 ? available[1].name : null;
+        const placeHolder = available.length > 2 ? available[1].name : undefined;
         const selection = await window.showQuickPick(items, {
             title: "Select Zig version to install",
             canPickMany: false,
-            placeHolder,
+            placeHolder: placeHolder,
         });
         if (selection === undefined) return;
         for (const option of available) {
@@ -154,14 +154,16 @@ async function getUpdatedVersion(context: ExtensionContext): Promise<ZigVersion 
     if (zigPath) {
         const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
         if (!zigPath.startsWith(zigBinPath)) return null;
+    } else {
+        return null;
     }
 
     const curVersion = getVersion(zigPath, "version");
-    if (!curVersion) return;
+    if (!curVersion) return null;
 
     const available = await getVersions();
-    if (curVersion.prerelease.length != 0) {
-        if (available[0].name == "nightly") {
+    if (curVersion.prerelease.length !== 0) {
+        if (available[0].name === "nightly") {
             const newVersion = getNightlySemVer(available[0].url);
             if (semver.gt(newVersion, curVersion)) {
                 available[0].name = `nightly-${newVersion}`;

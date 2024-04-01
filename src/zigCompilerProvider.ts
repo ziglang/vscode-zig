@@ -1,5 +1,3 @@
-"use strict";
-
 import * as cp from "child_process";
 import * as path from "path";
 import * as vscode from "vscode";
@@ -10,8 +8,8 @@ import Path from "path";
 import { getZigPath } from "./zigUtil";
 
 export default class ZigCompilerProvider implements vscode.CodeActionProvider {
-    private buildDiagnostics: vscode.DiagnosticCollection;
-    private astDiagnostics: vscode.DiagnosticCollection;
+    private buildDiagnostics!: vscode.DiagnosticCollection;
+    private astDiagnostics!: vscode.DiagnosticCollection;
     private dirtyChange = new WeakMap<vscode.Uri, boolean>();
 
     public activate(subscriptions: vscode.Disposable[]) {
@@ -23,9 +21,10 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         vscode.workspace.onDidChangeTextDocument(this.maybeDoBuildOnSave, this);
 
         subscriptions.push(
-            vscode.commands.registerCommand("zig.build.workspace", () =>
-                this.doCompile(vscode.window.activeTextEditor.document),
-            ),
+            vscode.commands.registerCommand("zig.build.workspace", () => {
+                if (!vscode.window.activeTextEditor) return;
+                this.doCompile(vscode.window.activeTextEditor.document);
+            }),
         );
     }
 
@@ -78,9 +77,10 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             return;
         }
         const zigPath = getZigPath();
-        const cwd = vscode.workspace.getWorkspaceFolder(textDocument.uri).uri.fsPath;
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(textDocument.uri);
+        const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : undefined;
 
-        const childProcess = cp.spawn(zigPath, ["ast-check"], { cwd });
+        const childProcess = cp.spawn(zigPath, ["ast-check"], { cwd: cwd });
 
         if (!childProcess.pid) {
             return;
@@ -91,7 +91,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
             stderr += chunk;
         });
 
-        childProcess.stdin.end(change.document.getText(null));
+        childProcess.stdin.end(change.document.getText());
 
         childProcess.once("close", () => {
             this.doASTGenErrorCheck.cancel();
@@ -135,17 +135,19 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
         const zigPath = getZigPath();
 
-        const buildOption = config.get<string>("buildOption");
+        const buildOption = config.get<string>("buildOption", "build");
         const processArg: string[] = [buildOption];
         let workspaceFolder = vscode.workspace.getWorkspaceFolder(textDocument.uri);
-        if (!workspaceFolder && vscode.workspace.workspaceFolders.length) {
+        if (!workspaceFolder && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
             workspaceFolder = vscode.workspace.workspaceFolders[0];
         }
+        if (!workspaceFolder) return;
         const cwd = workspaceFolder.uri.fsPath;
 
         switch (buildOption) {
             case "build": {
                 const buildFilePath = config.get<string>("buildFilePath");
+                if (!buildFilePath) break;
                 processArg.push("--build-file");
                 try {
                     processArg.push(path.resolve(buildFilePath.replace("${workspaceFolder}", cwd)));
@@ -159,7 +161,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                 break;
         }
 
-        const extraArgs = config.get<string[]>("buildArgs");
+        const extraArgs = config.get<string[]>("buildArgs", []);
         extraArgs.forEach((element) => {
             processArg.push(element);
         });
@@ -180,7 +182,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                     let path = match[1].trim();
                     try {
                         if (!path.includes(cwd)) {
-                            path = Path.resolve(workspaceFolder.uri.fsPath, path);
+                            path = Path.resolve(cwd, path);
                         }
                     } catch {
                         //
@@ -193,7 +195,7 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
 
                     // De-dupe build errors with ast errors
                     if (this.astDiagnostics.has(textDocument.uri)) {
-                        for (const diag of this.astDiagnostics.get(textDocument.uri)) {
+                        for (const diag of this.astDiagnostics.get(textDocument.uri) ?? []) {
                             if (diag.range.start.line === line && diag.range.start.character === column) {
                                 continue;
                             }
