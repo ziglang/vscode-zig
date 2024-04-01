@@ -9,6 +9,7 @@ export default tseslint.config({
     rules: {
         ...prettierConfig.rules,
         "@typescript-eslint/naming-convention": "error",
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
         eqeqeq: "error",
         "no-throw-literal": "off",
         "@typescript-eslint/only-throw-error": "error",

@@ -163,8 +163,13 @@ async function checkUpdate(context: vscode.ExtensionContext) {
             "Install",
             "Ignore",
         );
-        if (response === "Install") {
-            await install(context, update);
+        switch (response) {
+            case "Install":
+                await install(context, update);
+                break;
+            case "Ignore":
+            case undefined:
+                break;
         }
     } catch (err) {
         if (err instanceof Error) {
@@ -235,31 +240,34 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
             "Specify path",
             "Use Zig in PATH",
         );
+        switch (zigResponse) {
+            case "Install":
+                await selectVersionAndInstall(context);
+                const path = zigConfig.get<string>("path");
+                if (!path) return false;
+                void vscode.window.showInformationMessage(
+                    `Zig was installed at '${path}', add it to PATH to use it from the terminal`,
+                );
+                break;
+            case "Specify path":
+                const uris = await vscode.window.showOpenDialog({
+                    canSelectFiles: true,
+                    canSelectFolders: false,
+                    canSelectMany: false,
+                    title: "Select Zig executable",
+                });
+                if (!uris) return false;
 
-        if (zigResponse === "Install") {
-            await selectVersionAndInstall(context);
-            const path = zigConfig.get<string>("path");
-            if (!path) return false;
-            void vscode.window.showInformationMessage(
-                `Zig was installed at '${path}', add it to PATH to use it from the terminal`,
-            );
-        } else if (zigResponse === "Specify path") {
-            const uris = await vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-                title: "Select Zig executable",
-            });
-            if (!uris) return false;
+                const version = getVersion(uris[0].path, "version");
+                if (!version) return false;
 
-            const version = getVersion(uris[0].path, "version");
-            if (!version) return false;
-
-            await zigConfig.update("path", uris[0].path, true);
-        } else if (zigResponse === "Use Zig in PATH") {
-            await zigConfig.update("path", "", true);
-        } else {
-            return false;
+                await zigConfig.update("path", uris[0].path, true);
+                break;
+            case "Use Zig in PATH":
+                await zigConfig.update("path", "", true);
+                break;
+            case undefined:
+                return false;
         }
     }
 
@@ -274,20 +282,25 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
             "Use ZLS in PATH",
         );
 
-        if (zlsResponse === "Install") {
-            await installZLS(context, false);
-        } else if (zlsResponse === "Specify path") {
-            const uris = await vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-                title: "Select Zig Language Server (ZLS) executable",
-            });
-            if (!uris) return true;
+        switch (zlsResponse) {
+            case "Install":
+                await installZLS(context, false);
+                break;
+            case "Specify path":
+                const uris = await vscode.window.showOpenDialog({
+                    canSelectFiles: true,
+                    canSelectFolders: false,
+                    canSelectMany: false,
+                    title: "Select Zig Language Server (ZLS) executable",
+                });
+                if (!uris) return true;
 
-            await zlsConfig.update("path", uris[0].path, true);
-        } else if (zlsResponse === "Use ZLS in PATH") {
-            await zlsConfig.update("path", "", true);
+                await zlsConfig.update("path", uris[0].path, true);
+            case "Use ZLS in PATH":
+                await zlsConfig.update("path", "", true);
+                break;
+            case undefined:
+                break;
         }
     }
 

@@ -145,8 +145,13 @@ async function checkUpdate(context: vscode.ExtensionContext) {
     if (semver.gte(version, latestVersion)) return;
 
     const response = await vscode.window.showInformationMessage("New version of ZLS available", "Install", "Ignore");
-    if (response === "Install") {
-        await installVersion(context, latestVersion);
+    switch (response) {
+        case "Install":
+            await installVersion(context, latestVersion);
+            break;
+        case "Ignore":
+        case undefined:
+            break;
     }
 }
 
@@ -174,11 +179,14 @@ export async function install(context: vscode.ExtensionContext, ask: boolean) {
             "Install",
             "Ignore",
         );
-
-        if (result === undefined) return;
-        if (result === "Ignore") {
-            await zlsConfiguration.update("path", undefined, true);
-            return;
+        switch (result) {
+            case "Install":
+                break;
+            case "Ignore":
+                await zlsConfiguration.update("path", undefined, true);
+                return;
+            case undefined:
+                return;
         }
     }
     let zlsVersion: semver.SemVer;
