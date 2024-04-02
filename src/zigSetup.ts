@@ -1,6 +1,7 @@
 import childProcess from "child_process";
 import crypto from "crypto";
 import fs from "fs";
+import path from "path";
 
 import axios from "axios";
 import mkdirp from "mkdirp";
@@ -8,7 +9,7 @@ import semver from "semver";
 import vscode from "vscode";
 import which from "which";
 
-import { getHostZigName, getVersion, isWindows, shouldCheckUpdate } from "./zigUtil";
+import { getHostZigName, getVersion, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
 import { install as installZLS } from "./zls";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
@@ -120,6 +121,10 @@ async function install(context: vscode.ExtensionContext, version: ZigVersion) {
 
             const configuration = vscode.workspace.getConfiguration("zig");
             await configuration.update("path", zigPath, true);
+
+            void vscode.window.showInformationMessage(
+                `Zig has been installed successfully. Relaunch your integrated terminal to make it available.`,
+            );
         },
     );
 }
@@ -212,6 +217,19 @@ async function getUpdatedVersion(context: vscode.ExtensionContext): Promise<ZigV
     return null;
 }
 
+function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext) {
+    try {
+        const zigPath = getZigPath();
+        const envValue = path.delimiter + path.dirname(zigPath);
+        // Calling `append` means that zig from a user-defined PATH value will take precedence.
+        // The added value may have already been added by the user but since we
+        // append, it doesn't have any observable.
+        context.environmentVariableCollection.append("PATH", envValue);
+    } catch {
+        context.environmentVariableCollection.delete("PATH");
+    }
+}
+
 export async function setupZig(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("zig.install", async () => {
         await selectVersionAndInstall(context);
@@ -221,6 +239,14 @@ export async function setupZig(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("zig.update", async () => {
         await checkUpdate(context);
     });
+
+    context.environmentVariableCollection.description = "Add Zig to PATH";
+    updateZigEnvironmentVariableCollection(context);
+    vscode.workspace.onDidChangeConfiguration((change) => {
+        if (change.affectsConfiguration("zig.path")) {
+            updateZigEnvironmentVariableCollection(context);
+        }
+    }, context.subscriptions);
 
     const configuration = vscode.workspace.getConfiguration("zig");
     if (!configuration.get<boolean>("initialSetupDone")) {
@@ -247,11 +273,8 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
         switch (zigResponse) {
             case "Install":
                 await selectVersionAndInstall(context);
-                const path = zigConfig.get<string>("path");
-                if (!path) return false;
-                void vscode.window.showInformationMessage(
-                    `Zig was installed at '${path}', add it to PATH to use it from the terminal`,
-                );
+                const zigPath = zigConfig.get<string>("path");
+                if (!zigPath) return false;
                 break;
             case "Specify path":
                 const uris = await vscode.window.showOpenDialog({
