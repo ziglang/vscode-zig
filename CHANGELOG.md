@@ -1,3 +1,6 @@
+## 0.5.6
+- Fix initial setup always being skippped (@Techatrix)
+
 ## 0.5.5
 - Fix `zig.install` when no project is open
 - Rework extension internals (@Techatrix)
