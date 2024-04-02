@@ -236,7 +236,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
 async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> {
     const zigConfig = vscode.workspace.getConfiguration("zig");
 
-    if (!zigConfig.has("path")) {
+    if (zigConfig.get<string>("path") === "") {
         const zigResponse = await vscode.window.showInformationMessage(
             "Zig path hasn't been set, do you want to specify the path or install Zig?",
             { modal: true },
@@ -277,7 +277,7 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
 
     const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
 
-    if (!zlsConfig.has("path")) {
+    if (zlsConfig.get<string>("path") === "") {
         const zlsResponse = await vscode.window.showInformationMessage(
             "We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to install it?",
             { modal: true },

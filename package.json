@@ -167,7 +167,7 @@
           "scope": "machine-overridable",
           "type": "string",
           "default": "",
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`.",
+          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. Empty string will lookup ZLS in PATH.",
           "format": "path"
         },
         "zig.zls.enableSnippets": {
