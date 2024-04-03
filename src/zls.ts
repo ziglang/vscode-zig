@@ -2,7 +2,16 @@ import vscode from "vscode";
 
 import fs from "fs";
 
-import { LanguageClient, LanguageClientOptions, ResponseError, ServerOptions } from "vscode-languageclient/node";
+import {
+    CancellationToken,
+    ConfigurationParams,
+    LSPAny,
+    LanguageClient,
+    LanguageClientOptions,
+    RequestHandler,
+    ResponseError,
+    ServerOptions,
+} from "vscode-languageclient/node";
 import axios from "axios";
 import camelCase from "camelcase";
 import mkdirp from "mkdirp";
@@ -30,37 +39,7 @@ async function startClient() {
         outputChannel,
         middleware: {
             workspace: {
-                async configuration(params, token, next) {
-                    let indexOfZigPath: number | undefined;
-
-                    params.items.forEach((param, index) => {
-                        if (param.section) {
-                            if (param.section === "zls.zig_exe_path") {
-                                param.section = "zig.path";
-                                indexOfZigPath = index;
-                            } else {
-                                param.section = `zig.zls.${camelCase(param.section.slice(4))}`;
-                            }
-                        }
-                    });
-
-                    const result = await next(params, token);
-                    if (result instanceof ResponseError) {
-                        return result;
-                    }
-
-                    if (indexOfZigPath !== undefined) {
-                        try {
-                            result[indexOfZigPath] = getZigPath();
-                        } catch {
-                            // ZLS will try to find Zig by itself and likely fail as well.
-                            // This will cause two "Zig can't be found in $PATH" error messages to be reported.
-                            result[indexOfZigPath] = null;
-                        }
-                    }
-
-                    return result as unknown[];
-                },
+                configuration: configurationMiddleware,
             },
         },
     };
@@ -95,6 +74,82 @@ export function getZLSPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
     const zlsPath = configuration.get<string>("path") ?? null;
     return getExePath(zlsPath, "zls", "zig.zls.path");
+}
+
+async function configurationMiddleware(
+    params: ConfigurationParams,
+    token: CancellationToken,
+    next: RequestHandler<ConfigurationParams, LSPAny[], void>,
+): Promise<LSPAny[] | ResponseError> {
+    const optionIndices: Record<string, number | undefined> = {};
+
+    params.items.forEach((param, index) => {
+        if (param.section) {
+            if (param.section === "zls.zig_exe_path") {
+                param.section = "zig.path";
+            } else {
+                param.section = `zig.zls.${camelCase(param.section.slice(4))}`;
+            }
+            optionIndices[param.section] = index;
+        }
+    });
+
+    const result = await next(params, token);
+    if (result instanceof ResponseError) {
+        return result;
+    }
+
+    const indexOfZigPath = optionIndices["zig.path"];
+    if (indexOfZigPath !== undefined) {
+        try {
+            result[indexOfZigPath] = getZigPath();
+        } catch {
+            // ZLS will try to find Zig by itself and likely fail as well.
+            // This will cause two "Zig can't be found in $PATH" error messages to be reported.
+            result[indexOfZigPath] = null;
+        }
+    }
+
+    const configuration = vscode.workspace.getConfiguration("zig.zls");
+    const additionalOptions = configuration.get<Record<string, unknown>>("additionalOptions", {});
+
+    for (const optionName in additionalOptions) {
+        const section = optionName.slice("zig.zls.".length);
+
+        const doesOptionExist = configuration.inspect(section)?.defaultValue !== undefined;
+        if (doesOptionExist) {
+            // The extension has defined a config option with the given name but the user still used `additionalOptions`.
+            const response = await vscode.window.showWarningMessage(
+                `The config option 'zig.zls.additionalOptions' contains the already existing option '${optionName}'`,
+                `Use ${optionName} instead`,
+                "Show zig.zls.additionalOptions",
+            );
+            switch (response) {
+                case `Use ${optionName} instead`:
+                    const { [optionName]: newValue, ...updatedAdditionalOptions } = additionalOptions;
+                    await configuration.update("additionalOptions", updatedAdditionalOptions, true);
+                    await configuration.update(section, newValue, true);
+                    break;
+                case "Show zig.zls.additionalOptions":
+                    await vscode.commands.executeCommand("workbench.action.openSettingsJson", {
+                        revealSetting: { key: "zig.zls.additionalOptions" },
+                    });
+                    continue;
+                case undefined:
+                    continue;
+            }
+        }
+
+        const optionIndex = optionIndices[optionName];
+        if (!optionIndex) {
+            // ZLS has not requested a config option with the given name.
+            continue;
+        }
+
+        result[optionIndex] = additionalOptions[optionName];
+    }
+
+    return result as unknown[];
 }
 
 const downloadsRoot = "https://zigtools-releases.nyc3.digitaloceanspaces.com/zls";

@@ -342,6 +342,16 @@
           "type": "boolean",
           "description": "When false, the function signature of completion results is hidden. Improves readability in some editors",
           "default": true
+        },
+        "zig.zls.additionalOptions": {
+          "scope": "resource",
+          "type": "object",
+          "markdownDescription": "Additional config options that should be forwarded to ZLS. Every property must have the format 'zig.zls.someOptionName'. You will **not** be warned about unused or ignored options.",
+          "default": {},
+          "additionalProperties": false,
+          "patternProperties": {
+            "^zig\\.zls\\.[a-z]+[A-Z0-9][a-z0-9]+[A-Za-z0-9]*$": {}
+          }
         }
       }
     },
