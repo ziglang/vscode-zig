@@ -378,11 +378,6 @@
         "category": "Zig Language Server"
       },
       {
-        "command": "zig.zls.openconfig",
-        "title": "Open ZLS Config",
-        "category": "Zig Language Server"
-      },
-      {
         "command": "zig.zls.update",
         "title": "Check for Server Updates",
         "category": "Zig Language Server"

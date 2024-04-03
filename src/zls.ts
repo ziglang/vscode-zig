@@ -1,6 +1,5 @@
 import vscode from "vscode";
 
-import childProcess from "child_process";
 import fs from "fs";
 
 import { LanguageClient, LanguageClientOptions, ResponseError, ServerOptions } from "vscode-languageclient/node";
@@ -270,13 +269,6 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
     );
 }
 
-async function openConfig() {
-    const zlsPath = getZLSPath();
-    const buffer = childProcess.execFileSync(zlsPath, ["--show-config-path"]);
-    const path: string = buffer.toString("utf8").trimEnd();
-    await vscode.window.showTextDocument(vscode.Uri.file(path), { preview: false });
-}
-
 function checkInstalled(): boolean {
     const zlsPath = vscode.workspace.getConfiguration("zig.zls").get<string>("path");
     if (!zlsPath) {
@@ -315,12 +307,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
         await stopClient();
         await startClient();
-    });
-
-    vscode.commands.registerCommand("zig.zls.openconfig", async () => {
-        if (!checkInstalled()) return;
-
-        await openConfig();
     });
 
     vscode.commands.registerCommand("zig.zls.update", async () => {
