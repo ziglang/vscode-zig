@@ -73,7 +73,8 @@ export async function stopClient() {
 export function getZLSPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
     const zlsPath = configuration.get<string | null>("path", null);
-    return getExePath(zlsPath, "zls", "zig.zls.path");
+    const exePath = zlsPath !== "zls" ? zlsPath : null; // the string "zls" means lookup in PATH
+    return getExePath(exePath, "zls", "zig.zls.path");
 }
 
 async function configurationMiddleware(

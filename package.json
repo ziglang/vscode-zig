@@ -109,7 +109,7 @@
             "null"
           ],
           "default": null,
-          "description": "Set a custom path to the Zig binary. Empty string will lookup zig in PATH."
+          "description": "Set a custom path to the Zig binary. The string \"zig\" means lookup zig in PATH."
         },
         "zig.checkForUpdate": {
           "scope": "resource",
@@ -172,7 +172,7 @@
             "null"
           ],
           "default": null,
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. Empty string will lookup ZLS in PATH.",
+          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. The string \"zls\" means lookup ZLS in PATH.",
           "format": "path"
         },
         "zig.zls.enableSnippets": {
