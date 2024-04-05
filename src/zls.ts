@@ -330,7 +330,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }, context.subscriptions);
 
     const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-    if (!zlsConfig.get<string>("path")) return;
+    if (zlsConfig.get<string>("path") === undefined) return;
     if (zlsConfig.get<boolean>("checkForUpdate") && (await shouldCheckUpdate(context, "zlsUpdate"))) {
         await checkUpdate(context);
     }
