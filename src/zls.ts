@@ -72,7 +72,7 @@ export async function stopClient() {
 // returns the file system path to the zls executable
 export function getZLSPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
-    const zlsPath = configuration.get<string>("path") ?? null;
+    const zlsPath = configuration.get<string | null>("path", null);
     return getExePath(zlsPath, "zls", "zig.zls.path");
 }
 
@@ -182,7 +182,7 @@ async function getVersionIndex(): Promise<VersionIndex> {
 // checks whether there is newer version on master
 async function checkUpdate(context: vscode.ExtensionContext) {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
-    const zlsPath = configuration.get<string>("path");
+    const zlsPath = configuration.get<string | null>("path", null);
     const zlsBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;
     if (!zlsPath) return;
     if (!zlsPath.startsWith(zlsBinPath)) return;
@@ -325,13 +325,14 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
 }
 
 function checkInstalled(): boolean {
-    const zlsPath = vscode.workspace.getConfiguration("zig.zls").get<string>("path");
-    if (!zlsPath) {
+    const zlsPath = vscode.workspace.getConfiguration("zig.zls").get<string | null>("path", null);
+    if (zlsPath === null) {
         void vscode.window.showErrorMessage("This command cannot be run without setting 'zig.zls.path'.", {
             modal: true,
         });
+        return false;
     }
-    return !!zlsPath;
+    return true;
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -378,14 +379,14 @@ export async function activate(context: vscode.ExtensionContext) {
         ) {
             await stopClient();
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            if (!!zlsConfig.get<string>("path")) {
+            if (zlsConfig.get<string | null>("path", null) !== null) {
                 await startClient();
             }
         }
     }, context.subscriptions);
 
     const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-    if (zlsConfig.get<string>("path") === undefined) return;
+    if (zlsConfig.get<string | null>("path", null) === null) return;
     if (zlsConfig.get<boolean>("checkForUpdate") && (await shouldCheckUpdate(context, "zlsUpdate"))) {
         await checkUpdate(context);
     }

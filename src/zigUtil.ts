@@ -48,7 +48,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
 
 export function getZigPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string>("path") ?? null;
+    const zigPath = configuration.get<string | null>("path", null);
     return getExePath(zigPath, "zig", "zig.path");
 }
 
