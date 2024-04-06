@@ -339,52 +339,51 @@ function checkInstalled(): boolean {
 export async function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel("Zig Language Server");
 
-    vscode.commands.registerCommand("zig.zls.install", async () => {
-        try {
-            getZigPath();
-        } catch {
-            void vscode.window.showErrorMessage("This command cannot be run without a valid zig path.", {
-                modal: true,
-            });
-            return;
-        }
-
-        await stopClient();
-        await install(context, true);
-    });
-
-    vscode.commands.registerCommand("zig.zls.stop", async () => {
-        if (!checkInstalled()) return;
-
-        await stopClient();
-    });
-
-    vscode.commands.registerCommand("zig.zls.startRestart", async () => {
-        if (!checkInstalled()) return;
-
-        await stopClient();
-        await startClient();
-    });
-
-    vscode.commands.registerCommand("zig.zls.update", async () => {
-        if (!checkInstalled()) return;
-
-        await stopClient();
-        await checkUpdate(context);
-    });
-
-    vscode.workspace.onDidChangeConfiguration(async (change) => {
-        if (
-            change.affectsConfiguration("zig.zls.path", undefined) ||
-            change.affectsConfiguration("zig.zls.debugLog", undefined)
-        ) {
-            await stopClient();
-            const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            if (zlsConfig.get<string | null>("path", null) !== null) {
-                await startClient();
+    context.subscriptions.push(
+        outputChannel,
+        vscode.commands.registerCommand("zig.zls.install", async () => {
+            try {
+                getZigPath();
+            } catch {
+                void vscode.window.showErrorMessage("This command cannot be run without a valid zig path.", {
+                    modal: true,
+                });
+                return;
             }
-        }
-    }, context.subscriptions);
+
+            await stopClient();
+            await install(context, true);
+        }),
+        vscode.commands.registerCommand("zig.zls.stop", async () => {
+            if (!checkInstalled()) return;
+
+            await stopClient();
+        }),
+        vscode.commands.registerCommand("zig.zls.startRestart", async () => {
+            if (!checkInstalled()) return;
+
+            await stopClient();
+            await startClient();
+        }),
+        vscode.commands.registerCommand("zig.zls.update", async () => {
+            if (!checkInstalled()) return;
+
+            await stopClient();
+            await checkUpdate(context);
+        }),
+        vscode.workspace.onDidChangeConfiguration(async (change) => {
+            if (
+                change.affectsConfiguration("zig.zls.path", undefined) ||
+                change.affectsConfiguration("zig.zls.debugLog", undefined)
+            ) {
+                await stopClient();
+                const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
+                if (zlsConfig.get<string | null>("path", null) !== null) {
+                    await startClient();
+                }
+            }
+        }),
+    );
 
     const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
     if (zlsConfig.get<string | null>("path", null) === null) return;

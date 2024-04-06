@@ -11,7 +11,6 @@ export async function activate(context: vscode.ExtensionContext) {
     await setupZig(context).finally(() => {
         const compiler = new ZigCompilerProvider();
         compiler.activate(context.subscriptions);
-        vscode.languages.registerCodeActionsProvider("zig", compiler);
 
         if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "extension") {
             context.subscriptions.push(
