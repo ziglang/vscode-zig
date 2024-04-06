@@ -7,32 +7,20 @@ import { setupZig } from "./zigSetup";
 
 const ZIG_MODE: vscode.DocumentFilter = { language: "zig", scheme: "file" };
 
-export let buildDiagnosticCollection: vscode.DiagnosticCollection;
-export const logChannel = vscode.window.createOutputChannel("zig");
-export const zigFormatStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-
 export async function activate(context: vscode.ExtensionContext) {
     await setupZig(context).finally(() => {
         const compiler = new ZigCompilerProvider();
         compiler.activate(context.subscriptions);
         vscode.languages.registerCodeActionsProvider("zig", compiler);
 
-        context.subscriptions.push(logChannel);
-
         if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "extension") {
             context.subscriptions.push(
-                vscode.languages.registerDocumentFormattingEditProvider(ZIG_MODE, new ZigFormatProvider(logChannel)),
+                vscode.languages.registerDocumentFormattingEditProvider(ZIG_MODE, new ZigFormatProvider()),
             );
             context.subscriptions.push(
-                vscode.languages.registerDocumentRangeFormattingEditProvider(
-                    ZIG_MODE,
-                    new ZigRangeFormatProvider(logChannel),
-                ),
+                vscode.languages.registerDocumentRangeFormattingEditProvider(ZIG_MODE, new ZigRangeFormatProvider()),
             );
         }
-
-        buildDiagnosticCollection = vscode.languages.createDiagnosticCollection("zig");
-        context.subscriptions.push(buildDiagnosticCollection);
 
         void activateZls(context);
     });
