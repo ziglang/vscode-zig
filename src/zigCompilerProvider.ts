@@ -9,18 +9,15 @@ import { DebouncedFunc, throttle } from "lodash-es";
 import * as zls from "./zls";
 import { getZigPath } from "./zigUtil";
 
-export default class ZigCompilerProvider implements vscode.CodeActionProvider {
-    private buildDiagnostics: vscode.DiagnosticCollection;
-    private astDiagnostics: vscode.DiagnosticCollection;
+export default class ZigCompilerProvider {
+    private buildDiagnostics!: vscode.DiagnosticCollection;
+    private astDiagnostics!: vscode.DiagnosticCollection;
     private dirtyChange = new WeakMap<vscode.Uri, boolean>();
 
     private doASTGenErrorCheck: DebouncedFunc<(change: vscode.TextDocumentChangeEvent) => void>;
     private doCompile: DebouncedFunc<(textDocument: vscode.TextDocument) => void>;
 
     constructor() {
-        this.buildDiagnostics = vscode.languages.createDiagnosticCollection("zig");
-        this.astDiagnostics = vscode.languages.createDiagnosticCollection("zig");
-
         this.doASTGenErrorCheck = throttle(
             (change: vscode.TextDocumentChangeEvent) => {
                 this._doASTGenErrorCheck(change);
@@ -36,16 +33,18 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
     }
 
     public activate(subscriptions: vscode.Disposable[]) {
-        subscriptions.push(this);
-
-        vscode.workspace.onDidChangeTextDocument((change) => {
-            this.maybeDoASTGenErrorCheck(change);
-        }, this);
-        vscode.workspace.onDidChangeTextDocument((change) => {
-            this.maybeDoBuildOnSave(change);
-        }, this);
+        this.buildDiagnostics = vscode.languages.createDiagnosticCollection("zig");
+        this.astDiagnostics = vscode.languages.createDiagnosticCollection("zig");
 
         subscriptions.push(
+            this.buildDiagnostics,
+            this.astDiagnostics,
+            vscode.workspace.onDidChangeTextDocument((change) => {
+                this.maybeDoASTGenErrorCheck(change);
+            }),
+            vscode.workspace.onDidSaveTextDocument((change) => {
+                this.maybeDoBuildOnSave(change);
+            }),
             vscode.commands.registerCommand("zig.build.workspace", () => {
                 if (!vscode.window.activeTextEditor) return;
                 this.doCompile(vscode.window.activeTextEditor.document);
@@ -68,32 +67,21 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
         this.doASTGenErrorCheck(change);
     }
 
-    maybeDoBuildOnSave(change: vscode.TextDocumentChangeEvent) {
-        if (change.document.languageId !== "zig") {
-            return;
-        }
-        if (change.document.isUntitled) {
-            return;
-        }
+    maybeDoBuildOnSave(document: vscode.TextDocument) {
+        if (document.languageId !== "zig") return;
+        if (document.isUntitled) return;
 
         const config = vscode.workspace.getConfiguration("zig");
         if (
             config.get<boolean>("buildOnSave") &&
-            this.dirtyChange.has(change.document.uri) &&
-            this.dirtyChange.get(change.document.uri) !== change.document.isDirty &&
-            !change.document.isDirty
+            this.dirtyChange.has(document.uri) &&
+            this.dirtyChange.get(document.uri) !== document.isDirty &&
+            !document.isDirty
         ) {
-            this.doCompile(change.document);
+            this.doCompile(document);
         }
 
-        this.dirtyChange.set(change.document.uri, change.document.isDirty);
-    }
-
-    public dispose(): void {
-        this.buildDiagnostics.clear();
-        this.astDiagnostics.clear();
-        this.buildDiagnostics.dispose();
-        this.astDiagnostics.dispose();
+        this.dirtyChange.set(document.uri, document.isDirty);
     }
 
     private _doASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
@@ -229,9 +217,5 @@ export default class ZigCompilerProvider implements vscode.CodeActionProvider {
                 }
             });
         }
-    }
-
-    public provideCodeActions(): vscode.ProviderResult<vscode.Command[]> {
-        return [];
     }
 }

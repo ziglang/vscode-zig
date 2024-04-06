@@ -227,15 +227,6 @@ function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext
 }
 
 export async function setupZig(context: vscode.ExtensionContext) {
-    vscode.commands.registerCommand("zig.install", async () => {
-        await selectVersionAndInstall(context);
-        await installZLS(context, true);
-    });
-
-    vscode.commands.registerCommand("zig.update", async () => {
-        await checkUpdate(context);
-    });
-
     {
         // convert an empty string for `zig.path` and `zig.zls.path` to `zig` and `zls` respectively.
         // This check can be removed once enough time has passed so that most users switched to the new value
@@ -256,11 +247,21 @@ export async function setupZig(context: vscode.ExtensionContext) {
 
     context.environmentVariableCollection.description = "Add Zig to PATH";
     updateZigEnvironmentVariableCollection(context);
-    vscode.workspace.onDidChangeConfiguration((change) => {
-        if (change.affectsConfiguration("zig.path")) {
-            updateZigEnvironmentVariableCollection(context);
-        }
-    }, context.subscriptions);
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand("zig.install", async () => {
+            await selectVersionAndInstall(context);
+            await installZLS(context, true);
+        }),
+        vscode.commands.registerCommand("zig.update", async () => {
+            await checkUpdate(context);
+        }),
+        vscode.workspace.onDidChangeConfiguration((change) => {
+            if (change.affectsConfiguration("zig.path")) {
+                updateZigEnvironmentVariableCollection(context);
+            }
+        }),
+    );
 
     const configuration = vscode.workspace.getConfiguration("zig");
     if (!configuration.get<boolean>("initialSetupDone")) {
