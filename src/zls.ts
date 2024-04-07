@@ -17,7 +17,15 @@ import camelCase from "camelcase";
 import mkdirp from "mkdirp";
 import semver from "semver";
 
-import { getExePath, getHostZigName, getVersion, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
+import {
+    getExePath,
+    getHostZigName,
+    getVersion,
+    getZigPath,
+    handleConfigOption,
+    isWindows,
+    shouldCheckUpdate,
+} from "./zigUtil";
 
 let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
@@ -100,6 +108,17 @@ async function configurationMiddleware(
         return result;
     }
 
+    const configuration = vscode.workspace.getConfiguration("zig.zls");
+
+    for (const name in optionIndices) {
+        const index = optionIndices[name] as unknown as number;
+        const section = name.slice("zig.zls.".length);
+        const configValue = configuration.get(section);
+        if (typeof configValue === "string" && configValue) {
+            result[index] = handleConfigOption(configValue);
+        }
+    }
+
     const indexOfZigPath = optionIndices["zig.path"];
     if (indexOfZigPath !== undefined) {
         try {
@@ -111,7 +130,6 @@ async function configurationMiddleware(
         }
     }
 
-    const configuration = vscode.workspace.getConfiguration("zig.zls");
     const additionalOptions = configuration.get<Record<string, unknown>>("additionalOptions", {});
 
     for (const optionName in additionalOptions) {
