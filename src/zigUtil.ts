@@ -10,23 +10,57 @@ import which from "which";
 
 export const isWindows = process.platform === "win32";
 
-export function getExePath(exePath: string | null, exeName: string, optionName: string): string {
-    // Allow passing the ${workspaceFolder} predefined variable
-    // See https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
-    if (exePath?.includes("${workspaceFolder}")) {
-        // We choose the first workspaceFolder since it is ambiguous which one to use in this context
-        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-            // older versions of Node (which VSCode uses) may not have String.prototype.replaceAll
-            exePath = exePath.replace(/\$\{workspaceFolder\}/gm, vscode.workspace.workspaceFolders[0].uri.fsPath);
-        }
+// Replace any references to predefined variables in config string.
+// https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
+export function handleConfigOption(input: string): string {
+    if (input.includes("${userHome}")) {
+        input = input.replaceAll("${userHome}", os.homedir());
     }
 
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        input = input.replaceAll("${workspaceFolder}", vscode.workspace.workspaceFolders[0].uri.fsPath);
+        input = input.replaceAll("${workspaceFolderBasename}", vscode.workspace.workspaceFolders[0].name);
+    }
+
+    const document = vscode.window.activeTextEditor?.document;
+    if (document) {
+        input = input.replaceAll("${file}", document.fileName);
+        input = input.replaceAll("${fileBasename}", path.basename(document.fileName));
+        input = input.replaceAll(
+            "${fileBasenameNoExtension}",
+            path.basename(document.fileName, path.extname(document.fileName)),
+        );
+        input = input.replaceAll("${fileExtname}", path.extname(document.fileName));
+        input = input.replaceAll("${fileDirname}", path.dirname(document.fileName));
+        input = input.replaceAll("${fileDirnameBasename}", path.basename(path.dirname(document.fileName)));
+    }
+
+    input = input.replaceAll("${pathSeparator}", path.sep);
+    input = input.replaceAll("${/}", path.sep);
+    if (input.includes("${cwd}")) {
+        input = input.replaceAll("${cwd}", process.cwd());
+    }
+
+    if (input.includes("${env:")) {
+        for (let env = input.match(/\${env:([^}]+)}/)?.[1]; env; env = input.match(/\${env:([^}]+)}/)?.[1]) {
+            input = input.replaceAll(`\${env:${env}}`, process.env[env] ?? "");
+        }
+    }
+    return input;
+}
+
+export function getExePath(exePath: string | null, exeName: string, optionName: string): string {
     if (exePath === null) {
         exePath = which.sync(exeName, { nothrow: true });
-    } else if (exePath.startsWith("~")) {
-        exePath = path.join(os.homedir(), exePath.substring(1));
-    } else if (!path.isAbsolute(exePath)) {
-        exePath = which.sync(exePath, { nothrow: true });
+    } else {
+        // allow passing predefined variables
+        exePath = handleConfigOption(exePath);
+
+        if (exePath.startsWith("~")) {
+            exePath = path.join(os.homedir(), exePath.substring(1));
+        } else if (!path.isAbsolute(exePath)) {
+            exePath = which.sync(exePath, { nothrow: true });
+        }
     }
 
     let message;

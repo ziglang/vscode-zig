@@ -7,7 +7,7 @@ import path from "path";
 import { DebouncedFunc, throttle } from "lodash-es";
 
 import * as zls from "./zls";
-import { getZigPath } from "./zigUtil";
+import { getZigPath, handleConfigOption } from "./zigUtil";
 
 export default class ZigCompilerProvider {
     private buildDiagnostics!: vscode.DiagnosticCollection;
@@ -148,7 +148,7 @@ export default class ZigCompilerProvider {
                 if (!buildFilePath) break;
                 processArg.push("--build-file");
                 try {
-                    processArg.push(path.resolve(buildFilePath.replace("${workspaceFolder}", cwd)));
+                    processArg.push(path.resolve(handleConfigOption(buildFilePath)));
                 } catch {
                     //
                 }
