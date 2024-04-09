@@ -21,7 +21,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
         }
     }
 
-    if (!exePath) {
+    if (exePath === null) {
         exePath = which.sync(exeName, { nothrow: true });
     } else if (exePath.startsWith("~")) {
         exePath = path.join(os.homedir(), exePath.substring(1));
@@ -30,7 +30,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
     }
 
     let message;
-    if (!exePath) {
+    if (exePath === null) {
         message = `Could not find ${exeName} in PATH`;
     } else if (!fs.existsSync(exePath)) {
         message = `\`${optionName}\` ${exePath} does not exist`;
@@ -48,8 +48,9 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
 
 export function getZigPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string>("path") ?? null;
-    return getExePath(zigPath, "zig", "zig.path");
+    const zigPath = configuration.get<string | null>("path", null);
+    const exePath = zigPath !== "zig" ? zigPath : null; // the string "zig" means lookup in PATH
+    return getExePath(exePath, "zig", "zig.path");
 }
 
 // Check timestamp `key` to avoid automatically checking for updates
