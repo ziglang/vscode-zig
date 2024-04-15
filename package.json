@@ -423,7 +423,7 @@
     "prettier": "3.2.5",
     "typescript": "^5.4.3",
     "typescript-eslint": "^7.4.0",
-    "vscode-test": "^1.4.0"
+    "@vscode/test-electron": "^2.3.9"
   },
   "dependencies": {
     "axios": "^1.6.0",
