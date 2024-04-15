@@ -308,7 +308,6 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
                 await zigConfig.update("path", "zig", true);
                 break;
             case undefined:
-                await zigConfig.update("path", undefined, true);
                 return false;
         }
     }
@@ -342,8 +341,6 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
                 await zlsConfig.update("path", "zls", true);
                 break;
             case undefined:
-                // explicitly set `zig.zls.path` to null so it is visible in the `settings.json`
-                await zlsConfig.update("path", null, true);
                 break;
         }
     }
