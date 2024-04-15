@@ -80,7 +80,7 @@ export async function stopClient() {
 // returns the file system path to the zls executable
 export function getZLSPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
-    const zlsPath = configuration.get<string>("path");
+    const zlsPath = configuration.get<string | null>("path", null);
     const exePath = zlsPath !== "zls" ? zlsPath : null; // the string "zls" means lookup in PATH
     return getExePath(exePath, "zls", "zig.zls.path");
 }
@@ -238,7 +238,7 @@ export async function install(context: vscode.ExtensionContext, ask: boolean) {
     }
     // Zig 0.9.0 was the first version to have a tagged zls release
     if (semver.lt(zigVersion, "0.9.0")) {
-        if (zlsConfiguration.get("path") !== undefined) {
+        if (zlsConfiguration.get<string | null>("path", null) !== null) {
             void vscode.window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion.version}`);
         }
         await zlsConfiguration.update("path", undefined, true);

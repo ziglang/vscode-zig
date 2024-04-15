@@ -49,10 +49,10 @@ export function handleConfigOption(input: string): string {
     return input;
 }
 
-export function getExePath(exePath: string | null | undefined, exeName: string, optionName: string): string {
+export function getExePath(exePath: string | null, exeName: string, optionName: string): string {
     if (exePath === null) {
         exePath = which.sync(exeName, { nothrow: true });
-    } else if (exePath !== undefined) {
+    } else {
         // allow passing predefined variables
         exePath = handleConfigOption(exePath);
 
@@ -64,9 +64,7 @@ export function getExePath(exePath: string | null | undefined, exeName: string, 
     }
 
     let message;
-    if (exePath === undefined) {
-        message = `\`${optionName}\` has not been set; set it to \`"${exeName}"\` to use \`${exeName}\` in PATH`;
-    } else if (exePath === null) {
+    if (exePath === null) {
         message = `Could not find ${exeName} in PATH`;
     } else if (!fs.existsSync(exePath)) {
         message = `\`${optionName}\` ${exePath} does not exist`;
@@ -84,7 +82,7 @@ export function getExePath(exePath: string | null | undefined, exeName: string, 
 
 export function getZigPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string>("path");
+    const zigPath = configuration.get<string | null>("path", null);
     const exePath = zigPath !== "zig" ? zigPath : null; // the string "zig" means lookup in PATH
     return getExePath(exePath, "zig", "zig.path");
 }

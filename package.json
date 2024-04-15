@@ -105,6 +105,7 @@
         "zig.path": {
           "scope": "machine-overridable",
           "type": "string",
+          "default": null,
           "description": "Set a custom path to the Zig binary. The string \"zig\" means lookup zig in PATH."
         },
         "zig.checkForUpdate": {
@@ -159,6 +160,7 @@
         "zig.zls.path": {
           "scope": "machine-overridable",
           "type": "string",
+          "default": null,
           "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. The string \"zls\" means lookup ZLS in PATH.",
           "format": "path"
         },
