@@ -337,6 +337,7 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
                 if (!uris) return true;
 
                 await zlsConfig.update("path", uris[0].path, true);
+                break;
             case "Use ZLS in PATH":
                 await zlsConfig.update("path", "zls", true);
                 break;
