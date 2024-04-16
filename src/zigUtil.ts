@@ -49,8 +49,8 @@ export function handleConfigOption(input: string): string {
     return input;
 }
 
-export function getExePath(exePath: string | null, exeName: string, optionName: string): string {
-    if (exePath === null) {
+export function getExePath(exePath: string | null | undefined, exeName: string, optionName: string): string {
+    if (!exePath) {
         exePath = which.sync(exeName, { nothrow: true });
     } else {
         // allow passing predefined variables
@@ -64,7 +64,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
     }
 
     let message;
-    if (exePath === null) {
+    if (!exePath) {
         message = `Could not find ${exeName} in PATH`;
     } else if (!fs.existsSync(exePath)) {
         message = `\`${optionName}\` ${exePath} does not exist`;
@@ -82,7 +82,7 @@ export function getExePath(exePath: string | null, exeName: string, optionName: 
 
 export function getZigPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string | null>("path", null);
+    const zigPath = configuration.get<string>("path");
     const exePath = zigPath !== "zig" ? zigPath : null; // the string "zig" means lookup in PATH
     return getExePath(exePath, "zig", "zig.path");
 }
