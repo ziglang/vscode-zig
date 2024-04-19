@@ -1,3 +1,12 @@
+## 0.5.7
+- Remove `zig.zls.openopenconfig` (@Techatrix)
+- Automatically add `zig` to `$PATH` in the integrated terminal (@Techatrix)
+- Change `zig.path` and `zig.zls.path` `$PATH` lookup from empty string to executable name (@Techatrix)
+    - The extension will handle the migration automatically
+- Remove ouput channel for formatting (@Techatrix)
+    - `ast-check` already provides the same errors inline.
+- Allow predefined variables in all configuration options (@Jarred-Sumner) 
+
 ## 0.5.6
 - Fix initial setup always being skippped (@Techatrix)
 
