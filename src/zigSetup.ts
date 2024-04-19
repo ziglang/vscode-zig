@@ -191,7 +191,7 @@ async function checkUpdate(context: vscode.ExtensionContext) {
 
 async function getUpdatedVersion(context: vscode.ExtensionContext): Promise<ZigVersion | null> {
     const configuration = vscode.workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string | null>("path", null);
+    const zigPath = configuration.get<string>("path");
     const zigBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zig_install", "zig").fsPath;
     if (!zigPath?.startsWith(zigBinPath)) return null;
 
@@ -233,14 +233,14 @@ export async function setupZig(context: vscode.ExtensionContext) {
 
         const zigConfig = vscode.workspace.getConfiguration("zig");
         const initialSetupDone = zigConfig.get<boolean>("initialSetupDone", false);
-        const zigPath = zigConfig.get<string | null>("path");
-        if (zigPath === "" || (initialSetupDone && zigPath === null)) {
+        const zigPath = zigConfig.get<string>("path");
+        if (zigPath === "" && initialSetupDone) {
             await zigConfig.update("path", "zig", true);
         }
 
         const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-        const zlsPath = zlsConfig.get<string | null>("path");
-        if (zlsPath === "" || (initialSetupDone && zlsPath === null)) {
+        const zlsPath = zlsConfig.get<string>("path");
+        if (zlsPath === "" && initialSetupDone) {
             await zlsConfig.update("path", "zls", true);
         }
     }
@@ -276,7 +276,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
 async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> {
     const zigConfig = vscode.workspace.getConfiguration("zig");
 
-    if (zigConfig.get<string | null>("path", null) === null) {
+    if (!zigConfig.get<string>("path")) {
         const zigResponse = await vscode.window.showInformationMessage(
             "Zig path hasn't been set, do you want to specify the path or install Zig?",
             { modal: true },
@@ -287,7 +287,7 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
         switch (zigResponse) {
             case "Install":
                 await selectVersionAndInstall(context);
-                const zigPath = vscode.workspace.getConfiguration("zig").get<string | null>("path", null);
+                const zigPath = vscode.workspace.getConfiguration("zig").get<string>("path");
                 if (!zigPath) return false;
                 break;
             case "Specify path":
@@ -308,14 +308,13 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
                 await zigConfig.update("path", "zig", true);
                 break;
             case undefined:
-                await zigConfig.update("path", undefined, true);
                 return false;
         }
     }
 
     const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
 
-    if (zlsConfig.get<string | null>("path", null) === null) {
+    if (!zlsConfig.get<string>("path")) {
         const zlsResponse = await vscode.window.showInformationMessage(
             "We recommend enabling ZLS (the Zig Language Server) for a better editing experience. Would you like to install it?",
             { modal: true },
@@ -338,12 +337,11 @@ async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> 
                 if (!uris) return true;
 
                 await zlsConfig.update("path", uris[0].path, true);
+                break;
             case "Use ZLS in PATH":
                 await zlsConfig.update("path", "zls", true);
                 break;
             case undefined:
-                // explicitly set `zig.zls.path` to null so it is visible in the `settings.json`
-                await zlsConfig.update("path", null, true);
                 break;
         }
     }
