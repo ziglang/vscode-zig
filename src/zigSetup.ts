@@ -15,7 +15,7 @@ import { install as installZLS } from "./zls";
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
 function getNightlySemVer(url: string): string {
-    const matches = url.match(/-(\d+\.\d+\.\d+-dev\.\d+\+\w+)\./);
+    const matches = url.match(/-(\d+\.\d+\.\d+(-dev\.\d+\+\w+)?)\./);
     if (!matches) throw new Error(`url '${url}' does not contain a semantic version!`);
     return matches[1];
 }
