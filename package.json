@@ -195,7 +195,7 @@
         "zig.zls.semanticTokens": {
           "scope": "resource",
           "type": "string",
-          "description": "Set level of semantic tokens. Partial only includes information that requires semantic analysis.",
+          "description": "Set level of semantic tokens. `partial` only includes information that requires semantic analysis; this will usually give a better result than `full` in VS Code thanks to the Zig extension's syntax file.",
           "enum": [
             "none",
             "partial",
