@@ -201,7 +201,7 @@
             "partial",
             "full"
           ],
-          "default": "partial"
+          "default": "full"
         },
         "zig.zls.enableInlayHints": {
           "scope": "resource",
