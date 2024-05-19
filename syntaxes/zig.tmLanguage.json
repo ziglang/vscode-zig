@@ -17,6 +17,9 @@
       "include": "#operators"
     },
     {
+      "include": "#punctuation"
+    },
+    {
       "include": "#numbers"
     },
     {
@@ -194,6 +197,14 @@
         {
           "name": "keyword.operator.special.zig",
           "match": "(==|\\+\\+|\\*\\*|->)"
+        },
+        {
+          "name": "keyword.operator.assignment.zig",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.question.zig",
+          "match": "\\?"
         }
       ]
     },
@@ -226,6 +237,26 @@
         {
           "match": "\\b(TODO|FIXME|XXX|NOTE)\\b:?",
           "name": "keyword.todo.zig"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.accessor.zig",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.comma.zig",
+          "match": ","
+        },
+        {
+          "name": "punctuation.separator.key-value.zig",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.terminator.statement.zig",
+          "match": ";"
         }
       ]
     },
