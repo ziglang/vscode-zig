@@ -1,3 +1,6 @@
+## 0.5.8
+- Fix updating a nightly version of Zig to a tagged release
+
 ## 0.5.7
 - Remove `zig.zls.openopenconfig` (@Techatrix)
 - Automatically add `zig` to `$PATH` in the integrated terminal (@Techatrix)
