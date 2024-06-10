@@ -293,15 +293,6 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
             location: vscode.ProgressLocation.Notification,
         },
         async (progress) => {
-            const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
-            if (fs.existsSync(installDir.fsPath)) {
-                fs.rmSync(installDir.fsPath, { recursive: true, force: true });
-            }
-            mkdirp.sync(installDir.fsPath);
-
-            const binName = `zls${isWindows ? ".exe" : ""}`;
-            const zlsBinPath = vscode.Uri.joinPath(installDir, binName).fsPath;
-
             progress.report({ message: "downloading executable..." });
             let exe: Buffer;
             try {
@@ -333,6 +324,15 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
                 }
                 throw err;
             }
+            const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
+            if (fs.existsSync(installDir.fsPath)) {
+                fs.rmSync(installDir.fsPath, { recursive: true, force: true });
+            }
+            mkdirp.sync(installDir.fsPath);
+
+            const binName = `zls${isWindows ? ".exe" : ""}`;
+            const zlsBinPath = vscode.Uri.joinPath(installDir, binName).fsPath;
+
             fs.writeFileSync(zlsBinPath, exe, "binary");
             fs.chmodSync(zlsBinPath, 0o755);
 
