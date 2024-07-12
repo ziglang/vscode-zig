@@ -73,7 +73,12 @@ async function startClient() {
 }
 
 export async function stopClient() {
-    if (client) await client.stop();
+    if (client) {
+        // The `stop` call will send the "shutdown" notification to the LSP
+        await client.stop();
+        // The `dipose` call will send the "exit" request to the LSP which actually tells the child process to exit
+        await client.dispose();
+    }
     client = null;
 }
 
@@ -324,6 +329,9 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
                 }
                 throw err;
             }
+            
+            await stopClient();
+
             const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
             if (fs.existsSync(installDir.fsPath)) {
                 fs.rmSync(installDir.fsPath, { recursive: true, force: true });
