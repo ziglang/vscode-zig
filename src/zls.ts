@@ -31,7 +31,10 @@ import {
 let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
 
-const ZIG_MODE: DocumentSelector = [{ language: "zig", scheme: "file" }];
+const ZIG_MODE: DocumentSelector = [
+    { language: "zig", scheme: "file" },
+    { language: "zig", scheme: "untitled" },
+];
 
 async function startClient() {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
