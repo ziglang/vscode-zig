@@ -4,14 +4,37 @@ import childProcess from "child_process";
 
 import { getZigPath } from "./zigUtil";
 
-export class ZigFormatProvider implements vscode.DocumentFormattingEditProvider {
-    provideDocumentFormattingEdits(document: vscode.TextDocument): Promise<vscode.TextEdit[] | null> {
-        return Promise.resolve(zigFormat(document));
-    }
+const ZIG_MODE: vscode.DocumentSelector = { language: "zig" };
+
+export function registerDocumentFormatting(): vscode.Disposable {
+    let registeredFormatter: vscode.Disposable | null = null;
+
+    const onformattingProviderChange = () => {
+        if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") {
+            // Unregister the formatting provider
+            if (registeredFormatter !== null) registeredFormatter.dispose();
+            registeredFormatter = null;
+        } else {
+            // register the formatting provider
+            registeredFormatter ??= vscode.languages.registerDocumentRangeFormattingEditProvider(
+                ZIG_MODE,
+                new ZigFormatProvider(),
+            );
+        }
+    };
+
+    onformattingProviderChange();
+    const registeredDidChangeEvent = vscode.workspace.onDidChangeConfiguration(onformattingProviderChange);
+
+    return {
+        dispose: () => {
+            registeredDidChangeEvent.dispose();
+            if (registeredFormatter !== null) registeredFormatter.dispose();
+        },
+    };
 }
 
-// Same as full document formatter for now
-export class ZigRangeFormatProvider implements vscode.DocumentRangeFormattingEditProvider {
+export class ZigFormatProvider implements vscode.DocumentRangeFormattingEditProvider {
     provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<vscode.TextEdit[] | null> {
         return Promise.resolve(zigFormat(document));
     }

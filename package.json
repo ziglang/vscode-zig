@@ -116,7 +116,7 @@
         "zig.formattingProvider": {
           "scope": "resource",
           "type": "string",
-          "description": "Whether to enable formatting (requires restarting editor)",
+          "description": "Whether to enable formatting",
           "enum": [
             "off",
             "extension",
@@ -129,8 +129,8 @@
           ],
           "enumDescriptions": [
             "Disable formatting",
-            "Use extension formatting",
-            "Use ZLS formatting (not recommended as zls's formatting is slower)"
+            "Provide formatting by directly invoking `zig fmt`",
+            "Provide formatting by using ZLS (which matches `zig fmt`)"
           ],
           "default": "extension"
         },
