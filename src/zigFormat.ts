@@ -9,6 +9,16 @@ const ZIG_MODE: vscode.DocumentSelector = { language: "zig" };
 export function registerDocumentFormatting(): vscode.Disposable {
     let registeredFormatter: vscode.Disposable | null = null;
 
+    preCompileZigFmt();
+    vscode.workspace.onDidChangeConfiguration((change: vscode.ConfigurationChangeEvent) => {
+        if (
+            change.affectsConfiguration("zig.path", undefined) ||
+            change.affectsConfiguration("zig.formattingProvider", undefined)
+        ) {
+            preCompileZigFmt();
+        }
+    });
+
     const onformattingProviderChange = () => {
         if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") {
             // Unregister the formatting provider
@@ -32,6 +42,16 @@ export function registerDocumentFormatting(): vscode.Disposable {
             if (registeredFormatter !== null) registeredFormatter.dispose();
         },
     };
+}
+
+/** Ensures that `zig fmt` has been JIT compiled. */
+function preCompileZigFmt() {
+    // This pre-compiles even if "zig.formattingProvider" is "zls".
+    if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") return;
+
+    childProcess.execFile(getZigPath(), ["fmt", "--help"], {
+        timeout: 60000, // 60 seconds (this is a very high value because 'zig fmt' is just in time compiled)
+    });
 }
 
 export class ZigFormatProvider implements vscode.DocumentRangeFormattingEditProvider {
