@@ -132,7 +132,7 @@
             "Provide formatting by directly invoking `zig fmt`",
             "Provide formatting by using ZLS (which matches `zig fmt`)"
           ],
-          "default": "extension"
+          "default": "zls"
         },
         "zig.zls.debugLog": {
           "scope": "resource",
