@@ -1,9 +1,11 @@
 import vscode from "vscode";
 
 import childProcess from "child_process";
+import util from "util";
 
 import { getZigPath } from "./zigUtil";
 
+const execFile = util.promisify(childProcess.execFile);
 const ZIG_MODE: vscode.DocumentSelector = { language: "zig" };
 
 export function registerDocumentFormatting(): vscode.Disposable {
@@ -26,10 +28,9 @@ export function registerDocumentFormatting(): vscode.Disposable {
             registeredFormatter = null;
         } else {
             // register the formatting provider
-            registeredFormatter ??= vscode.languages.registerDocumentRangeFormattingEditProvider(
-                ZIG_MODE,
-                new ZigFormatProvider(),
-            );
+            registeredFormatter ??= vscode.languages.registerDocumentRangeFormattingEditProvider(ZIG_MODE, {
+                provideDocumentRangeFormattingEdits,
+            });
         }
     };
 
@@ -54,21 +55,27 @@ function preCompileZigFmt() {
     });
 }
 
-export class ZigFormatProvider implements vscode.DocumentRangeFormattingEditProvider {
-    provideDocumentRangeFormattingEdits(document: vscode.TextDocument): Promise<vscode.TextEdit[] | null> {
-        return Promise.resolve(zigFormat(document));
-    }
-}
-
-function zigFormat(document: vscode.TextDocument): vscode.TextEdit[] | null {
+async function provideDocumentRangeFormattingEdits(
+    document: vscode.TextDocument,
+    range: vscode.Range,
+    options: vscode.FormattingOptions,
+    token: vscode.CancellationToken,
+): Promise<vscode.TextEdit[] | null> {
     const zigPath = getZigPath();
 
-    const stdout = childProcess.execFileSync(zigPath, ["fmt", "--stdin"], {
-        input: document.getText(),
+    const abortController = new AbortController();
+    token.onCancellationRequested(() => {
+        abortController.abort();
+    });
+
+    const promise = execFile(zigPath, ["fmt", "--stdin"], {
         maxBuffer: 10 * 1024 * 1024, // 10MB
-        encoding: "utf8",
+        signal: abortController.signal,
         timeout: 60000, // 60 seconds (this is a very high value because 'zig fmt' is just in time compiled)
     });
+    promise.child.stdin?.end(document.getText());
+
+    const { stdout } = await promise;
 
     if (stdout.length === 0) return null;
     const lastLineId = document.lineCount - 1;
