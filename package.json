@@ -203,12 +203,6 @@
           ],
           "default": "partial"
         },
-        "zig.zls.enableInlayHints": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Enables inlay hint support when the client also supports it",
-          "default": true
-        },
         "zig.zls.inlayHintsShowVariableTypeHints": {
           "scope": "resource",
           "type": "boolean",
