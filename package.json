@@ -209,6 +209,12 @@
           "description": "Enable inlay hints for variable types",
           "default": true
         },
+        "zig.zls.inlayHintsShowStructLiteralFieldType": {
+          "scope": "resource",
+          "type": "boolean",
+          "description": "Enable inlay hints for fields in struct and union literals",
+          "default": true
+        },
         "zig.zls.inlayHintsShowParameterName": {
           "scope": "resource",
           "type": "boolean",
@@ -251,12 +257,6 @@
           "description": "Whether to highlight global var declarations",
           "default": false
         },
-        "zig.zls.dangerousComptimeExperimentsDoNotEnable": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to use the comptime interpreter",
-          "default": false
-        },
         "zig.zls.skipStdReferences": {
           "scope": "resource",
           "type": "boolean",
@@ -268,24 +268,6 @@
           "type": "boolean",
           "description": "Favor using `zig ast-check` instead of ZLS's fork",
           "default": true
-        },
-        "zig.zls.recordSession": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "When true, zls will record all request is receives and write in into `record_session_path`, so that they can replayed with `zls replay`",
-          "default": false
-        },
-        "zig.zls.recordSessionPath": {
-          "scope": "resource",
-          "type": "string",
-          "description": "Output file path when `record_session` is set. The recommended file extension *.zlsreplay",
-          "format": "path"
-        },
-        "zig.zls.replaySessionPath": {
-          "scope": "resource",
-          "type": "string",
-          "description": "Used when calling `zls replay` for specifying the replay file. If no extra argument is given `record_session_path` is used as the default path.",
-          "format": "path"
         },
         "zig.zls.builtinPath": {
           "scope": "resource",
@@ -302,7 +284,7 @@
         "zig.zls.buildRunnerPath": {
           "scope": "resource",
           "type": "string",
-          "description": "Path to the `build_runner.zig` file provided by zls. null is equivalent to `${executable_directory}/build_runner.zig`",
+          "description": "Path to the `build_runner.zig` file provided by ZLS. null is equivalent to `${executable_directory}/build_runner.zig`",
           "format": "path"
         },
         "zig.zls.globalCachePath": {
@@ -310,18 +292,6 @@
           "type": "string",
           "description": "Path to a directory that will be used as zig's cache. null is equivalent to `${KnownFolders.Cache}/zls`",
           "format": "path"
-        },
-        "zig.zls.buildRunnerGlobalCachePath": {
-          "scope": "resource",
-          "type": "string",
-          "description": "Path to a directory that will be used as the global cache path when executing a projects build.zig. null is equivalent to the path shown by `zig env`",
-          "format": "path"
-        },
-        "zig.zls.completionsWithReplace": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Completions confirm behavior. If 'true', replace the text after the cursor",
-          "default": true
         },
         "zig.zls.completionLabelDetails": {
           "scope": "resource",
