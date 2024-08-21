@@ -5,6 +5,7 @@ import fs from "fs";
 import {
     CancellationToken,
     ConfigurationParams,
+    DocumentSelector,
     LSPAny,
     LanguageClient,
     LanguageClientOptions,
@@ -30,6 +31,11 @@ import {
 let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
 
+const ZIG_MODE: DocumentSelector = [
+    { language: "zig", scheme: "file" },
+    { language: "zig", scheme: "untitled" },
+];
+
 async function startClient() {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
     const debugLog = configuration.get<boolean>("debugLog", false);
@@ -43,7 +49,7 @@ async function startClient() {
 
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
-        documentSelector: [{ scheme: "file", language: "zig" }],
+        documentSelector: ZIG_MODE,
         outputChannel,
         middleware: {
             workspace: {
@@ -329,7 +335,7 @@ async function installVersion(context: vscode.ExtensionContext, version: semver.
                 }
                 throw err;
             }
-            
+
             await stopClient();
 
             const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
@@ -405,6 +411,14 @@ export async function activate(context: vscode.ExtensionContext) {
                 const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
                 if (zlsConfig.get<string>("path")) {
                     await startClient();
+                }
+            }
+            if (client && change.affectsConfiguration("zig.formattingProvider", undefined)) {
+                client.getFeature("textDocument/formatting").dispose();
+                if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "zls") {
+                    client
+                        .getFeature("textDocument/formatting")
+                        .initialize(client.initializeResult?.capabilities ?? {}, ZIG_MODE);
                 }
             }
         }),
