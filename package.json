@@ -17,8 +17,8 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "workspaceContains:*/build.zig",
-    "workspaceContains:*/build.zig.zon"
+    "workspaceContains:build.zig",
+    "workspaceContains:build.zig.zon"
   ],
   "main": "./out/extension",
   "contributes": {
