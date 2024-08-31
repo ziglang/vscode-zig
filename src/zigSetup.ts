@@ -1,16 +1,11 @@
-import childProcess from "child_process";
-import crypto from "crypto";
-import fs from "fs";
 import path from "path";
 
 import axios from "axios";
-import mkdirp from "mkdirp";
 import semver from "semver";
 import vscode from "vscode";
-import which from "which";
 
-import { getHostZigName, getVersion, getZigPath, isWindows, shouldCheckUpdate } from "./zigUtil";
-import { install as installZLS } from "./zls";
+import { downloadAndExtractArtifact, getHostZigName, getVersion, getZigPath, shouldCheckUpdate } from "./zigUtil";
+import { installZLS } from "./zls";
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -27,6 +22,25 @@ interface ZigVersion {
     url: string;
     sha: string;
     notes?: string;
+}
+
+export async function installZig(context: vscode.ExtensionContext, version: ZigVersion) {
+    const zigPath = await downloadAndExtractArtifact(
+        "Zig",
+        "zig",
+        vscode.Uri.joinPath(context.globalStorageUri, "zig_install"),
+        version.url,
+        version.sha,
+        ["--strip-components=1"],
+    );
+    if (zigPath !== null) {
+        const configuration = vscode.workspace.getConfiguration("zig");
+        await configuration.update("path", zigPath, true);
+
+        void vscode.window.showInformationMessage(
+            `Zig has been installed successfully. Relaunch your integrated terminal to make it available.`,
+        );
+    }
 }
 
 async function getVersions(): Promise<ZigVersion[]> {
@@ -56,79 +70,6 @@ async function getVersions(): Promise<ZigVersion[]> {
     return result;
 }
 
-async function install(context: vscode.ExtensionContext, version: ZigVersion) {
-    await vscode.window.withProgress(
-        {
-            title: "Installing Zig",
-            location: vscode.ProgressLocation.Notification,
-        },
-        async (progress) => {
-            progress.report({ message: "downloading Zig tarball..." });
-            const response = await axios.get<Buffer>(version.url, {
-                responseType: "arraybuffer",
-                onDownloadProgress: (progressEvent) => {
-                    if (progressEvent.total) {
-                        const increment = (progressEvent.bytes / progressEvent.total) * 100;
-                        progress.report({
-                            message: progressEvent.progress
-                                ? `downloading tarball ${(progressEvent.progress * 100).toFixed()}%`
-                                : "downloading tarball...",
-                            increment: increment,
-                        });
-                    }
-                },
-            });
-            const tarHash = crypto.createHash("sha256").update(response.data).digest("hex");
-            if (tarHash !== version.sha) {
-                throw Error(`hash of downloaded tarball ${tarHash} does not match expected hash ${version.sha}`);
-            }
-
-            const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zig_install");
-            if (fs.existsSync(installDir.fsPath)) {
-                fs.rmSync(installDir.fsPath, { recursive: true, force: true });
-            }
-            mkdirp.sync(installDir.fsPath);
-
-            const tarPath = which.sync("tar", { nothrow: true });
-            if (!tarPath) {
-                void vscode.window.showErrorMessage(
-                    "Downloaded Zig tarball can't be extracted because 'tar' could not be found",
-                );
-                return;
-            }
-
-            progress.report({ message: "Extracting..." });
-            try {
-                childProcess.execFileSync(tarPath, ["-xJf", "-", "-C", installDir.fsPath, "--strip-components=1"], {
-                    encoding: "buffer",
-                    input: response.data,
-                    maxBuffer: 100 * 1024 * 1024, // 100MB
-                    timeout: 60000, // 60 seconds
-                });
-            } catch (err) {
-                if (err instanceof Error) {
-                    void vscode.window.showErrorMessage(`Failed to extract Zig tarball: ${err.message}`);
-                } else {
-                    throw err;
-                }
-                return;
-            }
-
-            progress.report({ message: "Installing..." });
-            const exeName = `zig${isWindows ? ".exe" : ""}`;
-            const zigPath = vscode.Uri.joinPath(installDir, exeName).fsPath;
-            fs.chmodSync(zigPath, 0o755);
-
-            const configuration = vscode.workspace.getConfiguration("zig");
-            await configuration.update("path", zigPath, true);
-
-            void vscode.window.showInformationMessage(
-                `Zig has been installed successfully. Relaunch your integrated terminal to make it available.`,
-            );
-        },
-    );
-}
-
 async function selectVersionAndInstall(context: vscode.ExtensionContext) {
     try {
         const available = await getVersions();
@@ -147,7 +88,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
         if (selection === undefined) return;
         for (const option of available) {
             if (option.name === selection.label) {
-                await install(context, option);
+                await installZig(context, option);
                 return;
             }
         }
@@ -174,7 +115,7 @@ async function checkUpdate(context: vscode.ExtensionContext) {
         );
         switch (response) {
             case "Install":
-                await install(context, update);
+                await installZig(context, update);
                 break;
             case "Ignore":
             case undefined:

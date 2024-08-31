@@ -1,7 +1,5 @@
 import vscode from "vscode";
 
-import fs from "fs";
-
 import {
     CancellationToken,
     ConfigurationParams,
@@ -15,16 +13,15 @@ import {
 } from "vscode-languageclient/node";
 import axios from "axios";
 import camelCase from "camelcase";
-import mkdirp from "mkdirp";
 import semver from "semver";
 
 import {
+    downloadAndExtractArtifact,
     getExePath,
     getHostZigName,
     getVersion,
     getZigPath,
     handleConfigOption,
-    isWindows,
     shouldCheckUpdate,
 } from "./zigUtil";
 
@@ -88,7 +85,7 @@ export async function stopClient() {
     client = null;
 }
 
-// returns the file system path to the zls executable
+/** returns the file system path to the zls executable */
 export function getZLSPath(): string {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
     const zlsPath = configuration.get<string>("path");
@@ -182,31 +179,80 @@ async function configurationMiddleware(
     return result as unknown[];
 }
 
-const downloadsRoot = "https://zigtools-releases.nyc3.digitaloceanspaces.com/zls";
-
-interface Version {
+/**
+ * Similar to https://ziglang.org/download/index.json
+ */
+interface SelectVersionResponse {
+    /** The ZLS version */
+    version: string;
+    /** `YYYY-MM-DD` */
     date: string;
-    builtWithZigVersion: string;
-    zlsVersion: string;
-    zlsMinimumBuildVersion: string;
-    commit: string;
-    targets: string[];
+    [artifact: string]: ArtifactEntry | string | undefined;
 }
 
-interface VersionIndex {
-    latest: string;
-    latestTagged: string;
-    releases: Record<string, string | undefined>;
-    versions: Record<string, Version | undefined>;
+export interface SelectVersionFailureResponse {
+    /**
+     * The `code` **may** be one of `SelectVersionFailureCode`. Be aware that new
+     * codes can be added over time.
+     */
+    code: number;
+    /** A simplified explanation of why no ZLS build could be selected */
+    message: string;
 }
 
-async function getVersionIndex(): Promise<VersionIndex> {
-    const index = (await axios.get<VersionIndex>(`${downloadsRoot}/index.json`)).data;
-    if (!index.versions[index.latest]) {
-        void vscode.window.showErrorMessage("Invalid ZLS version index; please contact a ZLS maintainer.");
-        throw new Error("Invalid ZLS version");
+interface ArtifactEntry {
+    /** A download URL */
+    tarball: string;
+    /** A SHA256 hash of the tarball */
+    shasum: string;
+    /** Size of the tarball in bytes */
+    size: string;
+}
+
+async function fetchVersion(
+    zigVersion: semver.SemVer,
+): Promise<{ version: semver.SemVer; artifact: ArtifactEntry } | null> {
+    let response: SelectVersionResponse | SelectVersionFailureResponse;
+    try {
+        response = (
+            await axios.get<SelectVersionResponse | SelectVersionFailureResponse>(
+                "https://releases.zigtools.org/v1/zls/select-version",
+                {
+                    params: {
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        zig_version: zigVersion.raw,
+                        compatibility: "only-runtime",
+                    },
+                },
+            )
+        ).data;
+    } catch (err) {
+        if (err instanceof Error) {
+            void vscode.window.showErrorMessage(`Failed to query ZLS version: ${err.message}`);
+        } else {
+            throw err;
+        }
+        return null;
     }
-    return index;
+
+    if ("message" in response) {
+        void vscode.window.showErrorMessage(`Unable to fetch ZLS: ${response.message as string}`);
+        return null;
+    }
+
+    const hostName = getHostZigName();
+
+    if (!(hostName in response)) {
+        void vscode.window.showErrorMessage(
+            `A prebuilt ZLS ${response.version} binary is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`,
+        );
+        return null;
+    }
+
+    return {
+        version: new semver.SemVer(response.version),
+        artifact: response[hostName] as ArtifactEntry,
+    };
 }
 
 // checks whether there is newer version on master
@@ -216,21 +262,21 @@ async function checkUpdate(context: vscode.ExtensionContext) {
     const zlsBinPath = vscode.Uri.joinPath(context.globalStorageUri, "zls_install", "zls").fsPath;
     if (!zlsPath?.startsWith(zlsBinPath)) return;
 
-    // get current version
-    const version = getVersion(zlsPath, "--version");
-    if (!version) return;
+    const zigVersion = getVersion(getZigPath(), "version");
+    if (!zigVersion) return;
 
-    const index = await getVersionIndex();
-    const latestVersionString = version.build.length === 0 ? index.latestTagged : index.latest;
-    // having a build number implies nightly version
-    const latestVersion = new semver.SemVer(latestVersionString);
+    const currentVersion = getVersion(zlsPath, "--version");
+    if (!currentVersion) return;
 
-    if (semver.gte(version, latestVersion)) return;
+    const result = await fetchVersion(zigVersion);
+    if (!result) return;
+
+    if (semver.gte(currentVersion, result.version)) return;
 
     const response = await vscode.window.showInformationMessage("New version of ZLS available", "Install", "Ignore");
     switch (response) {
         case "Install":
-            await installVersion(context, latestVersion);
+            await installZLSVersion(context, result.artifact);
             break;
         case "Ignore":
         case undefined:
@@ -238,122 +284,50 @@ async function checkUpdate(context: vscode.ExtensionContext) {
     }
 }
 
-export async function install(context: vscode.ExtensionContext, ask: boolean) {
-    const path = getZigPath();
-
-    const zlsConfiguration = vscode.workspace.getConfiguration("zig.zls", null);
-    const zigVersion = getVersion(path, "version");
+export async function installZLS(context: vscode.ExtensionContext, ask: boolean) {
+    const zigVersion = getVersion(getZigPath(), "version");
     if (!zigVersion) {
+        const zlsConfiguration = vscode.workspace.getConfiguration("zig.zls", null);
         await zlsConfiguration.update("path", undefined, true);
-        return;
+        return undefined;
     }
-    // Zig 0.9.0 was the first version to have a tagged zls release
-    if (semver.lt(zigVersion, "0.9.0")) {
-        if (zlsConfiguration.get<string>("path")) {
-            void vscode.window.showErrorMessage(`ZLS is not available for Zig version ${zigVersion.version}`);
-        }
-        await zlsConfiguration.update("path", undefined, true);
-        return;
-    }
+
+    const result = await fetchVersion(zigVersion);
+    if (!result) return;
 
     if (ask) {
-        const result = await vscode.window.showInformationMessage(
-            `Do you want to install ZLS (the Zig Language Server) for Zig version ${zigVersion.version}`,
+        const selected = await vscode.window.showInformationMessage(
+            `Do you want to install ZLS (the Zig Language Server) for Zig version ${result.version.toString()}`,
             "Install",
             "Ignore",
         );
-        switch (result) {
+        switch (selected) {
             case "Install":
                 break;
             case "Ignore":
+                const zlsConfiguration = vscode.workspace.getConfiguration("zig.zls", null);
                 await zlsConfiguration.update("path", undefined, true);
                 return;
             case undefined:
                 return;
         }
     }
-    let zlsVersion: semver.SemVer;
-    if (zigVersion.build.length !== 0) {
-        // Nightly, install latest ZLS
-        zlsVersion = new semver.SemVer((await getVersionIndex()).latest);
-    } else {
-        // ZLS does not make releases for patches
-        zlsVersion = zigVersion;
-        zlsVersion.patch = 0;
-    }
 
-    try {
-        await installVersion(context, zlsVersion);
-    } catch (err) {
-        if (err instanceof Error) {
-            void vscode.window.showErrorMessage(
-                `Unable to install ZLS ${zlsVersion.version} for Zig version ${zigVersion.version}: ${err.message}`,
-            );
-        } else {
-            throw err;
-        }
-    }
+    await installZLSVersion(context, result.artifact);
 }
 
-async function installVersion(context: vscode.ExtensionContext, version: semver.SemVer) {
-    const hostName = getHostZigName();
-
-    await vscode.window.withProgress(
-        {
-            title: "Installing ZLS",
-            location: vscode.ProgressLocation.Notification,
-        },
-        async (progress) => {
-            progress.report({ message: "downloading executable..." });
-            let exe: Buffer;
-            try {
-                const response = await axios.get<Buffer>(
-                    `${downloadsRoot}/${version.raw}/${hostName}/zls${isWindows ? ".exe" : ""}`,
-                    {
-                        responseType: "arraybuffer",
-                        onDownloadProgress: (progressEvent) => {
-                            if (progressEvent.total) {
-                                const increment = (progressEvent.bytes / progressEvent.total) * 100;
-                                progress.report({
-                                    message: progressEvent.progress
-                                        ? `downloading executable ${(progressEvent.progress * 100).toFixed()}%`
-                                        : "downloading executable...",
-                                    increment: increment,
-                                });
-                            }
-                        },
-                    },
-                );
-                exe = response.data;
-            } catch (err) {
-                // Missing prebuilt binary is reported as AccessDenied
-                if (axios.isAxiosError(err) && err.response?.status === 403) {
-                    void vscode.window.showErrorMessage(
-                        `A prebuilt ZLS ${version.version} binary is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`,
-                    );
-                    return;
-                }
-                throw err;
-            }
-
-            await stopClient();
-
-            const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls_install");
-            if (fs.existsSync(installDir.fsPath)) {
-                fs.rmSync(installDir.fsPath, { recursive: true, force: true });
-            }
-            mkdirp.sync(installDir.fsPath);
-
-            const binName = `zls${isWindows ? ".exe" : ""}`;
-            const zlsBinPath = vscode.Uri.joinPath(installDir, binName).fsPath;
-
-            fs.writeFileSync(zlsBinPath, exe, "binary");
-            fs.chmodSync(zlsBinPath, 0o755);
-
-            const config = vscode.workspace.getConfiguration("zig.zls");
-            await config.update("path", zlsBinPath, true);
-        },
+async function installZLSVersion(context: vscode.ExtensionContext, artifact: ArtifactEntry) {
+    const zlsPath = await downloadAndExtractArtifact(
+        "ZLS",
+        "zls",
+        vscode.Uri.joinPath(context.globalStorageUri, "zls_install"),
+        artifact.tarball,
+        artifact.shasum,
+        [],
     );
+
+    const zlsConfiguration = vscode.workspace.getConfiguration("zig.zls", null);
+    await zlsConfiguration.update("path", zlsPath ?? undefined, true);
 }
 
 function checkInstalled(): boolean {
@@ -383,7 +357,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
 
             await stopClient();
-            await install(context, true);
+            await installZLS(context, false);
         }),
         vscode.commands.registerCommand("zig.zls.stop", async () => {
             if (!checkInstalled()) return;
