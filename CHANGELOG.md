@@ -1,3 +1,8 @@
+## 0.5.9
+- Improve formatting provider implementation and default to using ZLS formatter (@Techatrix)
+- Sync ZLS options (@Techatrix)
+- Update ZLS install tool (@Techatrix)
+
 ## 0.5.8
 - Fix updating a nightly version of Zig to a tagged release
 
