@@ -379,6 +379,14 @@ export async function activate(context: vscode.ExtensionContext) {
     {
         // This check can be removed once enough time has passed so that most users switched to the new value
 
+        // remove the `zls_install` directory from the global storage
+        try {
+            await vscode.workspace.fs.delete(vscode.Uri.joinPath(context.globalStorageUri, "zls_install"), {
+                recursive: true,
+                useTrash: false,
+            });
+        } catch {}
+
         // convert a `zig.zls.path` that points to the global storage to `zig.zls.enabled == "on"`
         const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
         const zlsPath = zlsConfig.get<string>("path", "");

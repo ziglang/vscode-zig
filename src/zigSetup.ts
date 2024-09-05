@@ -370,6 +370,14 @@ export async function setupZig(context: vscode.ExtensionContext) {
     {
         // This check can be removed once enough time has passed so that most users switched to the new value
 
+        // remove the `zig_install` directory from the global storage
+        try {
+            await vscode.workspace.fs.delete(vscode.Uri.joinPath(context.globalStorageUri, "zig_install"), {
+                recursive: true,
+                useTrash: false,
+            });
+        } catch {}
+
         // remove a `zig.path` that points to the global storage.
         const zigConfig = vscode.workspace.getConfiguration("zig");
         const zigPath = zigConfig.get<string>("path", "");
