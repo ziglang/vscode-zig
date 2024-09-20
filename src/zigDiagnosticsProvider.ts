@@ -9,7 +9,7 @@ import { DebouncedFunc, throttle } from "lodash-es";
 import * as zls from "./zls";
 import { getZigPath, handleConfigOption } from "./zigUtil";
 
-export default class ZigCompilerProvider {
+export default class ZigDiagnosticsProvider {
     private buildDiagnostics!: vscode.DiagnosticCollection;
     private astDiagnostics!: vscode.DiagnosticCollection;
     private dirtyChange = new WeakMap<vscode.Uri, boolean>();
