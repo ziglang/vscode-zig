@@ -271,6 +271,18 @@ export async function setupZig(context: vscode.ExtensionContext) {
 
     context.environmentVariableCollection.description = "Add Zig to PATH";
 
+    const watcher1 = vscode.workspace.createFileSystemWatcher("**/.zigversion");
+    const watcher2 = vscode.workspace.createFileSystemWatcher("**/build.zig.zon");
+
+    const refreshZigInstallation = async () => {
+        if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
+            await installZig(context);
+        } else {
+            updateStatusItem(statusItem, null);
+            updateLanguageStatusItem(languageStatusItem, null);
+        }
+    };
+
     const onDidChangeActiveTextEditor = (editor: vscode.TextEditor | undefined) => {
         if (editor?.document.languageId === "zig") {
             statusItem.show();
@@ -290,9 +302,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
         vscode.workspace.onDidChangeConfiguration(async (change) => {
             // The `zig.path` config option is handled by `zigProvider.onChange`.
             if (change.affectsConfiguration("zig.version")) {
-                if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
-                    await installZig(context);
-                }
+                await refreshZigInstallation();
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(onDidChangeActiveTextEditor),
@@ -304,9 +314,15 @@ export async function setupZig(context: vscode.ExtensionContext) {
 
             updateZigEnvironmentVariableCollection(context, exe);
         }),
+        watcher1.onDidCreate(refreshZigInstallation),
+        watcher1.onDidChange(refreshZigInstallation),
+        watcher1.onDidDelete(refreshZigInstallation),
+        watcher1,
+        watcher2.onDidCreate(refreshZigInstallation),
+        watcher2.onDidChange(refreshZigInstallation),
+        watcher2.onDidDelete(refreshZigInstallation),
+        watcher2,
     );
 
-    if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
-        await installZig(context);
-    }
+    await refreshZigInstallation();
 }
