@@ -8,10 +8,17 @@ import which from "which";
 import axios from "axios";
 import semver from "semver";
 
+import * as minisign from "./minisign";
 import { getZigArchName, getZigOSName } from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
 const chmod = util.promisify(fs.chmod);
+
+/** https://ziglang.org/download */
+const MINISIGN_KEY_ZIG = "RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U";
+
+/** https://github.com/zigtools/release-worker */
+const MINISIGN_KEY_ZLS = "RWR+9B91GBZ0zOjh6Lr17+zKf5BoSuFvrx2xSeDE57uIYvnKBGmMjOex";
 
 /**
  * A version manager for Zig and ZLS.
@@ -22,8 +29,6 @@ const chmod = util.promisify(fs.chmod);
  * Example:
  *   - `https://ziglang.org/download/0.13.0/zig-windows-x86_64-0.13.0.zip`
  *   - `https://builds.zigtools.org/zls-linux-x86_64-0.13.0.tar.xz`
- *
- * TODO verify installation with minisig
  */
 export class VersionManager {
     context: vscode.ExtensionContext;
@@ -39,9 +44,10 @@ export class VersionManager {
 
     /** Returns the path to the executable */
     public async install(version: semver.SemVer): Promise<string> {
-        let title: string;
-        let artifactBaseUrl: vscode.Uri;
-        let extraTarArgs: string[];
+        let title;
+        let artifactBaseUrl;
+        let extraTarArgs: string[] = [];
+        let minisignKey;
         switch (this.kind) {
             case "zig":
                 title = "Zig";
@@ -53,11 +59,13 @@ export class VersionManager {
                 } else {
                     artifactBaseUrl = vscode.Uri.parse("https://ziglang.org/builds");
                 }
+                minisignKey = minisign.parseKey(MINISIGN_KEY_ZIG);
                 extraTarArgs = ["--strip-components=1"];
                 break;
             case "zls":
                 title = "ZLS";
                 artifactBaseUrl = vscode.Uri.parse("https://builds.zigtools.org");
+                minisignKey = minisign.parseKey(MINISIGN_KEY_ZLS);
                 break;
         }
 
@@ -68,6 +76,7 @@ export class VersionManager {
         const fileName = `${this.kind}-${subDirName}.${fileExtension}`;
 
         const artifactUrl = vscode.Uri.joinPath(artifactBaseUrl, fileName);
+        const artifactMinisignUrl = vscode.Uri.joinPath(artifactBaseUrl, `${fileName}.minisig`);
 
         const installDir = vscode.Uri.joinPath(this.context.globalStorageUri, this.kind, subDirName);
         const exeUri = vscode.Uri.joinPath(installDir, exeName);
@@ -106,7 +115,7 @@ export class VersionManager {
                     abortController.abort();
                 });
 
-                const response = await axios.get<Buffer>(artifactUrl.toString(), {
+                const artifactResponse = await axios.get<Buffer>(artifactUrl.toString(), {
                     responseType: "arraybuffer",
                     signal: abortController.signal,
                     onDownloadProgress: (progressEvent) => {
@@ -121,12 +130,26 @@ export class VersionManager {
                         }
                     },
                 });
+                const artifactData = Buffer.from(artifactResponse.data);
+
+                const signatureResponse = await axios.get<Buffer>(artifactMinisignUrl.toString(), {
+                    responseType: "arraybuffer",
+                    signal: abortController.signal,
+                });
+                const signatureData = Buffer.from(signatureResponse.data);
+
+                progress.report({ message: "Verifying Signature..." });
+
+                const signature = minisign.parseSignature(signatureData);
+                if (!minisign.verifySignature(minisignKey, signature, artifactData)) {
+                    throw new Error(`signature verification failed for '${artifactUrl.toString()}'`);
+                }
 
                 try {
                     await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
                 } catch {}
                 await vscode.workspace.fs.createDirectory(installDir);
-                await vscode.workspace.fs.writeFile(tarballUri, response.data);
+                await vscode.workspace.fs.writeFile(tarballUri, artifactData);
 
                 progress.report({ message: "Extracting..." });
                 try {
