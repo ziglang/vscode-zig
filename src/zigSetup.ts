@@ -9,6 +9,8 @@ import * as versionManager from "./versionManager";
 import { VersionIndex, ZigVersion, getHostZigName } from "./zigUtil";
 import { ZigProvider } from "./zigProvider";
 
+let statusItem: vscode.StatusBarItem;
+let languageStatusItem: vscode.LanguageStatusItem;
 let versionManagerConfig: versionManager.Config;
 export let zigProvider: ZigProvider;
 
@@ -191,6 +193,37 @@ async function getWantedZigVersion(
     return null;
 }
 
+function updateStatusItem(item: vscode.StatusBarItem, version: semver.SemVer | null) {
+    item.name = "Zig";
+    item.text = `Zig ${version?.toString() ?? "not installed"}`;
+    item.tooltip = "Select Zig Version";
+    item.command = {
+        title: "Select Version",
+        command: "zig.install",
+    };
+    if (version) {
+        item.backgroundColor = undefined;
+    } else {
+        item.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+    }
+}
+
+function updateLanguageStatusItem(item: vscode.LanguageStatusItem, version: semver.SemVer | null) {
+    item.name = "Zig";
+    if (version) {
+        item.text = `Zig ${version.toString()}`;
+        item.detail = "Zig Version";
+        item.severity = vscode.LanguageStatusSeverity.Information;
+    } else {
+        item.text = "Zig not installed";
+        item.severity = vscode.LanguageStatusSeverity.Error;
+    }
+    item.command = {
+        title: "Select Version",
+        command: "zig.install",
+    };
+}
+
 function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext, zigExePath: string | null) {
     if (zigExePath) {
         const envValue = path.delimiter + path.dirname(zigExePath);
@@ -229,15 +262,34 @@ export async function setupZig(context: vscode.ExtensionContext) {
 
     zigProvider = new ZigProvider();
 
+    /** There two status items because there doesn't seem to be a way to pin a language status item by default. */
+    statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, -1);
+    languageStatusItem = vscode.languages.createLanguageStatusItem("zig.status", { language: "zig" });
+
     context.environmentVariableCollection.description = "Add Zig to PATH";
+
+    const onDidChangeActiveTextEditor = (editor: vscode.TextEditor | undefined) => {
+        if (editor?.document.languageId === "zig") {
+            statusItem.show();
+        } else {
+            statusItem.hide();
+        }
+    };
+    onDidChangeActiveTextEditor(vscode.window.activeTextEditor);
 
     context.subscriptions.push(
         zigProvider,
+        statusItem,
+        languageStatusItem,
         vscode.commands.registerCommand("zig.install", async () => {
             await selectVersionAndInstall(context);
         }),
+        vscode.window.onDidChangeActiveTextEditor(onDidChangeActiveTextEditor),
         zigProvider.onChange.event((result) => {
-            const { exe } = result ?? { exe: null, version: null };
+            const { exe, version } = result ?? { exe: null, version: null };
+
+            updateStatusItem(statusItem, version);
+            updateLanguageStatusItem(languageStatusItem, version);
 
             updateZigEnvironmentVariableCollection(context, exe);
         }),
