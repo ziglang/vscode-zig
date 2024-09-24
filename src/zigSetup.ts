@@ -117,6 +117,8 @@ enum WantedZigVersionSource {
     workspaceZigVersionFile = ".zigversion",
     /** The `minimum_zig_version` in `build.zig.zon` */
     workspaceBuildZigZon = "build.zig.zon",
+    /** `zig.version` */
+    zigVersionConfigOption = "zig.version",
     latestTagged = "latest-tagged",
 }
 
@@ -163,6 +165,17 @@ async function getWantedZigVersion(
                         const matches = /\n\s*\.minimum_zig_version\s=\s\"(.*)\"/.exec(manifest.toString());
                         if (matches) {
                             result = semver.parse(matches[1]);
+                        }
+                    }
+                    break;
+                case WantedZigVersionSource.zigVersionConfigOption:
+                    const versionString = vscode.workspace.getConfiguration("zig").get<string>("version");
+                    if (versionString) {
+                        result = semver.parse(versionString);
+                        if (!result) {
+                            void vscode.window.showErrorMessage(
+                                `Invalid 'zig.version' config option. '${versionString}' is not a valid Zig version`,
+                            );
                         }
                     }
                     break;
@@ -241,12 +254,10 @@ export async function setupZig(context: vscode.ExtensionContext) {
         // This check can be removed once enough time has passed so that most users switched to the new value
 
         // remove a `zig.path` that points to the global storage.
-        const zlsConfig = vscode.workspace.getConfiguration("zig");
-        if (zlsConfig.get<boolean | null>("enabled", null) === null) {
-            const zlsPath = zlsConfig.get<string>("path", "");
-            if (zlsPath.startsWith(context.globalStorageUri.fsPath)) {
-                await zlsConfig.update("path", undefined, true);
-            }
+        const configuration = vscode.workspace.getConfiguration("zig");
+        const zigPath = configuration.get<string>("path", "");
+        if (zigPath.startsWith(context.globalStorageUri.fsPath)) {
+            await configuration.update("path", undefined, true);
         }
     }
 
@@ -275,6 +286,14 @@ export async function setupZig(context: vscode.ExtensionContext) {
         languageStatusItem,
         vscode.commands.registerCommand("zig.install", async () => {
             await selectVersionAndInstall(context);
+        }),
+        vscode.workspace.onDidChangeConfiguration(async (change) => {
+            // The `zig.path` config option is handled by `zigProvider.onChange`.
+            if (change.affectsConfiguration("zig.version")) {
+                if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
+                    await installZig(context);
+                }
+            }
         }),
         vscode.window.onDidChangeActiveTextEditor(onDidChangeActiveTextEditor),
         zigProvider.onChange.event((result) => {
