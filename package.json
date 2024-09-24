@@ -100,7 +100,12 @@
         "zig.path": {
           "scope": "machine-overridable",
           "type": "string",
-          "description": "Set a custom path to the Zig binary. The string \"zig\" means lookup zig in PATH."
+          "description": "Set a custom path to the `zig` executable. Example: `C:/zig-windows-x86_64-0.13.0/zig.exe`. The string \"zig\" means lookup zig in PATH."
+        },
+        "zig.version": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Specify which Zig version should be installed. Takes priority over a `.zigversion` file or a `build.zig.zon` with `minimum_zig_version`."
         },
         "zig.formattingProvider": {
           "scope": "resource",
