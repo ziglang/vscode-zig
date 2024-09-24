@@ -3,6 +3,9 @@ import vscode from "vscode";
 import childProcess from "child_process";
 import util from "util";
 
+import { DocumentRangeFormattingRequest, TextDocumentIdentifier } from "vscode-languageclient";
+
+import * as zls from "./zls";
 import { getZigPath } from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
@@ -76,6 +79,20 @@ async function provideDocumentRangeFormattingEdits(
     options: vscode.FormattingOptions,
     token: vscode.CancellationToken,
 ): Promise<vscode.TextEdit[] | null> {
+    if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "zls") {
+        if (zls.client !== null) {
+            return await (zls.client.sendRequest(
+                DocumentRangeFormattingRequest.type,
+                {
+                    textDocument: TextDocumentIdentifier.create(document.uri.toString()),
+                    range: range,
+                    options: options,
+                },
+                token,
+            ) as Promise<vscode.TextEdit[] | null>);
+        }
+    }
+
     const zigPath = getZigPath();
 
     const abortController = new AbortController();
