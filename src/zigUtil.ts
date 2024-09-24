@@ -5,6 +5,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+import axios from "axios";
 import semver from "semver";
 import which from "which";
 
@@ -141,4 +142,23 @@ export function getVersion(filePath: string, arg: string): semver.SemVer | null 
     } catch {
         return null;
     }
+}
+
+export interface ZigVersion {
+    name: string;
+    version: semver.SemVer;
+    url: string;
+    sha: string;
+    notes?: string;
+}
+
+export type VersionIndex = Record<
+    string,
+    Record<string, undefined | { tarball: string; shasum: string; size: string }>
+>;
+
+/** Throws an exception when no network connection is available. */
+export async function getVersionIndex(): Promise<VersionIndex> {
+    const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
+    return (await axios.get<VersionIndex>(DOWNLOAD_INDEX, {})).data;
 }
