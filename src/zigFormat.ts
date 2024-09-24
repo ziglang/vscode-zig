@@ -50,9 +50,24 @@ function preCompileZigFmt() {
     // This pre-compiles even if "zig.formattingProvider" is "zls".
     if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") return;
 
-    childProcess.execFile(getZigPath(), ["fmt", "--help"], {
-        timeout: 60000, // 60 seconds (this is a very high value because 'zig fmt' is just in time compiled)
-    });
+    let zigPath: string;
+    try {
+        zigPath = getZigPath();
+    } catch {
+        return;
+    }
+
+    try {
+        childProcess.execFile(zigPath, ["fmt", "--help"], {
+            timeout: 60000, // 60 seconds (this is a very high value because 'zig fmt' is just in time compiled)
+        });
+    } catch (err) {
+        if (err instanceof Error) {
+            void vscode.window.showErrorMessage(`Failed to run 'zig fmt': ${err.message}`);
+        } else {
+            throw err;
+        }
+    }
 }
 
 async function provideDocumentRangeFormattingEdits(
