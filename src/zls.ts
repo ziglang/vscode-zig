@@ -15,8 +15,9 @@ import axios from "axios";
 import camelCase from "camelcase";
 import semver from "semver";
 
-import { getHostZigName, getVersion, getZigPath, handleConfigOption } from "./zigUtil";
+import { getHostZigName, getVersion, handleConfigOption } from "./zigUtil";
 import { VersionManager } from "./versionManager";
+import { zigProvider } from "./zigSetup";
 
 const ZIG_MODE: DocumentSelector = [
     { language: "zig", scheme: "file" },
@@ -94,15 +95,9 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
     if (!zlsExePath) {
         if (!configuration.get<boolean>("enabled", false)) return null;
 
-        let zigVersion: semver.SemVer | null;
-        try {
-            zigVersion = getVersion(getZigPath(), "version");
-        } catch {
-            return null;
-        }
-        if (!zigVersion) return null;
+        if (!zigProvider.zigVersion) return null;
 
-        const result = await fetchVersion(context, zigVersion, true);
+        const result = await fetchVersion(context, zigProvider.zigVersion, true);
         if (!result) return null;
 
         try {
@@ -169,13 +164,7 @@ async function configurationMiddleware(
 
     const indexOfZigPath = optionIndices["zig.path"];
     if (indexOfZigPath !== undefined) {
-        try {
-            result[indexOfZigPath] = getZigPath();
-        } catch {
-            // ZLS will try to find Zig by itself and likely fail as well.
-            // This will cause two "Zig can't be found in $PATH" error messages to be reported.
-            result[indexOfZigPath] = null;
-        }
+        result[indexOfZigPath] = zigProvider.zigPath;
     }
 
     const additionalOptions = configuration.get<Record<string, unknown>>("additionalOptions", {});
@@ -330,10 +319,10 @@ async function isEnabled(): Promise<boolean> {
             );
             switch (response) {
                 case "Yes":
-                    await zlsConfig.update("enabled", true);
+                    await zlsConfig.update("enabled", true, true);
                     return true;
                 case "No":
-                    await zlsConfig.update("enabled", false);
+                    await zlsConfig.update("enabled", false, true);
                     return false;
                 case undefined:
                     return false;
@@ -379,14 +368,17 @@ export async function activate(context: vscode.ExtensionContext) {
             outputChannel.show();
         }),
         vscode.workspace.onDidChangeConfiguration(async (change) => {
+            // The `zig.path` config option is handled by `zigProvider.onChange`.
             if (
-                change.affectsConfiguration("zig.path", undefined) ||
                 change.affectsConfiguration("zig.zls.enabled", undefined) ||
                 change.affectsConfiguration("zig.zls.path", undefined) ||
                 change.affectsConfiguration("zig.zls.debugLog", undefined)
             ) {
                 await restartClient(context);
             }
+        }),
+        zigProvider.onChange.event(async () => {
+            await restartClient(context);
         }),
     );
 

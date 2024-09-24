@@ -6,43 +6,45 @@ import util from "util";
 import { DocumentRangeFormattingRequest, TextDocumentIdentifier } from "vscode-languageclient";
 
 import * as zls from "./zls";
-import { getZigPath } from "./zigUtil";
+import { zigProvider } from "./zigSetup";
 
 const execFile = util.promisify(childProcess.execFile);
 const ZIG_MODE: vscode.DocumentSelector = { language: "zig" };
 
 export function registerDocumentFormatting(): vscode.Disposable {
+    const disposables: vscode.Disposable[] = [];
     let registeredFormatter: vscode.Disposable | null = null;
 
     preCompileZigFmt();
-    vscode.workspace.onDidChangeConfiguration((change: vscode.ConfigurationChangeEvent) => {
-        if (
-            change.affectsConfiguration("zig.path", undefined) ||
-            change.affectsConfiguration("zig.formattingProvider", undefined)
-        ) {
-            preCompileZigFmt();
-        }
-    });
+    zigProvider.onChange.event(() => {
+        preCompileZigFmt();
+    }, disposables);
 
-    const onformattingProviderChange = () => {
-        if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") {
-            // Unregister the formatting provider
-            if (registeredFormatter !== null) registeredFormatter.dispose();
-            registeredFormatter = null;
-        } else {
-            // register the formatting provider
-            registeredFormatter ??= vscode.languages.registerDocumentRangeFormattingEditProvider(ZIG_MODE, {
-                provideDocumentRangeFormattingEdits,
-            });
+    const onformattingProviderChange = (change: vscode.ConfigurationChangeEvent | null) => {
+        if (!change || change.affectsConfiguration("zig.formattingProvider", undefined)) {
+            preCompileZigFmt();
+
+            if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") {
+                // Unregister the formatting provider
+                if (registeredFormatter !== null) registeredFormatter.dispose();
+                registeredFormatter = null;
+            } else {
+                // register the formatting provider
+                registeredFormatter ??= vscode.languages.registerDocumentRangeFormattingEditProvider(ZIG_MODE, {
+                    provideDocumentRangeFormattingEdits,
+                });
+            }
         }
     };
 
-    onformattingProviderChange();
-    const registeredDidChangeEvent = vscode.workspace.onDidChangeConfiguration(onformattingProviderChange);
+    onformattingProviderChange(null);
+    vscode.workspace.onDidChangeConfiguration(onformattingProviderChange, disposables);
 
     return {
         dispose: () => {
-            registeredDidChangeEvent.dispose();
+            for (const disposable of disposables) {
+                disposable.dispose();
+            }
             if (registeredFormatter !== null) registeredFormatter.dispose();
         },
     };
@@ -53,15 +55,10 @@ function preCompileZigFmt() {
     // This pre-compiles even if "zig.formattingProvider" is "zls".
     if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") return;
 
-    let zigPath: string;
-    try {
-        zigPath = getZigPath();
-    } catch {
-        return;
-    }
+    if (!zigProvider.zigPath) return null;
 
     try {
-        childProcess.execFile(zigPath, ["fmt", "--help"], {
+        childProcess.execFile(zigProvider.zigPath, ["fmt", "--help"], {
             timeout: 60000, // 60 seconds (this is a very high value because 'zig fmt' is just in time compiled)
         });
     } catch (err) {
@@ -93,14 +90,14 @@ async function provideDocumentRangeFormattingEdits(
         }
     }
 
-    const zigPath = getZigPath();
+    if (!zigProvider.zigPath) return null;
 
     const abortController = new AbortController();
     token.onCancellationRequested(() => {
         abortController.abort();
     });
 
-    const promise = execFile(zigPath, ["fmt", "--stdin"], {
+    const promise = execFile(zigProvider.zigPath, ["fmt", "--stdin"], {
         maxBuffer: 10 * 1024 * 1024, // 10MB
         signal: abortController.signal,
         timeout: 60000, // 60 seconds (this is a very high value because 'zig fmt' is just in time compiled)
