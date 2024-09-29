@@ -7,9 +7,10 @@ import path from "path";
 import { DebouncedFunc, throttle } from "lodash-es";
 
 import * as zls from "./zls";
-import { getZigPath, handleConfigOption } from "./zigUtil";
+import { handleConfigOption } from "./zigUtil";
+import { zigProvider } from "./zigSetup";
 
-export default class ZigCompilerProvider {
+export default class ZigDiagnosticsProvider {
     private buildDiagnostics!: vscode.DiagnosticCollection;
     private astDiagnostics!: vscode.DiagnosticCollection;
     private dirtyChange = new WeakMap<vscode.Uri, boolean>();
@@ -89,8 +90,8 @@ export default class ZigCompilerProvider {
         if (textDocument.languageId !== "zig") {
             return;
         }
-        const zigPath = getZigPath();
-        const { error, stderr } = childProcess.spawnSync(zigPath, ["ast-check"], {
+        if (!zigProvider.zigPath) return;
+        const { error, stderr } = childProcess.spawnSync(zigProvider.zigPath, ["ast-check"], {
             input: textDocument.getText(),
             maxBuffer: 10 * 1024 * 1024, // 10MB
             encoding: "utf8",
@@ -131,7 +132,7 @@ export default class ZigCompilerProvider {
     private _doCompile(textDocument: vscode.TextDocument) {
         const config = vscode.workspace.getConfiguration("zig");
 
-        const zigPath = getZigPath();
+        if (!zigProvider.zigPath) return;
 
         const buildOption = config.get<string>("buildOption", "build");
         const processArg: string[] = [buildOption];
@@ -165,7 +166,7 @@ export default class ZigCompilerProvider {
         });
 
         let decoded = "";
-        const child = childProcess.spawn(zigPath, processArg, { cwd });
+        const child = childProcess.spawn(zigProvider.zigPath, processArg, { cwd });
         if (child.pid) {
             child.stderr.on("data", (data: string) => {
                 decoded += data;
