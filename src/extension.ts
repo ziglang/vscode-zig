@@ -1,9 +1,9 @@
 import vscode from "vscode";
 
 import { activate as activateZls, deactivate as deactivateZls } from "./zls";
+import { deactivate as deactivateSetupZig, setupZig } from "./zigSetup";
 import ZigDiagnosticsProvider from "./zigDiagnosticsProvider";
 import { registerDocumentFormatting } from "./zigFormat";
-import { setupZig } from "./zigSetup";
 
 export async function activate(context: vscode.ExtensionContext) {
     await setupZig(context).finally(() => {
@@ -18,4 +18,5 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export async function deactivate() {
     await deactivateZls();
+    await deactivateSetupZig();
 }
