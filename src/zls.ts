@@ -37,7 +37,7 @@ export async function restartClient(context: vscode.ExtensionContext): Promise<v
     if (!result) return;
 
     try {
-        const newClient = await startClient(result.exe);
+        const newClient = await startClient(result.exe, result.version);
         await stopClient();
         client = newClient;
     } catch (reason) {
@@ -49,13 +49,25 @@ export async function restartClient(context: vscode.ExtensionContext): Promise<v
     }
 }
 
-async function startClient(zlsPath: string): Promise<LanguageClient> {
+async function startClient(zlsPath: string, zlsVersion: semver.SemVer): Promise<LanguageClient> {
     const configuration = vscode.workspace.getConfiguration("zig.zls");
     const debugLog = configuration.get<boolean>("debugLog", false);
 
+    const args: string[] = [];
+
+    if (debugLog) {
+        /** `--enable-debug-log` has been deprecated in favor of `--log-level`. https://github.com/zigtools/zls/pull/1957 */
+        const zlsCLIRevampVersion = new semver.SemVer("0.14.0-50+3354fdc");
+        if (semver.lt(zlsVersion, zlsCLIRevampVersion)) {
+            args.push("--enable-debug-log");
+        } else {
+            args.push("--log-level", "debug");
+        }
+    }
+
     const serverOptions: ServerOptions = {
         command: zlsPath,
-        args: debugLog ? ["--enable-debug-log"] : [],
+        args: args,
     };
 
     const clientOptions: LanguageClientOptions = {
