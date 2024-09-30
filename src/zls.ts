@@ -15,7 +15,7 @@ import axios from "axios";
 import camelCase from "camelcase";
 import semver from "semver";
 
-import { getHostZigName, getVersion, handleConfigOption } from "./zigUtil";
+import { getHostZigName, getVersion, handleConfigOption, resolveExePathAndVersion } from "./zigUtil";
 import { VersionManager } from "./versionManager";
 import { zigProvider } from "./zigSetup";
 
@@ -29,12 +29,6 @@ let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
 
 export async function restartClient(context: vscode.ExtensionContext): Promise<void> {
-    const configuration = vscode.workspace.getConfiguration("zig.zls");
-    if (!configuration.get<string>("path") && !configuration.get<boolean>("enabled", false)) {
-        await stopClient();
-        return;
-    }
-
     const result = await getZLSPath(context);
     if (!result) return;
 
@@ -92,39 +86,56 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
     let zlsExePath = configuration.get<string>("path");
     let zlsVersion: semver.SemVer | null = null;
 
-    if (!zlsExePath) {
-        if (!configuration.get<boolean>("enabled", false)) return null;
-
-        if (!zigProvider.zigVersion) return null;
-
-        const result = await fetchVersion(context, zigProvider.zigVersion, true);
-        if (!result) return null;
-
-        try {
-            zlsExePath = await versionManager.install(result.version);
-            zlsVersion = result.version;
-        } catch {
-            void vscode.window.showErrorMessage(`Failed to install ZLS ${result.version.toString()}!`);
+    if (!!zlsExePath) {
+        const result = resolveExePathAndVersion(zlsExePath, "zls", "zig.zls.path", "--version");
+        if ("message" in result) {
+            void vscode.window.showErrorMessage(result.message);
             return null;
         }
+        return result;
     }
 
-    const checkedZLSVersion = getVersion(zlsExePath, "--version");
-    if (!checkedZLSVersion) {
-        void vscode.window.showErrorMessage(`Unable to check ZLS version. '${zlsExePath} --version' failed!`);
+    if (!configuration.get<boolean>("enabled", false)) return null;
+
+    if (!zigProvider.zigVersion) return null;
+
+    const result = await fetchVersion(context, zigProvider.zigVersion, true);
+    if (!result) return null;
+
+    try {
+        zlsExePath = await versionManager.install(result.version);
+        zlsVersion = result.version;
+    } catch (err) {
+        if (err instanceof Error) {
+            void vscode.window.showErrorMessage(`Failed to install ZLS ${result.version.toString()}: ${err.message}`);
+        } else {
+            void vscode.window.showErrorMessage(`Failed to install ZLS ${result.version.toString()}!`);
+        }
         return null;
     }
-    if (zlsVersion && checkedZLSVersion.compare(zlsVersion) !== 0) {
-        // The Matrix is broken!
-        void vscode.window.showErrorMessage(
-            `Encountered unexpected ZLS version. Expected '${zlsVersion.toString()}' from '${zlsExePath} --version' but got '${checkedZLSVersion.toString()}'!`,
-        );
-        return null;
+
+    /** `--version` has been added in https://github.com/zigtools/zls/pull/583 */
+    const zlsVersionArgAdded = new semver.SemVer("0.10.0-dev.150+cb5eeb0b4");
+
+    if (semver.gte(zlsVersion, zlsVersionArgAdded)) {
+        // Verify the installation by quering the version
+        const checkedZLSVersion = getVersion(zlsExePath, "--version");
+        if (!checkedZLSVersion) {
+            void vscode.window.showErrorMessage(`Unable to check ZLS version. '${zlsExePath} --version' failed!`);
+            return null;
+        }
+
+        if (checkedZLSVersion.compare(zlsVersion) !== 0) {
+            // The Matrix is broken!
+            void vscode.window.showWarningMessage(
+                `Encountered unexpected ZLS version. Expected '${zlsVersion.toString()}' from '${zlsExePath} --version' but got '${checkedZLSVersion.toString()}'!`,
+            );
+        }
     }
 
     return {
         exe: zlsExePath,
-        version: checkedZLSVersion,
+        version: zlsVersion,
     };
 }
 
@@ -367,6 +378,14 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand("zig.zls.openOutput", () => {
             outputChannel.show();
         }),
+    );
+
+    if (await isEnabled()) {
+        await restartClient(context);
+    }
+
+    // These checks are added later to avoid ZLS be started twice because `isEnabled` sets `zig.zls.enabled`.
+    context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(async (change) => {
             // The `zig.path` config option is handled by `zigProvider.onChange`.
             if (
@@ -381,10 +400,6 @@ export async function activate(context: vscode.ExtensionContext) {
             await restartClient(context);
         }),
     );
-
-    if (await isEnabled()) {
-        await restartClient(context);
-    }
 }
 
 export async function deactivate(): Promise<void> {
