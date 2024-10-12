@@ -25,6 +25,23 @@ async function installZig(context: vscode.ExtensionContext) {
         return;
     }
 
+    // The `minimum_zig_version` in `build.zig.zon` may not be available as a binary. Try to search for the next available one.
+    if (wantedZig.source === WantedZigVersionSource.workspaceBuildZigZon) {
+        const resolvedVersion = await findClosestSatisfyingZigVersion(context, wantedZig.version);
+        if (resolvedVersion) {
+            wantedZig.version = resolvedVersion;
+        } else if (wantedZig.version.prerelease.length !== 0) {
+            zigProvider.set(null);
+            // Would be nice if we could forward the error message from `findClosestSatisfyingZigVersion`.
+            void vscode.window.showErrorMessage(
+                `Failed to find a suitable Zig version that fits the 'minimum_zig_version': Zig ${wantedZig.version.toString()}`,
+            );
+            return;
+        } else {
+            // No need to report an error if the wanted Zig version is tagged release.
+        }
+    }
+
     try {
         const exePath = await versionManager.install(wantedZig.version);
         await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
@@ -39,6 +56,32 @@ async function installZig(context: vscode.ExtensionContext) {
             void vscode.window.showErrorMessage(`Failed to install Zig ${wantedZig.version.toString()}!`);
         }
         return;
+    }
+}
+
+/** Converts a zig version to the next largest that is provided by `https://ziglang.org/builds` */
+async function findClosestSatisfyingZigVersion(
+    context: vscode.ExtensionContext,
+    version: semver.SemVer,
+): Promise<semver.SemVer | null> {
+    const cacheKey = `zig-satisfying-version-${version.raw}`;
+
+    try {
+        if (version.prerelease.length === 0) {
+            // We can't just return `version` because `0.12.0` should return `0.12.1`.
+            const availableVersions = (await getVersions()).map((item) => item.version);
+            const selectedVersion = semver.maxSatisfying(availableVersions, `^${version.toString()}`);
+            await context.globalState.update(cacheKey, selectedVersion ?? undefined);
+            return selectedVersion;
+        }
+
+        // TODO we need a way to query all available prebuilt binaries that are provided by `https://ziglang.org/builds`.
+        // The [index.json](https://ziglang.org/download/index.json) only provides tagged releases and the latest master.
+        // Possible candidate: https://raw.githubusercontent.com/mitchellh/zig-overlay/main/sources.json
+        return null;
+    } catch {
+        const selectedVersion = context.globalState.get<string | null>(cacheKey, null);
+        return selectedVersion ? new semver.SemVer(selectedVersion) : null;
     }
 }
 
