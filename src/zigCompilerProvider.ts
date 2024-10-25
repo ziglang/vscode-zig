@@ -98,7 +98,10 @@ export default class ZigCompilerProvider {
             timeout: 60000, // 60 seconds (this is a very high value because 'zig ast-check' is just in time compiled)
         });
 
-        if (error ?? stderr.length === 0) return;
+        if (error ?? stderr.length === 0) {
+            this.astDiagnostics.delete(textDocument.uri);
+            return;
+        }
 
         const diagnostics: Record<string, vscode.Diagnostic[] | undefined> = {};
         const regex = /(\S.*):(\d*):(\d*): ([^:]*): (.*)/g;
