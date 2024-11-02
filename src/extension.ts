@@ -3,6 +3,7 @@ import vscode from "vscode";
 import { activate as activateZls, deactivate as deactivateZls } from "./zls";
 import ZigCompilerProvider from "./zigCompilerProvider";
 import { ZigMainCodeLensProvider } from "./zigMainCodeLens";
+import ZigTestRunnerProvider from "./zigTestRunnerProvider";
 import { registerDocumentFormatting } from "./zigFormat";
 import { setupZig } from "./zigSetup";
 
@@ -12,6 +13,9 @@ export async function activate(context: vscode.ExtensionContext) {
         compiler.activate(context.subscriptions);
 
         context.subscriptions.push(registerDocumentFormatting());
+
+        const testRunner = new ZigTestRunnerProvider();
+        testRunner.activate(context.subscriptions);
 
         ZigMainCodeLensProvider.registerCommands(context);
         context.subscriptions.push(
