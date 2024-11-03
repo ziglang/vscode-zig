@@ -9,7 +9,7 @@ import { getWorkspaceFolder, getZigPath, isWorkspaceFile } from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
 
-export class ZigMainCodeLensProvider implements vscode.CodeLensProvider {
+export default class ZigMainCodeLensProvider implements vscode.CodeLensProvider {
     public provideCodeLenses(document: vscode.TextDocument): vscode.ProviderResult<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = [];
         const text = document.getText();
@@ -37,7 +37,9 @@ export class ZigMainCodeLensProvider implements vscode.CodeLensProvider {
     }
 }
 
-function zigRun(filePath: string) {
+function zigRun() {
+    if (!vscode.window.activeTextEditor) return;
+    const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
     const terminal = vscode.window.createTerminal("Run Zig Program");
     terminal.show();
     const wsFolder = getWorkspaceFolder(filePath);
@@ -53,7 +55,9 @@ function hasBuildFile(workspaceFspath: string): boolean {
     return fs.existsSync(buildZigPath);
 }
 
-async function zigDebug(filePath: string) {
+async function zigDebug() {
+    if (!vscode.window.activeTextEditor) return;
+    const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
     try {
         const workspaceFolder = getWorkspaceFolder(filePath);
         let binaryPath = "";
@@ -79,7 +83,7 @@ async function zigDebug(filePath: string) {
 
 async function buildDebugBinaryWithBuildFile(workspacePath: string): Promise<string> {
     // Workaround because zig build doesn't support specifying the output binary name
-    // `zig run` does support -femit-bin, but what if build file has custom build logic?
+    // `zig run` does support -femit-bin, but preferring `zig build` if possible
     const outputDir = path.join(workspacePath, "zig-out", "tmp-debug-build");
     const zigPath = getZigPath();
     await execFile(zigPath, ["build", "--prefix", outputDir], { cwd: workspacePath });
