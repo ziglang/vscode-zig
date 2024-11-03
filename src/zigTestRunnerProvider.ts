@@ -29,7 +29,7 @@ export default class ZigTestRunnerProvider {
             "Debug",
             vscode.TestRunProfileKind.Debug,
             this.debugTests.bind(this),
-            true,
+            false,
         );
     }
 
@@ -65,7 +65,7 @@ export default class ZigTestRunnerProvider {
             const fileName = path.basename(textDocument.uri.fsPath);
 
             const testItem = this.testController.createTestItem(
-                `${fileName}.test.${testDesc}`, // Test id needs to be unique, so adding file name here
+                `${fileName}.test.${testDesc}`, // Test id needs to be unique, so adding file name prefix
                 `${fileName} - ${testDesc}`,
                 textDocument.uri,
             );
@@ -84,20 +84,15 @@ export default class ZigTestRunnerProvider {
             const testItem = Array.isArray(item) ? item[1] : item;
             run.started(testItem);
             const start = new Date();
-            try {
-                run.appendOutput(`[${start.toISOString()}] Running test: ${testItem.label}\r\n`);
-                const { output, success } = await this.runTest(run, testItem);
-                run.appendOutput(output.replaceAll("\n", "\r\n"));
-                run.appendOutput("\r\n");
-                const elapsed = new Date().getMilliseconds() - start.getMilliseconds();
-                if (!success) {
-                    run.failed(testItem, new vscode.TestMessage(new vscode.MarkdownString(output)), elapsed);
-                } else {
-                    run.passed(testItem, elapsed);
-                }
-            } catch (e) {
-                const elapsed = new Date().getMilliseconds() - start.getMilliseconds();
-                run.failed(testItem, new vscode.TestMessage((e as Error).message), elapsed);
+            run.appendOutput(`[${start.toISOString()}] Running test: ${testItem.label}\r\n`);
+            const { output, success } = await this.runTest(run, testItem);
+            run.appendOutput(output.replaceAll("\n", "\r\n"));
+            run.appendOutput("\r\n");
+            const elapsed = new Date().getMilliseconds() - start.getMilliseconds();
+            if (!success) {
+                run.failed(testItem, new vscode.TestMessage(output), elapsed);
+            } else {
+                run.passed(testItem, elapsed);
             }
         }
         run.end();
@@ -108,19 +103,15 @@ export default class ZigTestRunnerProvider {
         if (test.uri === undefined) {
             return { output: "Unable to determine file location", success: false };
         }
-        // Unwrapping test desc from test id
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
         const args = ["test", "--test-filter", lastPart, test.uri.fsPath];
-        run.appendOutput(`Running command: ${zigPath} ${args.join(" ")}\r\n`);
-
-        // Zig prints to stderr regardless of success/failure
-        const { stderr: output } = await execFile(zigPath, args);
-        const success =
-            !output.toLowerCase().includes("...FAIL") &&
-            !output.toLowerCase().includes("error:") &&
-            !output.toLowerCase().includes("test command failed");
-        return { output: output.replaceAll("\n", "\r\n"), success };
+        try {
+            const { stderr: output } = await execFile(zigPath, args);
+            return { output: output.replaceAll("\n", "\r\n"), success: true };
+        } catch (e) {
+            return { output: (e as Error).message.replaceAll("\n", "\r\n"), success: false };
+        }
     }
 
     private async debugTests(req: vscode.TestRunRequest, token: vscode.CancellationToken) {
