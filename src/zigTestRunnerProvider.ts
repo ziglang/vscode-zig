@@ -31,6 +31,7 @@ export default class ZigTestRunnerProvider {
             this.debugTests.bind(this),
             false,
         );
+        void this.findAndRegisterTests();
     }
 
     public activate(subscriptions: vscode.Disposable[]) {
@@ -41,14 +42,36 @@ export default class ZigTestRunnerProvider {
             vscode.workspace.onDidChangeTextDocument((change) => {
                 this.updateTestItems(change.document);
             }),
-            vscode.workspace.onDidCloseTextDocument((document) => {
-                this.testController.items.forEach((item) => {
-                    if (item.uri === document.uri) {
-                        this.testController.items.delete(item.id);
-                    }
+            vscode.workspace.onDidDeleteFiles((event) => {
+                event.files.forEach((file) => {
+                    this.deleteTestForAFile(file);
+                });
+            }),
+            vscode.workspace.onDidRenameFiles((event) => {
+                event.files.forEach((file) => {
+                    this.deleteTestForAFile(file.oldUri);
                 });
             }),
         );
+    }
+
+    private deleteTestForAFile(uri: vscode.Uri) {
+        this.testController.items.forEach((item) => {
+            if (!item.uri) return;
+            if (item.uri.fsPath === uri.fsPath) {
+                this.testController.items.delete(item.id);
+            }
+        });
+    }
+
+    private async findAndRegisterTests() {
+        const files = await vscode.workspace.findFiles("**/*.zig");
+        for (const file of files) {
+            try {
+                const doc = await vscode.workspace.openTextDocument(file);
+                this._updateTestItems(doc);
+            } catch {}
+        }
     }
 
     private _updateTestItems(textDocument: vscode.TextDocument) {
@@ -56,7 +79,7 @@ export default class ZigTestRunnerProvider {
 
         const regex = /\btest\s+"([^"]+)"\s*\{/g;
         const matches = Array.from(textDocument.getText().matchAll(regex));
-        const newTests: vscode.TestItem[] = [];
+        this.deleteTestForAFile(textDocument.uri);
 
         for (const match of matches) {
             const testDesc = match[1];
@@ -71,7 +94,6 @@ export default class ZigTestRunnerProvider {
             );
             testItem.range = range;
             this.testController.items.add(testItem);
-            newTests.push(testItem);
         }
     }
 
