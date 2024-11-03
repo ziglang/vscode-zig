@@ -1,9 +1,11 @@
+import vscode from "vscode";
+
 import childProcess from "child_process";
 import fs from "fs";
-import { getZigPath } from "./zigUtil";
 import path from "path";
 import util from "util";
-import vscode from "vscode";
+
+import { getWorkspaceFolder, getZigPath, isWorkspaceFile } from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
 
@@ -38,9 +40,8 @@ export class ZigMainCodeLensProvider implements vscode.CodeLensProvider {
 function zigRun(filePath: string) {
     const terminal = vscode.window.createTerminal("Run Zig Program");
     terminal.show();
-
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(filePath));
-    if (workspaceFolder && hasBuildFile(workspaceFolder.uri.fsPath)) {
+    const wsFolder = getWorkspaceFolder(filePath);
+    if (wsFolder && isWorkspaceFile(filePath) && hasBuildFile(wsFolder.uri.fsPath)) {
         terminal.sendText(`${getZigPath()} build run`);
         return;
     }
@@ -53,24 +54,27 @@ function hasBuildFile(workspaceFspath: string): boolean {
 }
 
 async function zigDebug(filePath: string) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(filePath));
-    let binaryPath = "";
+    try {
+        const workspaceFolder = getWorkspaceFolder(filePath);
+        let binaryPath = "";
+        if (workspaceFolder && isWorkspaceFile(filePath) && hasBuildFile(workspaceFolder.uri.fsPath)) {
+            binaryPath = await buildDebugBinaryWithBuildFile(workspaceFolder.uri.fsPath);
+        } else {
+            binaryPath = await buildDebugBinary(filePath);
+        }
 
-    if (workspaceFolder && hasBuildFile(workspaceFolder.uri.fsPath)) {
-        binaryPath = await buildDebugBinaryWithBuildFile(workspaceFolder.uri.fsPath);
-    } else {
-        binaryPath = filePath;
+        const debugConfig: vscode.DebugConfiguration = {
+            type: "lldb",
+            name: `Debug Zig`,
+            request: "launch",
+            program: binaryPath,
+            cwd: path.dirname(workspaceFolder?.uri.fsPath ?? path.dirname(filePath)),
+            stopAtEntry: false,
+        };
+        await vscode.debug.startDebugging(undefined, debugConfig);
+    } catch (e) {
+        void vscode.window.showErrorMessage(`Failed to build debug binary: ${(e as Error).message}`);
     }
-
-    const debugConfig: vscode.DebugConfiguration = {
-        type: "lldb",
-        name: `Debug Zig`,
-        request: "launch",
-        program: binaryPath,
-        cwd: path.dirname(workspaceFolder?.uri.fsPath ?? filePath),
-        stopAtEntry: false,
-    };
-    await vscode.debug.startDebugging(undefined, debugConfig);
 }
 
 async function buildDebugBinaryWithBuildFile(workspacePath: string): Promise<string> {
@@ -85,4 +89,15 @@ async function buildDebugBinaryWithBuildFile(workspacePath: string): Promise<str
         throw new Error("Unable to build debug binary");
     }
     return path.join(outputDir, "bin", files[0]);
+}
+
+async function buildDebugBinary(filePath: string): Promise<string> {
+    const zigPath = getZigPath();
+    const fileDirectory = path.dirname(filePath);
+    const binaryName = `debug-${path.basename(filePath, ".zig")}`;
+    const binaryPath = path.join(fileDirectory, "zig-out", "bin", binaryName);
+    void vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(binaryPath)));
+
+    await execFile(zigPath, ["run", filePath, `-femit-bin=${binaryPath}`], { cwd: fileDirectory });
+    return binaryPath;
 }

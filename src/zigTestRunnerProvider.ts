@@ -6,7 +6,7 @@ import util from "util";
 
 import { DebouncedFunc, throttle } from "lodash-es";
 
-import { getZigPath } from "./zigUtil";
+import { getWorkspaceFolder, getZigPath, isWorkspaceFile } from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
 
@@ -38,6 +38,9 @@ export default class ZigTestRunnerProvider {
         subscriptions.push(
             vscode.workspace.onDidOpenTextDocument((document) => {
                 this.updateTestItems(document);
+            }),
+            vscode.workspace.onDidCloseTextDocument((document) => {
+                !isWorkspaceFile(document.uri.fsPath) && this.deleteTestForAFile(document.uri);
             }),
             vscode.workspace.onDidChangeTextDocument((change) => {
                 this.updateTestItems(change.document);
@@ -104,13 +107,15 @@ export default class ZigTestRunnerProvider {
         for (const item of request.include ?? this.testController.items) {
             if (token.isCancellationRequested) break;
             const testItem = Array.isArray(item) ? item[1] : item;
+
             run.started(testItem);
             const start = new Date();
             run.appendOutput(`[${start.toISOString()}] Running test: ${testItem.label}\r\n`);
-            const { output, success } = await this.runTest(run, testItem);
+            const { output, success } = await this.runTest(testItem);
             run.appendOutput(output.replaceAll("\n", "\r\n"));
             run.appendOutput("\r\n");
             const elapsed = new Date().getMilliseconds() - start.getMilliseconds();
+
             if (!success) {
                 run.failed(testItem, new vscode.TestMessage(output), elapsed);
             } else {
@@ -120,7 +125,7 @@ export default class ZigTestRunnerProvider {
         run.end();
     }
 
-    private async runTest(run: vscode.TestRun, test: vscode.TestItem): Promise<{ output: string; success: boolean }> {
+    private async runTest(test: vscode.TestItem): Promise<{ output: string; success: boolean }> {
         const zigPath = getZigPath();
         if (test.uri === undefined) {
             return { output: "Unable to determine file location", success: false };
@@ -169,11 +174,8 @@ export default class ZigTestRunnerProvider {
     }
 
     private async buildTestBinary(run: vscode.TestRun, testFilePath: string, testDesc: string): Promise<string> {
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(testFilePath));
-        if (!workspaceFolder) {
-            throw new Error("No workspace folder found");
-        }
-        const outputDir = path.join(workspaceFolder.uri.fsPath, "zig-out", "tmp-debug-build", "bin");
+        const wsFolder = getWorkspaceFolder(testFilePath)?.uri.fsPath ?? path.dirname(testFilePath);
+        const outputDir = path.join(wsFolder, "zig-out", "tmp-debug-build", "bin");
         const binaryName = `test-${path.basename(testFilePath, ".zig")}`;
         const binaryPath = path.join(outputDir, binaryName);
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(outputDir));
