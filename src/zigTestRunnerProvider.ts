@@ -80,13 +80,13 @@ export default class ZigTestRunnerProvider {
     private _updateTestItems(textDocument: vscode.TextDocument) {
         if (textDocument.languageId !== "zig") return;
 
-        const regex = /\btest\s+(?:"([^"]+)"|([^\s{]+))\s*\{/g;
+        const regex = /\btest\s+(?:"([^"]+)"|([a-zA-Z0-9_][\w]*)|@"([^"]+)")\s*\{/g;
         const matches = Array.from(textDocument.getText().matchAll(regex));
         this.deleteTestForAFile(textDocument.uri);
 
         for (const match of matches) {
-            const testDesc = match[1] || match[2];
-            const isDocTest = !!match[2];
+            const testDesc = match[1] || match[2] || match [3];
+            const isDocTest = !match[1];
             const position = textDocument.positionAt(match.index);
             const range = new vscode.Range(position, position.translate(0, match[0].length));
             const fileName = path.basename(textDocument.uri.fsPath);
