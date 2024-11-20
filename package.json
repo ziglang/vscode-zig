@@ -313,6 +313,18 @@
     },
     "commands": [
       {
+        "command": "zig.run",
+        "title": "Run Zig",
+        "category": "Zig",
+        "description": "Run the current Zig project / file"
+      },
+      {
+        "command": "zig.debug",
+        "title": "Debug Zig",
+        "category": "Zig",
+        "description": "Debug the current Zig project / file"
+      },
+      {
         "command": "zig.build.workspace",
         "title": "Build Workspace",
         "category": "Zig",

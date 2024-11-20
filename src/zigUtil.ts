@@ -217,3 +217,17 @@ export async function downloadAndExtractArtifact(
         },
     );
 }
+
+export function getWorkspaceFolder(filePath: string): vscode.WorkspaceFolder | undefined {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(filePath));
+    if (!workspaceFolder && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        return vscode.workspace.workspaceFolders[0];
+    }
+    return workspaceFolder;
+}
+
+export function isWorkspaceFile(filePath: string): boolean {
+    const wsFolder = getWorkspaceFolder(filePath);
+    if (!wsFolder) return false;
+    return filePath.startsWith(wsFolder.uri.fsPath);
+}

@@ -13,6 +13,8 @@
 - syntax highlighting
 - basic compiler linting
 - automatic formatting
+- Run/Debug zig program
+- Run/Debug tests
 - optional [Zig Language Server](https://github.com/zigtools/zls) features
   - completions
   - goto definition/declaration
