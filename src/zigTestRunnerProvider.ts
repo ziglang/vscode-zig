@@ -80,18 +80,20 @@ export default class ZigTestRunnerProvider {
     private _updateTestItems(textDocument: vscode.TextDocument) {
         if (textDocument.languageId !== "zig") return;
 
-        const regex = /\btest\s+"([^"]+)"\s*\{/g;
+        const regex = /\btest\s+(?:"([^"]+)"|([^\s{]+))\s*\{/g;
         const matches = Array.from(textDocument.getText().matchAll(regex));
         this.deleteTestForAFile(textDocument.uri);
 
         for (const match of matches) {
-            const testDesc = match[1];
+            const testDesc = match[1] || match[2];
+            const isDocTest = !!match[2];
             const position = textDocument.positionAt(match.index);
             const range = new vscode.Range(position, position.translate(0, match[0].length));
             const fileName = path.basename(textDocument.uri.fsPath);
 
+            // Add doctest prefix to handle scenario where test name matches one with non doctest. E.g `test foo` and `test "foo"`
             const testItem = this.testController.createTestItem(
-                `${fileName}.test.${testDesc}`, // Test id needs to be unique, so adding file name prefix
+                `${fileName}.test.${isDocTest ? "doctest." : ""}${testDesc}`, // Test id needs to be unique, so adding file name prefix
                 `${fileName} - ${testDesc}`,
                 textDocument.uri,
             );
