@@ -107,12 +107,6 @@
           "type": "string",
           "description": "Set a custom path to the Zig binary. The string \"zig\" means lookup zig in PATH."
         },
-        "zig.checkForUpdate": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to automatically check for new updates",
-          "default": true
-        },
         "zig.formattingProvider": {
           "scope": "resource",
           "type": "string",
@@ -338,11 +332,6 @@
       {
         "command": "zig.install",
         "title": "Install Zig",
-        "category": "Zig Setup"
-      },
-      {
-        "command": "zig.update",
-        "title": "Check for Zig Updates",
         "category": "Zig Setup"
       },
       {
