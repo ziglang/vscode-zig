@@ -143,6 +143,19 @@ export function getVersion(filePath: string, arg: string): semver.SemVer | null 
     }
 }
 
+export interface ZigVersion {
+    name: string;
+    version: semver.SemVer;
+    url: string;
+    sha: string;
+    notes?: string;
+}
+
+export type VersionIndex = Record<
+    string,
+    Record<string, undefined | { tarball: string; shasum: string; size: string }>
+>;
+
 export function getWorkspaceFolder(filePath: string): vscode.WorkspaceFolder | undefined {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(filePath));
     if (!workspaceFolder && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {

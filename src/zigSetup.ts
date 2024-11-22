@@ -5,27 +5,15 @@ import semver from "semver";
 import vscode from "vscode";
 
 import * as versionManager from "./versionManager";
-import { getHostZigName, getVersion, getZigPath, shouldCheckUpdate } from "./zigUtil";
+import { VersionIndex, ZigVersion, getHostZigName, getVersion, getZigPath, shouldCheckUpdate } from "./zigUtil";
 import { restartClient } from "./zls";
 
 let versionManagerConfig: versionManager.Config;
-
-const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
 function getNightlySemVer(url: string): string {
     const matches = url.match(/-(\d+\.\d+\.\d+(-dev\.\d+\+\w+)?)\./);
     if (!matches) throw new Error(`url '${url}' does not contain a semantic version!`);
     return matches[1];
-}
-
-type VersionIndex = Record<string, Record<string, undefined | { tarball: string; shasum: string; size: string }>>;
-
-interface ZigVersion {
-    name: string;
-    url: string;
-    sha: string;
-    notes?: string;
-    version: semver.SemVer;
 }
 
 export async function installZig(context: vscode.ExtensionContext, version: semver.SemVer) {
@@ -42,8 +30,8 @@ export async function installZig(context: vscode.ExtensionContext, version: semv
 }
 
 async function getVersions(): Promise<ZigVersion[]> {
+    const indexJson = (await axios.get<VersionIndex>("https://ziglang.org/download/index.json", {})).data;
     const hostName = getHostZigName();
-    const indexJson = (await axios.get<VersionIndex>(DOWNLOAD_INDEX, {})).data;
     const result: ZigVersion[] = [];
     for (let key in indexJson) {
         const value = indexJson[key];
