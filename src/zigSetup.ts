@@ -386,6 +386,14 @@ export async function setupZig(context: vscode.ExtensionContext) {
         /** https://ziglang.org/download */
         minisignKey: minisign.parseKey("RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U"),
         versionArg: "version",
+        // taken from https://github.com/mlugg/setup-zig/blob/main/mirrors.json
+        mirrorUrls: [
+            vscode.Uri.parse("https://pkg.machengine.org/zig"),
+            vscode.Uri.parse("https://zigmirror.hryx.net/zig"),
+            vscode.Uri.parse("https://zig.linus.dev/zig"),
+            vscode.Uri.parse("https://fs.liujiacai.net/zigbuilds"),
+            vscode.Uri.parse("https://zigmirror.nesovic.dev/zig"),
+        ],
         canonicalUrl: {
             release: vscode.Uri.parse("https://ziglang.org/download"),
             nightly: vscode.Uri.parse("https://ziglang.org/builds"),

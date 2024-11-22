@@ -42,6 +42,7 @@ export interface Config {
      * `"version"` for Zig, `"--version"` for ZLS
      */
     versionArg: string;
+    mirrorUrls: vscode.Uri[];
     canonicalUrl: {
         release: vscode.Uri;
         nightly: vscode.Uri;
@@ -67,6 +68,28 @@ export async function install(config: Config, version: semver.SemVer): Promise<s
             // go ahead an install
         } else {
             throw e;
+        }
+    }
+
+    const mirrors = [...config.mirrorUrls]
+        .map((mirror) => ({ mirror, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ mirror }) => mirror);
+
+    for (const mirrorUrl of mirrors) {
+        const mirrorName = new URL(mirrorUrl.toString()).host;
+        try {
+            return await installFromMirror(config, version, mirrorUrl, mirrorName);
+        } catch (err) {
+            if (err instanceof Error) {
+                void vscode.window.showWarningMessage(
+                    `Failed to download ${config.exeName} from ${mirrorName}: ${err.message}, trying different mirror`,
+                );
+            } else {
+                void vscode.window.showWarningMessage(
+                    `Failed to download ${config.exeName} from ${mirrorName}, trying different mirror`,
+                );
+            }
         }
     }
 
