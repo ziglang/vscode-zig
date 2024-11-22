@@ -150,16 +150,21 @@
           ],
           "default": "off"
         },
-        "zig.zls.checkForUpdate": {
+        "zig.zls.enabled": {
           "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to automatically check for new updates",
-          "default": true
+          "type": "string",
+          "description": "Whether to enable the optional ZLS Language Server",
+          "enum": [
+            "ask",
+            "off",
+            "on"
+          ],
+          "default": "ask"
         },
         "zig.zls.path": {
           "scope": "machine-overridable",
           "type": "string",
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. The string \"zls\" means lookup ZLS in PATH.",
+          "description": "Set a custom path to the `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. The string \"zls\" means lookup ZLS in PATH.",
           "format": "path"
         },
         "zig.zls.enableSnippets": {
@@ -341,23 +346,18 @@
         "category": "Zig Setup"
       },
       {
-        "command": "zig.zls.install",
-        "title": "Install Server",
+        "command": "zig.zls.enable",
+        "title": "Enable Language Server",
         "category": "Zig Language Server"
       },
       {
         "command": "zig.zls.startRestart",
-        "title": "Start / Restart Server",
+        "title": "Start / Restart Language Server",
         "category": "Zig Language Server"
       },
       {
         "command": "zig.zls.stop",
-        "title": "Stop Server",
-        "category": "Zig Language Server"
-      },
-      {
-        "command": "zig.zls.update",
-        "title": "Check for Server Updates",
+        "title": "Stop Language Server",
         "category": "Zig Language Server"
       }
     ],
