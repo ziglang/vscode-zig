@@ -26,6 +26,10 @@ async function installZig(context: vscode.ExtensionContext) {
         return;
     }
 
+    if (wantedZig.source === WantedZigVersionSource.workspaceBuildZigZon) {
+        wantedZig.version = await findClosestSatisfyingZigVersion(context, wantedZig.version);
+    }
+
     try {
         const exePath = await versionManager.install(versionManagerConfig, wantedZig.version);
         await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
@@ -39,6 +43,25 @@ async function installZig(context: vscode.ExtensionContext) {
         } else {
             void vscode.window.showErrorMessage(`Failed to install Zig ${wantedZig.version.toString()}!`);
         }
+    }
+}
+
+async function findClosestSatisfyingZigVersion(
+    context: vscode.ExtensionContext,
+    version: semver.SemVer,
+): Promise<semver.SemVer> {
+    if (version.prerelease.length !== 0) return version;
+    const cacheKey = `zig-satisfying-version-${version.raw}`;
+
+    try {
+        // We can't just return `version` because `0.12.0` should return `0.12.1`.
+        const availableVersions = (await getVersions()).map((item) => item.version);
+        const selectedVersion = semver.maxSatisfying(availableVersions, `^${version.toString()}`);
+        await context.globalState.update(cacheKey, selectedVersion ?? undefined);
+        return selectedVersion ?? version;
+    } catch {
+        const selectedVersion = context.globalState.get<string | null>(cacheKey, null);
+        return selectedVersion ? new semver.SemVer(selectedVersion) : version;
     }
 }
 
