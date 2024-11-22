@@ -24,6 +24,9 @@ import { getVersion, getZigArchName, getZigOSName } from "./zigUtil";
 const execFile = util.promisify(childProcess.execFile);
 const chmod = util.promisify(fs.chmod);
 
+/** The maxmimum number of installation that can be store until they will be removed */
+const maxInstallCount = 5;
+
 export interface Config {
     context: vscode.ExtensionContext;
     /** The name of the application. */
@@ -48,6 +51,8 @@ export async function install(config: Config, version: semver.SemVer): Promise<s
     const exeName = config.exeName + (process.platform === "win32" ? ".exe" : "");
     const subDirName = `${getZigOSName()}-${getZigArchName()}-${version.raw}`;
     const exeUri = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName, subDirName, exeName);
+
+    await setLastAccessTime(config, version);
 
     try {
         await vscode.workspace.fs.stat(exeUri);
@@ -189,4 +194,47 @@ export async function query(config: Config): Promise<semver.SemVer[]> {
     }
 
     return available;
+}
+
+/** Set the last access time of the (installed) version. */
+async function setLastAccessTime(config: Config, version: semver.SemVer): Promise<void> {
+    await config.context.globalState.update(
+        `${config.exeName}-last-access-time-${getZigOSName()}-${getZigArchName()}-${version.raw}`,
+        Date.now(),
+    );
+}
+
+/** Remove installations with the oldest last access time until at most `VersionManager.maxInstallCount` versions remain. */
+export async function removeUnusedInstallations(config: Config) {
+    const storageDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName);
+
+    const keys: { key: string; installDir: vscode.Uri; lastAccessTime: number }[] = [];
+
+    try {
+        for (const [name, fileType] of await vscode.workspace.fs.readDirectory(storageDir)) {
+            const key = `${config.exeName}-last-access-time-${name}`;
+            const uri = vscode.Uri.joinPath(storageDir, name);
+            const lastAccessTime = config.context.globalState.get<number>(key);
+
+            if (!lastAccessTime || fileType !== vscode.FileType.Directory) {
+                await vscode.workspace.fs.delete(uri, { recursive: true, useTrash: false });
+            } else {
+                keys.push({
+                    key: key,
+                    installDir: uri,
+                    lastAccessTime: lastAccessTime,
+                });
+            }
+        }
+    } catch (e) {
+        if (e instanceof vscode.FileSystemError && e.code === "FileNotFound") return;
+        throw e;
+    }
+
+    keys.sort((lhs, rhs) => lhs.lastAccessTime - rhs.lastAccessTime);
+
+    for (const item of keys.slice(maxInstallCount)) {
+        await vscode.workspace.fs.delete(item.installDir, { recursive: true, useTrash: false });
+        await config.context.globalState.update(item.key, undefined);
+    }
 }

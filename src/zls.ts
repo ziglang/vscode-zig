@@ -448,4 +448,5 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export async function deactivate(): Promise<void> {
     await stopClient();
+    await versionManager.removeUnusedInstallations(versionManagerConfig);
 }

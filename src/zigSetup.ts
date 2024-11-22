@@ -452,3 +452,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
 
     await refreshZigInstallation();
 }
+
+export async function deactivate() {
+    await versionManager.removeUnusedInstallations(versionManagerConfig);
+}
