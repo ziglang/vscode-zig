@@ -5,6 +5,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+import assert from "assert";
 import semver from "semver";
 import which from "which";
 
@@ -53,14 +54,16 @@ export function resolveExePathAndVersion(
     exePath: string | null,
     /** e.g. `zig` or `zig` */
     exeName: string,
-    /** e.g. `zig.path` or `zig.zls.path` */
-    optionName: string,
+    /** e.g. `zig.path` or `zig.zls.path`. Can be null if `exePath === null` */
+    optionName: string | null,
     /**
      * The command-line argument that is used to query the version of the executable.
      * Zig uses `version`. ZLS uses `--version`.
      */
     versionArg: string,
 ): { exe: string; version: semver.SemVer } | { message: string } {
+    /* `optionName === null` implies `exePath === null` */
+    assert(optionName !== null || exePath === null);
     if (!exePath) {
         exePath = which.sync(exeName, { nothrow: true });
     } else {
@@ -79,13 +82,19 @@ export function resolveExePathAndVersion(
     }
 
     if (!fs.existsSync(exePath)) {
-        return { message: `\`${optionName}\` ${exePath} does not exist` };
+        return {
+            message: optionName ? `\`${optionName}\` ${exePath} does not exist` : `${exePath} does not exist`,
+        };
     }
 
     try {
         fs.accessSync(exePath, fs.constants.R_OK | fs.constants.X_OK);
     } catch {
-        return { message: `\`${optionName}\` ${exePath} is not an executable` };
+        return {
+            message: optionName
+                ? `\`${optionName}\` ${exePath} is not an executable`
+                : `${exePath} is not an executable`,
+        };
     }
 
     const version = getVersion(exePath, versionArg);

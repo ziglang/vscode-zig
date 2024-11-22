@@ -6,7 +6,7 @@ import axios from "axios";
 import semver from "semver";
 
 import * as versionManager from "./versionManager";
-import { VersionIndex, ZigVersion, getHostZigName } from "./zigUtil";
+import { VersionIndex, ZigVersion, getHostZigName, resolveExePathAndVersion } from "./zigUtil";
 import { ZigProvider } from "./zigProvider";
 
 let statusItem: vscode.StatusBarItem;
@@ -42,6 +42,10 @@ async function installZig(context: vscode.ExtensionContext) {
     }
 }
 
+/**
+ * Returns a sorted list of all versions that are provided by [index.json](https://ziglang.org/download/index.json).
+ * Throws an exception when no network connection is available.
+ */
 async function getVersions(): Promise<ZigVersion[]> {
     const indexJson = (await axios.get<VersionIndex>("https://ziglang.org/download/index.json", {})).data;
     const hostName = getHostZigName();
@@ -71,42 +75,131 @@ async function getVersions(): Promise<ZigVersion[]> {
             `no pre-built Zig is available for your system '${hostName}', you can build it yourself using https://github.com/ziglang/zig-bootstrap`,
         );
     }
+    result.sort((lhs, rhs) => semver.compare(rhs.version, lhs.version));
     return result;
 }
 
 async function selectVersionAndInstall(context: vscode.ExtensionContext) {
+    const offlineVersions = await versionManager.query(versionManagerConfig);
+
+    const versions: {
+        version: semver.SemVer;
+        /** Whether the version already installed in global extension storage */
+        offline: boolean;
+        /** Whether is available in `index.json` */
+        online: boolean;
+    }[] = offlineVersions.map((version) => ({
+        version: version,
+        offline: true,
+        online: false,
+    }));
+
     try {
-        const available = await getVersions();
-
-        const items: vscode.QuickPickItem[] = [];
-        for (const option of available) {
-            items.push({ label: option.name });
-        }
-        // Recommend latest stable release.
-        const placeHolder = available.length > 2 ? available[1].name : undefined;
-        const selection = await vscode.window.showQuickPick(items, {
-            title: "Select Zig version to install",
-            canPickMany: false,
-            placeHolder: placeHolder,
-        });
-        if (selection === undefined) return;
-        for (const option of available) {
-            if (option.name === selection.label) {
-                await context.workspaceState.update("zig-version", option.version.raw);
-                await installZig(context);
-
-                void vscode.window.showInformationMessage(
-                    `Zig ${option.version.toString()} has been installed successfully. Relaunch your integrated terminal to make it available.`,
-                );
-                return;
+        outer: for (const onlineVersion of await getVersions()) {
+            for (const version of versions) {
+                if (semver.eq(version.version, onlineVersion.version)) {
+                    version.online = true;
+                    continue outer;
+                }
             }
+            versions.push({
+                version: onlineVersion.version,
+                online: true,
+                offline: false,
+            });
         }
     } catch (err) {
-        if (err instanceof Error) {
-            void vscode.window.showErrorMessage(`Unable to install Zig: ${err.message}`);
+        if (!offlineVersions.length) {
+            if (err instanceof Error) {
+                void vscode.window.showErrorMessage(`Failed to query available Zig version: ${err.message}`);
+            } else {
+                void vscode.window.showErrorMessage(`Failed to query available Zig version!`);
+            }
+            return;
         } else {
-            throw err;
+            // Only show the locally installed versions
         }
+    }
+
+    versions.sort((lhs, rhs) => semver.compare(rhs.version, lhs.version));
+    const placeholderVersion = versions.find((item) => item.version.prerelease.length === 0)?.version;
+
+    const items: vscode.QuickPickItem[] = [];
+
+    const workspaceZig = await getWantedZigVersion(context, [
+        WantedZigVersionSource.workspaceZigVersionFile,
+        WantedZigVersionSource.workspaceBuildZigZon,
+        WantedZigVersionSource.zigVersionConfigOption,
+    ]);
+    if (workspaceZig !== null) {
+        const alreadyInstalled = offlineVersions.some((item) => semver.eq(item.version, workspaceZig.version));
+        items.push({
+            label: "Use Workspace Version",
+            description: alreadyInstalled ? "already installed" : undefined,
+            detail: workspaceZig.version.raw,
+        });
+    }
+
+    const zigInPath = resolveExePathAndVersion(null, "zig", null, "version");
+    if (!("message" in zigInPath)) {
+        items.push({
+            label: "Use Zig in PATH",
+            description: zigInPath.exe,
+            detail: zigInPath.version.raw,
+        });
+    }
+
+    items.push(
+        {
+            label: "Manually Specify Path",
+        },
+        {
+            label: "",
+            kind: vscode.QuickPickItemKind.Separator,
+        },
+    );
+
+    for (const item of versions) {
+        const isNightly = item.online && item.version.prerelease.length !== 0;
+        items.push({
+            label: isNightly ? "nightly" : item.version.raw,
+            description: item.offline ? "already installed" : undefined,
+            detail: isNightly ? item.version.raw : undefined,
+        });
+    }
+
+    const selection = await vscode.window.showQuickPick(items, {
+        title: "Select Zig version to install",
+        canPickMany: false,
+        placeHolder: placeholderVersion?.raw,
+    });
+    if (selection === undefined) return;
+
+    switch (selection.label) {
+        case "Use Workspace Version":
+            await context.workspaceState.update("zig-version", undefined);
+            await installZig(context);
+            break;
+        case "Use Zig in PATH":
+            await vscode.workspace.getConfiguration("zig").update("path", "zig", true);
+            break;
+        case "Manually Specify Path":
+            const uris = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                title: "Select Zig executable",
+            });
+            if (!uris) return;
+            await vscode.workspace.getConfiguration("zig").update("path", uris[0].path, true);
+            break;
+        default:
+            const version = new semver.SemVer(
+                selection.label === "nightly" ? selection.detail ?? selection.label : selection.label,
+            );
+            await context.workspaceState.update("zig-version", version.raw);
+            await installZig(context);
+            break;
     }
 }
 

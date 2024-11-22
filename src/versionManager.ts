@@ -168,3 +168,25 @@ async function installFromMirror(
         },
     );
 }
+
+/** Returns all locally installed versions */
+export async function query(config: Config): Promise<semver.SemVer[]> {
+    const available: semver.SemVer[] = [];
+    const prefix = `${getZigOSName()}-${getZigArchName()}`;
+
+    const storageDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName);
+    try {
+        for (const [name] of await vscode.workspace.fs.readDirectory(storageDir)) {
+            if (name.startsWith(prefix)) {
+                available.push(new semver.SemVer(name.substring(prefix.length + 1)));
+            }
+        }
+    } catch (e) {
+        if (e instanceof vscode.FileSystemError && e.code === "FileNotFound") {
+            return [];
+        }
+        throw e;
+    }
+
+    return available;
+}
