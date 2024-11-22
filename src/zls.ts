@@ -15,6 +15,7 @@ import axios from "axios";
 import camelCase from "camelcase";
 import semver from "semver";
 
+import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
 import { getHostZigName, getVersion, handleConfigOption, resolveExePathAndVersion } from "./zigUtil";
 import { zigProvider } from "./zigSetup";
@@ -392,6 +393,8 @@ export async function activate(context: vscode.ExtensionContext) {
         title: "ZLS",
         exeName: "zls",
         extraTarArgs: [],
+        /** https://github.com/zigtools/release-worker */
+        minisignKey: minisign.parseKey("RWR+9B91GBZ0zOjh6Lr17+zKf5BoSuFvrx2xSeDE57uIYvnKBGmMjOex"),
         versionArg: "--version",
         canonicalUrl: {
             release: vscode.Uri.parse("https://builds.zigtools.org"),

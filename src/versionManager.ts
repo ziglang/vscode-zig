@@ -19,6 +19,7 @@ import which from "which";
 import axios from "axios";
 import semver from "semver";
 
+import * as minisign from "./minisign";
 import { getVersion, getZigArchName, getZigOSName } from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
@@ -33,6 +34,7 @@ export interface Config {
     title: string;
     /** The name of the executable file. */
     exeName: string;
+    minisignKey: minisign.Key;
     /** The command-line argument that should passed to `tar` to exact the tarball. */
     extraTarArgs: string[];
     /**
@@ -110,6 +112,15 @@ async function installFromMirror(
             /** https://github.com/mlugg/setup-zig adds a `?source=github-actions` query parameter so we add our own.  */
             const artifactUrlWithQuery = artifactUrl.with({ query: "source=vscode-zig" });
 
+            const artifactMinisignUrl = vscode.Uri.joinPath(mirrorUrl, `${fileName}.minisig`);
+            const artifactMinisignUrlWithQuery = artifactMinisignUrl.with({ query: "source=vscode-zig" });
+
+            const signatureResponse = await axios.get<Buffer>(artifactMinisignUrlWithQuery.toString(), {
+                responseType: "arraybuffer",
+                signal: abortController.signal,
+            });
+            const signatureData = Buffer.from(signatureResponse.data);
+
             const artifactResponse = await axios.get<Buffer>(artifactUrlWithQuery.toString(), {
                 responseType: "arraybuffer",
                 signal: abortController.signal,
@@ -126,6 +137,16 @@ async function installFromMirror(
                 },
             });
             const artifactData = Buffer.from(artifactResponse.data);
+
+            progress.report({ message: "Verifying Signature..." });
+
+            const signature = minisign.parseSignature(signatureData);
+            if (!minisign.verifySignature(config.minisignKey, signature, artifactData)) {
+                try {
+                    await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
+                } catch {}
+                throw new Error(`signature verification failed for '${artifactUrl.toString()}'`);
+            }
 
             try {
                 await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });

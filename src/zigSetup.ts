@@ -5,6 +5,7 @@ import path from "path";
 import axios from "axios";
 import semver from "semver";
 
+import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
 import { VersionIndex, ZigVersion, getHostZigName, resolveExePathAndVersion } from "./zigUtil";
 import { ZigProvider } from "./zigProvider";
@@ -382,6 +383,8 @@ export async function setupZig(context: vscode.ExtensionContext) {
         title: "Zig",
         exeName: "zig",
         extraTarArgs: ["--strip-components=1"],
+        /** https://ziglang.org/download */
+        minisignKey: minisign.parseKey("RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U"),
         versionArg: "version",
         canonicalUrl: {
             release: vscode.Uri.parse("https://ziglang.org/download"),
