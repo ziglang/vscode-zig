@@ -15,14 +15,15 @@ import axios from "axios";
 import camelCase from "camelcase";
 import semver from "semver";
 
-import { downloadAndExtractArtifact, getHostZigName, getVersion, getZigPath, handleConfigOption } from "./zigUtil";
-import { existsSync } from "fs";
+import * as versionManager from "./versionManager";
+import { getHostZigName, getVersion, getZigPath, handleConfigOption } from "./zigUtil";
 
 const ZIG_MODE: DocumentSelector = [
     { language: "zig", scheme: "file" },
     { language: "zig", scheme: "untitled" },
 ];
 
+let versionManagerConfig: versionManager.Config;
 let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
 
@@ -104,25 +105,12 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
         const result = await fetchVersion(context, zigVersion, true);
         if (!result) return null;
 
-        const isWindows = process.platform === "win32";
-        const installDir = vscode.Uri.joinPath(context.globalStorageUri, "zls", result.version.raw);
-        zlsExePath = vscode.Uri.joinPath(installDir, isWindows ? "zls.exe" : "zls").fsPath;
-        zlsVersion = result.version;
-
-        if (!existsSync(zlsExePath)) {
-            try {
-                await downloadAndExtractArtifact(
-                    "ZLS",
-                    "zls",
-                    installDir,
-                    result.artifact.tarball,
-                    result.artifact.shasum,
-                    [],
-                );
-            } catch {
-                void vscode.window.showErrorMessage(`Failed to install ZLS ${result.version.toString()}!`);
-                return null;
-            }
+        try {
+            zlsExePath = await versionManager.install(versionManagerConfig, result.version);
+            zlsVersion = result.version;
+        } catch {
+            void vscode.window.showErrorMessage(`Failed to install ZLS ${result.version.toString()}!`);
+            return null;
         }
     }
 
@@ -366,6 +354,18 @@ export async function activate(context: vscode.ExtensionContext) {
             await zlsConfig.update("path", undefined, true);
         }
     }
+
+    versionManagerConfig = {
+        context: context,
+        title: "ZLS",
+        exeName: "zls",
+        extraTarArgs: [],
+        versionArg: "--version",
+        canonicalUrl: {
+            release: vscode.Uri.parse("https://builds.zigtools.org"),
+            nightly: vscode.Uri.parse("https://builds.zigtools.org"),
+        },
+    };
 
     outputChannel = vscode.window.createOutputChannel("Zig Language Server");
 

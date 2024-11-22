@@ -4,8 +4,11 @@ import axios from "axios";
 import semver from "semver";
 import vscode from "vscode";
 
-import { downloadAndExtractArtifact, getHostZigName, getVersion, getZigPath, shouldCheckUpdate } from "./zigUtil";
+import * as versionManager from "./versionManager";
+import { getHostZigName, getVersion, getZigPath, shouldCheckUpdate } from "./zigUtil";
 import { restartClient } from "./zls";
+
+let versionManagerConfig: versionManager.Config;
 
 const DOWNLOAD_INDEX = "https://ziglang.org/download/index.json";
 
@@ -22,27 +25,20 @@ interface ZigVersion {
     url: string;
     sha: string;
     notes?: string;
+    version: semver.SemVer;
 }
 
-export async function installZig(context: vscode.ExtensionContext, version: ZigVersion) {
-    const zigPath = await downloadAndExtractArtifact(
-        "Zig",
-        "zig",
-        vscode.Uri.joinPath(context.globalStorageUri, "zig_install"),
-        version.url,
-        version.sha,
-        ["--strip-components=1"],
+export async function installZig(context: vscode.ExtensionContext, version: semver.SemVer) {
+    const zigPath = await versionManager.install(versionManagerConfig, version);
+
+    const configuration = vscode.workspace.getConfiguration("zig");
+    await configuration.update("path", zigPath, true);
+
+    void vscode.window.showInformationMessage(
+        `Zig has been installed successfully. Relaunch your integrated terminal to make it available.`,
     );
-    if (zigPath !== null) {
-        const configuration = vscode.workspace.getConfiguration("zig");
-        await configuration.update("path", zigPath, true);
 
-        void vscode.window.showInformationMessage(
-            `Zig has been installed successfully. Relaunch your integrated terminal to make it available.`,
-        );
-
-        void restartClient(context);
-    }
+    void restartClient(context);
 }
 
 async function getVersions(): Promise<ZigVersion[]> {
@@ -51,13 +47,18 @@ async function getVersions(): Promise<ZigVersion[]> {
     const result: ZigVersion[] = [];
     for (let key in indexJson) {
         const value = indexJson[key];
+        let version: semver.SemVer;
         if (key === "master") {
             key = "nightly";
+            version = new semver.SemVer((value as unknown as { version: string }).version);
+        } else {
+            version = new semver.SemVer(key);
         }
         const release = value[hostName];
         if (release) {
             result.push({
                 name: key,
+                version: version,
                 url: release.tarball,
                 sha: release.shasum,
                 notes: (value as { notes?: string }).notes,
@@ -90,7 +91,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
         if (selection === undefined) return;
         for (const option of available) {
             if (option.name === selection.label) {
-                await installZig(context, option);
+                await installZig(context, option.version);
                 return;
             }
         }
@@ -117,7 +118,7 @@ async function checkUpdate(context: vscode.ExtensionContext) {
         );
         switch (response) {
             case "Install":
-                await installZig(context, update);
+                await installZig(context, update.version);
                 break;
             case "Ignore":
             case undefined:
@@ -181,6 +182,18 @@ export async function setupZig(context: vscode.ExtensionContext) {
             await zigConfig.update("path", "zig", true);
         }
     }
+
+    versionManagerConfig = {
+        context: context,
+        title: "Zig",
+        exeName: "zig",
+        extraTarArgs: ["--strip-components=1"],
+        versionArg: "version",
+        canonicalUrl: {
+            release: vscode.Uri.parse("https://ziglang.org/download"),
+            nightly: vscode.Uri.parse("https://ziglang.org/builds"),
+        },
+    };
 
     context.environmentVariableCollection.description = "Add Zig to PATH";
     updateZigEnvironmentVariableCollection(context);
