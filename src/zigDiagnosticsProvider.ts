@@ -7,7 +7,8 @@ import path from "path";
 import { DebouncedFunc, throttle } from "lodash-es";
 
 import * as zls from "./zls";
-import { getZigPath, handleConfigOption } from "./zigUtil";
+import { handleConfigOption } from "./zigUtil";
+import { zigProvider } from "./zigSetup";
 
 export default class ZigDiagnosticsProvider {
     private buildDiagnostics!: vscode.DiagnosticCollection;
@@ -89,7 +90,8 @@ export default class ZigDiagnosticsProvider {
         if (textDocument.languageId !== "zig") {
             return;
         }
-        const zigPath = getZigPath();
+        const zigPath = zigProvider.getZigPath();
+        if (!zigPath) return null;
         const { error, stderr } = childProcess.spawnSync(zigPath, ["ast-check"], {
             input: textDocument.getText(),
             maxBuffer: 10 * 1024 * 1024, // 10MB
@@ -134,7 +136,8 @@ export default class ZigDiagnosticsProvider {
     private _doCompile(textDocument: vscode.TextDocument) {
         const config = vscode.workspace.getConfiguration("zig");
 
-        const zigPath = getZigPath();
+        const zigPath = zigProvider.getZigPath();
+        if (!zigPath) return null;
 
         const buildOption = config.get<string>("buildOption", "build");
         const processArg: string[] = [buildOption];

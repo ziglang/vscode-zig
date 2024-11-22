@@ -47,7 +47,20 @@ export function handleConfigOption(input: string): string {
     return input;
 }
 
-export function getExePath(exePath: string | null | undefined, exeName: string, optionName: string): string {
+/** Resolves the absolute executable path and version of a program like Zig or ZLS. */
+export function resolveExePathAndVersion(
+    /** `null` means lookup in PATH */
+    exePath: string | null,
+    /** e.g. `zig` or `zig` */
+    exeName: string,
+    /** e.g. `zig.path` or `zig.zls.path` */
+    optionName: string,
+    /**
+     * The command-line argument that is used to query the version of the executable.
+     * Zig uses `version`. ZLS uses `--version`.
+     */
+    versionArg: string,
+): { exe: string; version: semver.SemVer } | { message: string } {
     if (!exePath) {
         exePath = which.sync(exeName, { nothrow: true });
     } else {
@@ -61,28 +74,23 @@ export function getExePath(exePath: string | null | undefined, exeName: string, 
         }
     }
 
-    let message;
     if (!exePath) {
-        message = `Could not find ${exeName} in PATH`;
-    } else if (!fs.existsSync(exePath)) {
-        message = `\`${optionName}\` ${exePath} does not exist`;
-    } else {
-        try {
-            fs.accessSync(exePath, fs.constants.R_OK | fs.constants.X_OK);
-            return exePath;
-        } catch {
-            message = `\`${optionName}\` ${exePath} is not an executable`;
-        }
+        return { message: `Could not find ${exeName} in PATH` };
     }
-    void vscode.window.showErrorMessage(message);
-    throw Error(message);
-}
 
-export function getZigPath(): string {
-    const configuration = vscode.workspace.getConfiguration("zig");
-    const zigPath = configuration.get<string>("path");
-    const exePath = zigPath !== "zig" ? zigPath : null; // the string "zig" means lookup in PATH
-    return getExePath(exePath, "zig", "zig.path");
+    if (!fs.existsSync(exePath)) {
+        return { message: `\`${optionName}\` ${exePath} does not exist` };
+    }
+
+    try {
+        fs.accessSync(exePath, fs.constants.R_OK | fs.constants.X_OK);
+    } catch {
+        return { message: `\`${optionName}\` ${exePath} is not an executable` };
+    }
+
+    const version = getVersion(exePath, versionArg);
+    if (!version) return { message: `Failed to run '${exePath} ${versionArg}'!` };
+    return { exe: exePath, version: version };
 }
 
 // Check timestamp `key` to avoid automatically checking for updates
@@ -129,7 +137,14 @@ export function getHostZigName(): string {
     return `${getZigArchName()}-${getZigOSName()}`;
 }
 
-export function getVersion(filePath: string, arg: string): semver.SemVer | null {
+export function getVersion(
+    filePath: string,
+    /**
+     * The command-line argument that is used to query the version of the executable.
+     * Zig uses `version`. ZLS uses `--version`.
+     */
+    arg: string,
+): semver.SemVer | null {
     try {
         const buffer = childProcess.execFileSync(filePath, [arg]);
         const versionString = buffer.toString("utf8").trim();

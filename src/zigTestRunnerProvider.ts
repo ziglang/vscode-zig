@@ -6,7 +6,8 @@ import util from "util";
 
 import { DebouncedFunc, throttle } from "lodash-es";
 
-import { getWorkspaceFolder, getZigPath, isWorkspaceFile } from "./zigUtil";
+import { getWorkspaceFolder, isWorkspaceFile } from "./zigUtil";
+import { zigProvider } from "./zigSetup";
 
 const execFile = util.promisify(childProcess.execFile);
 
@@ -85,7 +86,7 @@ export default class ZigTestRunnerProvider {
         this.deleteTestForAFile(textDocument.uri);
 
         for (const match of matches) {
-            const testDesc = match[1] || match[2] || match [3];
+            const testDesc = match[1] || match[2] || match[3];
             const isDocTest = !match[1];
             const position = textDocument.positionAt(match.index);
             const range = new vscode.Range(position, position.translate(0, match[0].length));
@@ -128,7 +129,10 @@ export default class ZigTestRunnerProvider {
     }
 
     private async runTest(test: vscode.TestItem): Promise<{ output: string; success: boolean }> {
-        const zigPath = getZigPath();
+        const zigPath = zigProvider.getZigPath();
+        if (!zigPath) {
+            return { output: "Unable to run test without Zig", success: false };
+        }
         if (test.uri === undefined) {
             return { output: "Unable to determine file location", success: false };
         }
@@ -176,13 +180,17 @@ export default class ZigTestRunnerProvider {
     }
 
     private async buildTestBinary(run: vscode.TestRun, testFilePath: string, testDesc: string): Promise<string> {
+        const zigPath = zigProvider.getZigPath();
+        if (!zigPath) {
+            throw new Error("Unable to build test binary without Zig");
+        }
+
         const wsFolder = getWorkspaceFolder(testFilePath)?.uri.fsPath ?? path.dirname(testFilePath);
         const outputDir = path.join(wsFolder, "zig-out", "tmp-debug-build", "bin");
         const binaryName = `test-${path.basename(testFilePath, ".zig")}`;
         const binaryPath = path.join(outputDir, binaryName);
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(outputDir));
 
-        const zigPath = getZigPath();
         const { stdout, stderr } = await execFile(zigPath, [
             "test",
             testFilePath,

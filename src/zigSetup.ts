@@ -5,10 +5,12 @@ import semver from "semver";
 import vscode from "vscode";
 
 import * as versionManager from "./versionManager";
-import { VersionIndex, ZigVersion, getHostZigName, getVersion, getZigPath } from "./zigUtil";
+import { VersionIndex, ZigVersion, getHostZigName, getVersion } from "./zigUtil";
+import { ZigProvider } from "./zigProvider";
 import { restartClient } from "./zls";
 
 let versionManagerConfig: versionManager.Config;
+export let zigProvider: ZigProvider;
 
 export async function installZig(context: vscode.ExtensionContext, version: semver.SemVer) {
     const zigPath = await versionManager.install(versionManagerConfig, version);
@@ -86,15 +88,14 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
     }
 }
 
-function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext) {
-    try {
-        const zigPath = getZigPath();
-        const envValue = path.delimiter + path.dirname(zigPath);
+function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext, zigExePath: string | null) {
+    if (zigExePath) {
+        const envValue = path.delimiter + path.dirname(zigExePath);
         // Calling `append` means that zig from a user-defined PATH value will take precedence.
         // The added value may have already been added by the user but since we
         // append, it doesn't have any observable.
         context.environmentVariableCollection.append("PATH", envValue);
-    } catch {
+    } else {
         context.environmentVariableCollection.delete("PATH");
     }
 }
@@ -124,17 +125,19 @@ export async function setupZig(context: vscode.ExtensionContext) {
         },
     };
 
+    zigProvider = new ZigProvider();
+
     context.environmentVariableCollection.description = "Add Zig to PATH";
-    updateZigEnvironmentVariableCollection(context);
 
     context.subscriptions.push(
+        zigProvider,
         vscode.commands.registerCommand("zig.install", async () => {
             await selectVersionAndInstall(context);
         }),
-        vscode.workspace.onDidChangeConfiguration((change) => {
-            if (change.affectsConfiguration("zig.path")) {
-                updateZigEnvironmentVariableCollection(context);
-            }
+        zigProvider.onChange.event((result) => {
+            const { exe } = result ?? { exe: null, version: null };
+
+            updateZigEnvironmentVariableCollection(context, exe);
         }),
     );
 
