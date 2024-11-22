@@ -25,11 +25,14 @@ const ZIG_MODE: DocumentSelector = [
 ];
 
 let versionManagerConfig: versionManager.Config;
+let statusItem: vscode.LanguageStatusItem;
 let outputChannel: vscode.OutputChannel;
 export let client: LanguageClient | null = null;
 
 export async function restartClient(context: vscode.ExtensionContext): Promise<void> {
     const result = await getZLSPath(context);
+    updateStatusItem(result?.version ?? null);
+
     if (!result) return;
 
     try {
@@ -345,6 +348,32 @@ async function isEnabled(): Promise<boolean> {
     }
 }
 
+function updateStatusItem(version: semver.SemVer | null) {
+    if (version) {
+        statusItem.text = `ZLS ${version.toString()}`;
+        statusItem.detail = "ZLS Version";
+        statusItem.severity = vscode.LanguageStatusSeverity.Information;
+        statusItem.command = {
+            title: "View Output",
+            command: "zig.zls.openOutput",
+        };
+    } else {
+        statusItem.text = "ZLS not enabled";
+        statusItem.detail = undefined;
+        statusItem.severity = vscode.LanguageStatusSeverity.Error;
+        const zigPath = zigProvider.getZigPath();
+        const zigVersion = zigProvider.getZigVersion();
+        if (zigPath !== null && zigVersion !== null) {
+            statusItem.command = {
+                title: "Enable",
+                command: "zig.zls.enable",
+            };
+        } else {
+            statusItem.command = undefined;
+        }
+    }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     {
         // This check can be removed once enough time has passed so that most users switched to the new value
@@ -371,9 +400,13 @@ export async function activate(context: vscode.ExtensionContext) {
     };
 
     outputChannel = vscode.window.createOutputChannel("Zig Language Server");
+    statusItem = vscode.languages.createLanguageStatusItem("zig.zls.status", ZIG_MODE);
+    statusItem.name = "ZLS";
+    updateStatusItem(null);
 
     context.subscriptions.push(
         outputChannel,
+        statusItem,
         vscode.commands.registerCommand("zig.zls.enable", async () => {
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
             await zlsConfig.update("enabled", "on");
