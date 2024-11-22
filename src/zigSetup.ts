@@ -67,30 +67,32 @@ async function findClosestSatisfyingZigVersion(
 }
 
 /**
- * Returns a sorted list of all versions that are provided by [index.json](https://ziglang.org/download/index.json).
+ * Returns a sorted list of all versions that are provided by Zig's [index.json](https://ziglang.org/download/index.json) and Mach's [index.json](https://pkg.machengine.org/zig/index.json).
+ * [Nominated Zig versions](https://machengine.org/docs/nominated-zig/#nominated-zig-history) are sorted to the bottom.
+ *
  * Throws an exception when no network connection is available.
  */
 async function getVersions(): Promise<ZigVersion[]> {
-    const indexJson = (await axios.get<VersionIndex>("https://ziglang.org/download/index.json", {})).data;
+    const [zigIndexJson, machIndexJson] = await Promise.all([
+        axios.get<VersionIndex>("https://ziglang.org/download/index.json", {}),
+        axios.get<VersionIndex>("https://pkg.machengine.org/zig/index.json", {}),
+    ]);
+    const indexJson = { ...machIndexJson.data, ...zigIndexJson.data };
+
     const hostName = getHostZigName();
     const result: ZigVersion[] = [];
-    for (let key in indexJson) {
-        const value = indexJson[key];
-        let version: semver.SemVer;
-        if (key === "master") {
-            key = "nightly";
-            version = new semver.SemVer((value as unknown as { version: string }).version);
-        } else {
-            version = new semver.SemVer(key);
-        }
+    for (const [key, value] of Object.entries(indexJson)) {
+        const name = key === "master" ? "nightly" : key;
+        const version = new semver.SemVer(value.version ?? key);
         const release = value[hostName];
         if (release) {
             result.push({
-                name: key,
+                name: name,
                 version: version,
                 url: release.tarball,
                 sha: release.shasum,
-                notes: (value as { notes?: string }).notes,
+                notes: value.notes,
+                isMach: name.includes("mach"),
             });
         }
     }
@@ -99,37 +101,61 @@ async function getVersions(): Promise<ZigVersion[]> {
             `no pre-built Zig is available for your system '${hostName}', you can build it yourself using https://github.com/ziglang/zig-bootstrap`,
         );
     }
-    result.sort((lhs, rhs) => semver.compare(rhs.version, lhs.version));
+    sortVersions(result);
     return result;
+}
+
+function sortVersions(versions: { name?: string; version: semver.SemVer; isMach: boolean }[]) {
+    versions.sort((lhs, rhs) => {
+        // Mach versions except `mach-latest` move to the end
+        if (lhs.name !== "mach-latest" && rhs.name !== "mach-latest" && lhs.isMach !== rhs.isMach)
+            return +lhs.isMach - +rhs.isMach;
+        return semver.compare(rhs.version, lhs.version);
+    });
 }
 
 async function selectVersionAndInstall(context: vscode.ExtensionContext) {
     const offlineVersions = await versionManager.query(versionManagerConfig);
 
     const versions: {
+        name?: string;
         version: semver.SemVer;
         /** Whether the version already installed in global extension storage */
         offline: boolean;
         /** Whether is available in `index.json` */
         online: boolean;
+        /** Whether the version one of [Mach's nominated Zig versions](https://machengine.org/docs/nominated-zig/#nominated-zig-history)  */
+        isMach: boolean;
     }[] = offlineVersions.map((version) => ({
         version: version,
         offline: true,
         online: false,
+        isMach: false /* We can't tell if a version is Mach while being offline */,
     }));
 
     try {
-        outer: for (const onlineVersion of await getVersions()) {
+        const onlineVersions = await getVersions();
+        outer: for (const onlineVersion of onlineVersions) {
             for (const version of versions) {
                 if (semver.eq(version.version, onlineVersion.version)) {
+                    version.name ??= onlineVersion.name;
                     version.online = true;
+                    version.isMach = onlineVersion.isMach;
+                }
+            }
+
+            for (const version of versions) {
+                if (semver.eq(version.version, onlineVersion.version) && version.name === onlineVersion.name) {
                     continue outer;
                 }
             }
+
             versions.push({
+                name: onlineVersion.name,
                 version: onlineVersion.version,
                 online: true,
-                offline: false,
+                offline: !!offlineVersions.find((item) => semver.eq(item.version, onlineVersion.version)),
+                isMach: onlineVersion.isMach,
             });
         }
     } catch (err) {
@@ -145,7 +171,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
         }
     }
 
-    versions.sort((lhs, rhs) => semver.compare(rhs.version, lhs.version));
+    sortVersions(versions);
     const placeholderVersion = versions.find((item) => item.version.prerelease.length === 0)?.version;
 
     const items: vscode.QuickPickItem[] = [];
@@ -183,12 +209,20 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
         },
     );
 
+    let seenMachVersion = false;
     for (const item of versions) {
-        const isNightly = item.online && item.version.prerelease.length !== 0;
+        const useName = item.isMach || item.version.prerelease.length !== 0;
+        if (item.isMach && !seenMachVersion && item.name !== "mach-latest") {
+            seenMachVersion = true;
+            items.push({
+                label: "Mach's Nominated Zig versions",
+                kind: vscode.QuickPickItemKind.Separator,
+            });
+        }
         items.push({
-            label: isNightly ? "nightly" : item.version.raw,
+            label: (useName ? item.name : null) ?? item.version.raw,
             description: item.offline ? "already installed" : undefined,
-            detail: isNightly ? item.version.raw : undefined,
+            detail: useName ? (item.name ? item.version.raw : undefined) : undefined,
         });
     }
 
@@ -218,9 +252,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
             await vscode.workspace.getConfiguration("zig").update("path", uris[0].path, true);
             break;
         default:
-            const version = new semver.SemVer(
-                selection.label === "nightly" ? selection.detail ?? selection.label : selection.label,
-            );
+            const version = new semver.SemVer(selection.detail ?? selection.label);
             await context.workspaceState.update("zig-version", version.raw);
             await installZig(context);
             break;

@@ -173,11 +173,15 @@ export interface ZigVersion {
     url: string;
     sha: string;
     notes?: string;
+    isMach: boolean;
 }
 
 export type VersionIndex = Record<
     string,
-    Record<string, undefined | { tarball: string; shasum: string; size: string }>
+    {
+        version?: string;
+        notes?: string;
+    } & Record<string, undefined | { tarball: string; shasum: string; size: string }>
 >;
 
 export function getWorkspaceFolder(filePath: string): vscode.WorkspaceFolder | undefined {
