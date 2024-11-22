@@ -1,28 +1,43 @@
+import vscode from "vscode";
+
 import path from "path";
 
 import axios from "axios";
 import semver from "semver";
-import vscode from "vscode";
 
 import * as versionManager from "./versionManager";
-import { VersionIndex, ZigVersion, getHostZigName, getVersion } from "./zigUtil";
+import { VersionIndex, ZigVersion, getHostZigName } from "./zigUtil";
 import { ZigProvider } from "./zigProvider";
-import { restartClient } from "./zls";
 
 let versionManagerConfig: versionManager.Config;
 export let zigProvider: ZigProvider;
 
-export async function installZig(context: vscode.ExtensionContext, version: semver.SemVer) {
-    const zigPath = await versionManager.install(versionManagerConfig, version);
-
-    const configuration = vscode.workspace.getConfiguration("zig");
-    await configuration.update("path", zigPath, true);
-
-    void vscode.window.showInformationMessage(
-        `Zig has been installed successfully. Relaunch your integrated terminal to make it available.`,
+/** Removes the `zig.path` config option. */
+async function installZig(context: vscode.ExtensionContext) {
+    const wantedZig = await getWantedZigVersion(
+        context,
+        Object.values(WantedZigVersionSource) as WantedZigVersionSource[],
     );
+    if (!wantedZig) {
+        await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
+        zigProvider.set(null);
+        return;
+    }
 
-    void restartClient(context);
+    try {
+        const exePath = await versionManager.install(versionManagerConfig, wantedZig.version);
+        await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
+        zigProvider.set({ exe: exePath, version: wantedZig.version });
+    } catch (err) {
+        zigProvider.set(null);
+        if (err instanceof Error) {
+            void vscode.window.showErrorMessage(
+                `Failed to install Zig ${wantedZig.version.toString()}: ${err.message}`,
+            );
+        } else {
+            void vscode.window.showErrorMessage(`Failed to install Zig ${wantedZig.version.toString()}!`);
+        }
+    }
 }
 
 async function getVersions(): Promise<ZigVersion[]> {
@@ -75,7 +90,12 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
         if (selection === undefined) return;
         for (const option of available) {
             if (option.name === selection.label) {
-                await installZig(context, option.version);
+                await context.workspaceState.update("zig-version", option.version.raw);
+                await installZig(context);
+
+                void vscode.window.showInformationMessage(
+                    `Zig ${option.version.toString()} has been installed successfully. Relaunch your integrated terminal to make it available.`,
+                );
                 return;
             }
         }
@@ -86,6 +106,89 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
             throw err;
         }
     }
+}
+
+/** The order of these enums defines the default order in which these sources are executed. */
+enum WantedZigVersionSource {
+    workspaceState = "workspace-state",
+    /** `.zigversion` */
+    workspaceZigVersionFile = ".zigversion",
+    /** The `minimum_zig_version` in `build.zig.zon` */
+    workspaceBuildZigZon = "build.zig.zon",
+    latestTagged = "latest-tagged",
+}
+
+/** Try to resolve the (workspace-specific) Zig version. */
+async function getWantedZigVersion(
+    context: vscode.ExtensionContext,
+    /** List of "sources" that should are applied in the given order to resolve the wanted Zig version */
+    sources: WantedZigVersionSource[],
+): Promise<{
+    version: semver.SemVer;
+    source: WantedZigVersionSource;
+} | null> {
+    let workspace: vscode.WorkspaceFolder | null = null;
+    // Supporting multiple workspaces is significantly more complex so we just look for the first workspace.
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        workspace = vscode.workspace.workspaceFolders[0];
+    }
+
+    for (const source of sources) {
+        let result: semver.SemVer | null = null;
+
+        try {
+            switch (source) {
+                case WantedZigVersionSource.workspaceState:
+                    // `context.workspaceState` appears to behave like `context.globalState` when outside of a workspace
+                    // There is currently no way to remove the specified zig version.
+                    const wantedZigVersion = context.workspaceState.get<string>("zig-version");
+                    result = wantedZigVersion ? new semver.SemVer(wantedZigVersion) : null;
+                    break;
+                case WantedZigVersionSource.workspaceZigVersionFile:
+                    if (workspace) {
+                        const zigVersionString = await vscode.workspace.fs.readFile(
+                            vscode.Uri.joinPath(workspace.uri, ".zigversion"),
+                        );
+                        result = semver.parse(zigVersionString.toString().trim());
+                    }
+                    break;
+                case WantedZigVersionSource.workspaceBuildZigZon:
+                    if (workspace) {
+                        const manifest = await vscode.workspace.fs.readFile(
+                            vscode.Uri.joinPath(workspace.uri, "build.zig.zon"),
+                        );
+                        // Not perfect, but good enough
+                        const matches = /\n\s*\.minimum_zig_version\s=\s\"(.*)\"/.exec(manifest.toString());
+                        if (matches) {
+                            result = semver.parse(matches[1]);
+                        }
+                    }
+                    break;
+                case WantedZigVersionSource.latestTagged:
+                    const cacheKey = "zig-latest-tagged";
+                    try {
+                        const zigVersion = await getVersions();
+                        const latestTagged = zigVersion.find((item) => item.version.prerelease.length === 0);
+                        result = latestTagged?.version ?? null;
+                        await context.globalState.update(cacheKey, latestTagged?.version.raw);
+                    } catch {
+                        const latestTagged = context.globalState.get<string | null>(cacheKey, null);
+                        if (latestTagged) {
+                            result = new semver.SemVer(latestTagged);
+                        }
+                    }
+                    break;
+            }
+        } catch {}
+
+        if (!result) continue;
+
+        return {
+            version: result,
+            source: source,
+        };
+    }
+    return null;
 }
 
 function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext, zigExePath: string | null) {
@@ -102,14 +205,13 @@ function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext
 
 export async function setupZig(context: vscode.ExtensionContext) {
     {
-        // convert an empty string for `zig.path` to `zig`.
         // This check can be removed once enough time has passed so that most users switched to the new value
 
+        // remove a `zig.path` that points to the global storage.
         const zigConfig = vscode.workspace.getConfiguration("zig");
-        const initialSetupDone = zigConfig.get<boolean>("initialSetupDone", false);
-        const zigPath = zigConfig.get<string>("path");
-        if (zigPath === "" && initialSetupDone) {
-            await zigConfig.update("path", "zig", true);
+        const zigPath = zigConfig.get<string>("path", "");
+        if (zigPath.startsWith(context.globalStorageUri.fsPath)) {
+            await zigConfig.update("path", undefined, true);
         }
     }
 
@@ -141,49 +243,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
         }),
     );
 
-    const configuration = vscode.workspace.getConfiguration("zig");
-    if (!configuration.get<boolean>("initialSetupDone")) {
-        await configuration.update("initialSetupDone", await initialSetup(context), true);
+    if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
+        await installZig(context);
     }
-}
-
-async function initialSetup(context: vscode.ExtensionContext): Promise<boolean> {
-    const zigConfig = vscode.workspace.getConfiguration("zig");
-    if (!!zigConfig.get<string>("path")) return true;
-
-    const zigResponse = await vscode.window.showInformationMessage(
-        "Zig path hasn't been set, do you want to specify the path or install Zig?",
-        { modal: true },
-        "Install",
-        "Specify path",
-        "Use Zig in PATH",
-    );
-    switch (zigResponse) {
-        case "Install":
-            await selectVersionAndInstall(context);
-            const zigPath = vscode.workspace.getConfiguration("zig").get<string>("path");
-            if (!zigPath) return false;
-            break;
-        case "Specify path":
-            const uris = await vscode.window.showOpenDialog({
-                canSelectFiles: true,
-                canSelectFolders: false,
-                canSelectMany: false,
-                title: "Select Zig executable",
-            });
-            if (!uris) return false;
-
-            const version = getVersion(uris[0].path, "version");
-            if (!version) return false;
-
-            await zigConfig.update("path", uris[0].path, true);
-            break;
-        case "Use Zig in PATH":
-            await zigConfig.update("path", "zig", true);
-            break;
-        case undefined:
-            return false;
-    }
-
-    return true;
 }

@@ -68,11 +68,6 @@
       "type": "object",
       "title": "Zig",
       "properties": {
-        "zig.initialSetupDone": {
-          "type": "boolean",
-          "default": false,
-          "description": "Has the initial setup been done yet?"
-        },
         "zig.buildOnSave": {
           "type": "boolean",
           "default": false,
