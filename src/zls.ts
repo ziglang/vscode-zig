@@ -17,7 +17,7 @@ import semver from "semver";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
-import { getHostZigName, getVersion, handleConfigOption, resolveExePathAndVersion } from "./zigUtil";
+import { getHostZigName, handleConfigOption, resolveExePathAndVersion } from "./zigUtil";
 import { zigProvider } from "./zigSetup";
 
 const ZIG_MODE: DocumentSelector = [
@@ -131,25 +131,6 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
             void vscode.window.showErrorMessage(`Failed to install ZLS ${result.version.toString()}!`);
         }
         return null;
-    }
-
-    /** `--version` has been added in https://github.com/zigtools/zls/pull/583 */
-    const zlsVersionArgAdded = new semver.SemVer("0.10.0-dev.150+cb5eeb0b4");
-
-    if (semver.gte(zlsVersion, zlsVersionArgAdded)) {
-        // Verify the installation by quering the version
-        const checkedZLSVersion = getVersion(zlsExePath, "--version");
-        if (!checkedZLSVersion) {
-            void vscode.window.showErrorMessage(`Unable to check ZLS version. '${zlsExePath} --version' failed!`);
-            return null;
-        }
-
-        if (checkedZLSVersion.compare(zlsVersion) !== 0) {
-            // The Matrix is broken!
-            void vscode.window.showWarningMessage(
-                `Encountered unexpected ZLS version. Expected '${zlsVersion.toString()}' from '${zlsExePath} --version' but got '${checkedZLSVersion.toString()}'!`,
-            );
-        }
     }
 
     return {
