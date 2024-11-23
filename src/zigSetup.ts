@@ -356,8 +356,8 @@ async function getWantedZigVersion(
 }
 
 function updateStatusItem(item: vscode.StatusBarItem, version: semver.SemVer | null) {
-    item.name = "Zig";
-    item.text = `Zig ${version?.toString() ?? "not installed"}`;
+    item.name = "Zig Version";
+    item.text = version?.toString() ?? "not installed";
     item.tooltip = "Select Zig Version";
     item.command = {
         title: "Select Version",
