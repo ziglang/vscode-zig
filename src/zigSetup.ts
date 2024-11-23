@@ -416,6 +416,8 @@ export async function setupZig(context: vscode.ExtensionContext) {
         if (zigPath.startsWith(context.globalStorageUri.fsPath)) {
             await zigConfig.update("path", undefined, true);
         }
+
+        await zigConfig.update("initialSetupDone", undefined, true);
     }
 
     versionManagerConfig = {
