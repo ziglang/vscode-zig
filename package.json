@@ -36,6 +36,9 @@
           ".zig",
           ".zon"
         ],
+        "aliases": [
+          "Zig"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
