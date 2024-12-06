@@ -32,20 +32,25 @@ export let client: LanguageClient | null = null;
 
 export async function restartClient(context: vscode.ExtensionContext): Promise<void> {
     const result = await getZLSPath(context);
-    updateStatusItem(result?.version ?? null);
 
-    if (!result) return;
+    if (!result) {
+        await stopClient();
+        updateStatusItem(null);
+        return;
+    }
 
     try {
         const newClient = await startClient(result.exe, result.version);
         await stopClient();
         client = newClient;
+        updateStatusItem(result.version);
     } catch (reason) {
         if (reason instanceof Error) {
             void vscode.window.showWarningMessage(`Failed to run Zig Language Server (ZLS): ${reason.message}`);
         } else {
             void vscode.window.showWarningMessage("Failed to run Zig Language Server (ZLS)");
         }
+        updateStatusItem(null);
     }
 }
 
