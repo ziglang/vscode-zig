@@ -36,6 +36,9 @@
           ".zig",
           ".zon"
         ],
+        "aliases": [
+          "Zig"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -68,11 +71,6 @@
       "type": "object",
       "title": "Zig",
       "properties": {
-        "zig.initialSetupDone": {
-          "type": "boolean",
-          "default": false,
-          "description": "Has the initial setup been done yet?"
-        },
         "zig.buildOnSave": {
           "type": "boolean",
           "default": false,
@@ -105,13 +103,12 @@
         "zig.path": {
           "scope": "machine-overridable",
           "type": "string",
-          "description": "Set a custom path to the Zig binary. The string \"zig\" means lookup zig in PATH."
+          "description": "Set a custom path to the `zig` executable. Example: `C:/zig-windows-x86_64-0.13.0/zig.exe`. The string \"zig\" means lookup zig in PATH."
         },
-        "zig.checkForUpdate": {
+        "zig.version": {
           "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to automatically check for new updates",
-          "default": true
+          "type": "string",
+          "description": "Specify which Zig version should be installed. Takes priority over a `.zigversion` file or a `build.zig.zon` with `minimum_zig_version`."
         },
         "zig.formattingProvider": {
           "scope": "resource",
@@ -150,16 +147,21 @@
           ],
           "default": "off"
         },
-        "zig.zls.checkForUpdate": {
+        "zig.zls.enabled": {
           "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to automatically check for new updates",
-          "default": true
+          "type": "string",
+          "description": "Whether to enable the optional ZLS Language Server",
+          "enum": [
+            "ask",
+            "off",
+            "on"
+          ],
+          "default": "ask"
         },
         "zig.zls.path": {
           "scope": "machine-overridable",
           "type": "string",
-          "description": "Path to `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. The string \"zls\" means lookup ZLS in PATH.",
+          "description": "Set a custom path to the `zls` executable. Example: `C:/zls/zig-cache/bin/zls.exe`. The string \"zls\" means lookup ZLS in PATH.",
           "format": "path"
         },
         "zig.zls.enableSnippets": {
@@ -336,28 +338,18 @@
         "category": "Zig Setup"
       },
       {
-        "command": "zig.update",
-        "title": "Check for Zig Updates",
-        "category": "Zig Setup"
-      },
-      {
-        "command": "zig.zls.install",
-        "title": "Install Server",
+        "command": "zig.zls.enable",
+        "title": "Enable Language Server",
         "category": "Zig Language Server"
       },
       {
         "command": "zig.zls.startRestart",
-        "title": "Start / Restart Server",
+        "title": "Start / Restart Language Server",
         "category": "Zig Language Server"
       },
       {
         "command": "zig.zls.stop",
-        "title": "Stop Server",
-        "category": "Zig Language Server"
-      },
-      {
-        "command": "zig.zls.update",
-        "title": "Check for Server Updates",
+        "title": "Stop Language Server",
         "category": "Zig Language Server"
       }
     ],
@@ -379,23 +371,25 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.14",
     "@types/lodash-es": "^4.17.12",
     "@types/mocha": "^2.2.48",
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.80.0",
     "@types/which": "^2.0.1",
+    "@vscode/test-electron": "^2.3.9",
     "@vscode/vsce": "^2.24.0",
     "esbuild": "^0.12.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "3.2.5",
     "typescript": "^5.4.3",
-    "typescript-eslint": "^7.4.0",
-    "@vscode/test-electron": "^2.3.9"
+    "typescript-eslint": "^7.4.0"
   },
   "dependencies": {
     "axios": "^1.7.4",
     "camelcase": "^7.0.1",
+    "libsodium-wrappers": "^0.7.15",
     "lodash-es": "^4.17.21",
     "semver": "^7.5.2",
     "vscode-languageclient": "8.0.2-next.5",

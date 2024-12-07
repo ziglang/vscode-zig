@@ -5,7 +5,8 @@ import fs from "fs";
 import path from "path";
 import util from "util";
 
-import { getWorkspaceFolder, getZigPath, isWorkspaceFile } from "./zigUtil";
+import { getWorkspaceFolder, isWorkspaceFile } from "./zigUtil";
+import { zigProvider } from "./zigSetup";
 
 const execFile = util.promisify(childProcess.execFile);
 
@@ -39,15 +40,17 @@ export default class ZigMainCodeLensProvider implements vscode.CodeLensProvider 
 
 function zigRun() {
     if (!vscode.window.activeTextEditor) return;
+    const zigPath = zigProvider.getZigPath();
+    if (!zigPath) return;
     const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
     const terminal = vscode.window.createTerminal("Run Zig Program");
     terminal.show();
     const wsFolder = getWorkspaceFolder(filePath);
     if (wsFolder && isWorkspaceFile(filePath) && hasBuildFile(wsFolder.uri.fsPath)) {
-        terminal.sendText(`${getZigPath()} build run`);
+        terminal.sendText(`${zigPath} build run`);
         return;
     }
-    terminal.sendText(`${getZigPath()} run "${filePath}"`);
+    terminal.sendText(`${zigPath} run "${filePath}"`);
 }
 
 function hasBuildFile(workspaceFspath: string): boolean {
@@ -60,12 +63,13 @@ async function zigDebug() {
     const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
     try {
         const workspaceFolder = getWorkspaceFolder(filePath);
-        let binaryPath = "";
+        let binaryPath;
         if (workspaceFolder && isWorkspaceFile(filePath) && hasBuildFile(workspaceFolder.uri.fsPath)) {
             binaryPath = await buildDebugBinaryWithBuildFile(workspaceFolder.uri.fsPath);
         } else {
             binaryPath = await buildDebugBinary(filePath);
         }
+        if (!binaryPath) return;
 
         const debugConfig: vscode.DebugConfiguration = {
             type: "lldb",
@@ -81,11 +85,12 @@ async function zigDebug() {
     }
 }
 
-async function buildDebugBinaryWithBuildFile(workspacePath: string): Promise<string> {
+async function buildDebugBinaryWithBuildFile(workspacePath: string): Promise<string | null> {
+    const zigPath = zigProvider.getZigPath();
+    if (!zigPath) return null;
     // Workaround because zig build doesn't support specifying the output binary name
     // `zig run` does support -femit-bin, but preferring `zig build` if possible
     const outputDir = path.join(workspacePath, "zig-out", "tmp-debug-build");
-    const zigPath = getZigPath();
     await execFile(zigPath, ["build", "--prefix", outputDir], { cwd: workspacePath });
     const dirFiles = await vscode.workspace.fs.readDirectory(vscode.Uri.file(path.join(outputDir, "bin")));
     const files = dirFiles.find(([, type]) => type === vscode.FileType.File);
@@ -95,8 +100,9 @@ async function buildDebugBinaryWithBuildFile(workspacePath: string): Promise<str
     return path.join(outputDir, "bin", files[0]);
 }
 
-async function buildDebugBinary(filePath: string): Promise<string> {
-    const zigPath = getZigPath();
+async function buildDebugBinary(filePath: string): Promise<string | null> {
+    const zigPath = zigProvider.getZigPath();
+    if (!zigPath) return null;
     const fileDirectory = path.dirname(filePath);
     const binaryName = `debug-${path.basename(filePath, ".zig")}`;
     const binaryPath = path.join(fileDirectory, "zig-out", "bin", binaryName);
