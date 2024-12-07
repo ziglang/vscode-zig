@@ -1,3 +1,6 @@
+## 0.6.1
+- Fix formatting not working when `zig.formattingProvider` was set to ZLS (@Techatrix)
+
 ## 0.6.0
 - Introduce a new fully featured version manager (@Techatrix)
 - Add Zig test runner provider (@babaldotdev)
