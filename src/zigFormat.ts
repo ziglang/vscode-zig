@@ -3,7 +3,7 @@ import vscode from "vscode";
 import childProcess from "child_process";
 import util from "util";
 
-import { DocumentRangeFormattingRequest, TextDocumentIdentifier } from "vscode-languageclient";
+import { DocumentFormattingRequest, TextDocumentIdentifier } from "vscode-languageclient";
 
 import * as zls from "./zls";
 import { zigProvider } from "./zigSetup";
@@ -80,10 +80,9 @@ async function provideDocumentRangeFormattingEdits(
     if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "zls") {
         if (zls.client !== null) {
             return await (zls.client.sendRequest(
-                DocumentRangeFormattingRequest.type,
+                DocumentFormattingRequest.type,
                 {
                     textDocument: TextDocumentIdentifier.create(document.uri.toString()),
-                    range: range,
                     options: options,
                 },
                 token,
