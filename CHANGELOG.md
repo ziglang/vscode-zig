@@ -1,3 +1,7 @@
+## 0.6.0
+- Introduce a new fully featured version manager (@Techatrix)
+- Add Zig test runner provider (@babaldotdev)
+
 ## 0.5.9
 - Improve formatting provider implementation and default to using ZLS formatter (@Techatrix)
 - Sync ZLS options (@Techatrix)
