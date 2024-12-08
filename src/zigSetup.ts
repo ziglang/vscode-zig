@@ -459,6 +459,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
         } else {
             updateStatusItem(statusItem, zigProvider.getZigVersion());
             updateLanguageStatusItem(languageStatusItem, zigProvider.getZigVersion());
+            updateZigEnvironmentVariableCollection(context, zigProvider.getZigPath());
         }
     };
 
