@@ -249,7 +249,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
                 title: "Select Zig executable",
             });
             if (!uris) return;
-            await vscode.workspace.getConfiguration("zig").update("path", uris[0].path, true);
+            await vscode.workspace.getConfiguration("zig").update("path", uris[0].fsPath, true);
             break;
         default:
             const version = new semver.SemVer(selection.detail ?? selection.label);
