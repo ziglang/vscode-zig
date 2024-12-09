@@ -175,6 +175,9 @@ async function configurationMiddleware(
         const configValue = configuration.get(section);
         if (typeof configValue === "string" && configValue) {
             result[index] = handleConfigOption(configValue);
+        } else {
+            // Make sure that `""` gets converted to `null`
+            result[index] = null;
         }
     }
 
@@ -419,14 +422,14 @@ export async function activate(context: vscode.ExtensionContext) {
         statusItem,
         vscode.commands.registerCommand("zig.zls.enable", async () => {
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            await zlsConfig.update("enabled", "on");
+            await zlsConfig.update("enabled", "on", true);
         }),
         vscode.commands.registerCommand("zig.zls.stop", async () => {
             await stopClient();
         }),
         vscode.commands.registerCommand("zig.zls.startRestart", async () => {
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            await zlsConfig.update("enabled", "on");
+            await zlsConfig.update("enabled", "on", true);
             await restartClient(context);
         }),
         vscode.commands.registerCommand("zig.zls.openOutput", () => {
