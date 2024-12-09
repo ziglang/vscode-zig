@@ -21,7 +21,6 @@ export class ZigProvider implements vscode.Disposable {
                 if (change.affectsConfiguration("zig.path")) {
                     const newValue = this.resolveZigPathConfigOption();
                     if (newValue) {
-                        this.value = newValue;
                         this.set(this.value);
                     }
                 }
@@ -39,15 +38,31 @@ export class ZigProvider implements vscode.Disposable {
         return this.value?.exe ?? null;
     }
 
-    /** Override which zig executable should be used. The `zig.path` config option will be ignored */
+    /** Set the path the Zig executable. The `zig.path` config option will be ignored */
     public set(value: ExeWithVersion | null) {
         this.value = value;
         this.onChange.fire(value);
     }
 
+    /**
+     * Set the path the Zig executable. Will be saved in `zig.path` config option.
+     *
+     * @param zigPath The path to the zig executable. If `null`, the `zig.path` config option will be removed.
+     */
+    public async setAndSave(zigPath: string | null) {
+        if (!zigPath) {
+            await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
+            return;
+        }
+        const newValue = this.resolveZigPathConfigOption(zigPath);
+        if (!newValue) return;
+        await vscode.workspace.getConfiguration("zig").update("path", newValue.exe, true);
+        this.set(newValue);
+    }
+
     /** Resolves the `zig.path` configuration option */
-    private resolveZigPathConfigOption(): ExeWithVersion | null {
-        const zigPath = vscode.workspace.getConfiguration("zig").get<string>("path", "");
+    private resolveZigPathConfigOption(zigPath?: string): ExeWithVersion | null {
+        zigPath ??= vscode.workspace.getConfiguration("zig").get<string>("path", "");
         if (!zigPath) return null;
         const exePath = zigPath !== "zig" ? zigPath : null; // the string "zig" means lookup in PATH
         const result = resolveExePathAndVersion(exePath, "zig", "zig.path", "version");
