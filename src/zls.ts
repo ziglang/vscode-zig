@@ -175,6 +175,9 @@ async function configurationMiddleware(
         const configValue = configuration.get(section);
         if (typeof configValue === "string" && configValue) {
             result[index] = handleConfigOption(configValue);
+        } else {
+            // Make sure that `""` gets converted to `null`
+            result[index] = null;
         }
     }
 
