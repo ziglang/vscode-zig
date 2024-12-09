@@ -52,7 +52,7 @@ export class ZigProvider implements vscode.Disposable {
         const exePath = zigPath !== "zig" ? zigPath : null; // the string "zig" means lookup in PATH
         const result = resolveExePathAndVersion(exePath, "zig", "zig.path", "version");
         if ("message" in result) {
-            void vscode.window.showErrorMessage(`'zig.path' is not valid: ${result.message}`);
+            void vscode.window.showErrorMessage(result.message);
             return null;
         }
         return result;
