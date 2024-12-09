@@ -22,8 +22,7 @@ async function installZig(context: vscode.ExtensionContext) {
         Object.values(WantedZigVersionSource) as WantedZigVersionSource[],
     );
     if (!wantedZig) {
-        await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
-        zigProvider.set(null);
+        await zigProvider.setAndSave(null);
         return;
     }
 
@@ -249,7 +248,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
                 title: "Select Zig executable",
             });
             if (!uris) return;
-            await vscode.workspace.getConfiguration("zig").update("path", uris[0].path, true);
+            await zigProvider.setAndSave(uris[0].fsPath);
             break;
         default:
             const version = new semver.SemVer(selection.detail ?? selection.label);
