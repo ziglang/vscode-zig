@@ -32,7 +32,6 @@ export default class ZigTestRunnerProvider {
             this.debugTests.bind(this),
             false,
         );
-        void this.findAndRegisterTests();
     }
 
     public activate(subscriptions: vscode.Disposable[]) {
@@ -66,16 +65,6 @@ export default class ZigTestRunnerProvider {
                 this.testController.items.delete(item.id);
             }
         });
-    }
-
-    private async findAndRegisterTests() {
-        const files = await vscode.workspace.findFiles("**/*.zig");
-        for (const file of files) {
-            try {
-                const doc = await vscode.workspace.openTextDocument(file);
-                this._updateTestItems(doc);
-            } catch {}
-        }
     }
 
     private _updateTestItems(textDocument: vscode.TextDocument) {
