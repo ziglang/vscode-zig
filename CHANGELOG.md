@@ -1,3 +1,8 @@
+## 0.6.2
+- Don't open every zig file in the workspace just to look for tests (@Techatrix)
+- Sync ZLS options (@Techatrix)
+- handle `zig.path` edge cases (@Techatrix)
+
 ## 0.6.1
 - Fix formatting not working when `zig.formattingProvider` was set to ZLS (@Techatrix)
 
