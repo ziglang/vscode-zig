@@ -173,11 +173,9 @@ async function configurationMiddleware(
         const index = optionIndices[name] as unknown as number;
         const section = name.slice("zig.zls.".length);
         const configValue = configuration.get(section);
-        if (typeof configValue === "string" && configValue) {
-            result[index] = handleConfigOption(configValue);
-        } else {
-            // Make sure that `""` gets converted to `null`
-            result[index] = null;
+        if (typeof configValue === "string") {
+            // Make sure that `""` gets converted to `null` and resolve predefined values
+            result[index] = configValue ? handleConfigOption(configValue) : null;
         }
     }
 
