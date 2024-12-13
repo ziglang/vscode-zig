@@ -122,7 +122,7 @@
           "enumItemLabels": [
             "Off",
             "Extension",
-            "Zig Language Server"
+            "ZLS language server"
           ],
           "enumDescriptions": [
             "Disable formatting",
@@ -150,7 +150,7 @@
         "zig.zls.enabled": {
           "scope": "resource",
           "type": "string",
-          "description": "Whether to enable the optional ZLS Language Server",
+          "description": "Whether to enable the optional ZLS language server",
           "enum": [
             "ask",
             "off",
@@ -334,17 +334,17 @@
       {
         "command": "zig.zls.enable",
         "title": "Enable Language Server",
-        "category": "Zig Language Server"
+        "category": "ZLS language server"
       },
       {
         "command": "zig.zls.startRestart",
         "title": "Start / Restart Language Server",
-        "category": "Zig Language Server"
+        "category": "ZLS language server"
       },
       {
         "command": "zig.zls.stop",
         "title": "Stop Language Server",
-        "category": "Zig Language Server"
+        "category": "ZLS language server"
       }
     ],
     "jsonValidation": [
