@@ -21,7 +21,7 @@ export class ZigProvider implements vscode.Disposable {
                 if (change.affectsConfiguration("zig.path")) {
                     const newValue = this.resolveZigPathConfigOption();
                     if (newValue) {
-                        this.set(this.value);
+                        this.set(newValue);
                     }
                 }
             }),
