@@ -46,9 +46,9 @@ export async function restartClient(context: vscode.ExtensionContext): Promise<v
         updateStatusItem(result.version);
     } catch (reason) {
         if (reason instanceof Error) {
-            void vscode.window.showWarningMessage(`Failed to run Zig Language Server (ZLS): ${reason.message}`);
+            void vscode.window.showWarningMessage(`Failed to run ZLS language server: ${reason.message}`);
         } else {
-            void vscode.window.showWarningMessage("Failed to run Zig Language Server (ZLS)");
+            void vscode.window.showWarningMessage("Failed to run ZLS language server");
         }
         updateStatusItem(null);
     }
@@ -85,7 +85,7 @@ async function startClient(zlsPath: string, zlsVersion: semver.SemVer): Promise<
         },
     };
 
-    const languageClient = new LanguageClient("zig.zls", "Zig Language Server", serverOptions, clientOptions);
+    const languageClient = new LanguageClient("zig.zls", "ZLS language server", serverOptions, clientOptions);
     await languageClient.start();
     // Formatting is handled by `zigFormat.ts`
     languageClient.getFeature("textDocument/formatting").dispose();
@@ -329,7 +329,7 @@ async function isEnabled(): Promise<boolean> {
             return false;
         case "ask": {
             const response = await vscode.window.showInformationMessage(
-                "We recommend enabling the ZLS Language Server for a better editing experience. Would you like to install it?",
+                "We recommend enabling the ZLS language server for a better editing experience. Would you like to install it?",
                 { modal: true },
                 "Yes",
                 "No",
@@ -410,7 +410,7 @@ export async function activate(context: vscode.ExtensionContext) {
         },
     };
 
-    outputChannel = vscode.window.createOutputChannel("Zig Language Server");
+    outputChannel = vscode.window.createOutputChannel("ZLS language server");
     statusItem = vscode.languages.createLanguageStatusItem("zig.zls.status", ZIG_MODE);
     statusItem.name = "ZLS";
     updateStatusItem(null);
