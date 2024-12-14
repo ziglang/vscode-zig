@@ -1,3 +1,8 @@
+## 0.6.3
+- Fix boolean ZLS options being ignored (@Techatrix)
+- Always refer to ZLS as "ZLS language server" (@Techatrix)
+- Ensure paths sent to terminal are properly escaped
+
 ## 0.6.2
 - Don't open every zig file in the workspace just to look for tests (@Techatrix)
 - Sync ZLS options (@Techatrix)
