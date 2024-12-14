@@ -47,10 +47,17 @@ function zigRun() {
     terminal.show();
     const wsFolder = getWorkspaceFolder(filePath);
     if (wsFolder && isWorkspaceFile(filePath) && hasBuildFile(wsFolder.uri.fsPath)) {
-        terminal.sendText(`${zigPath} build run`);
+        terminal.sendText(`${escapePath(zigPath)} build run`);
         return;
     }
-    terminal.sendText(`${zigPath} run "${filePath}"`);
+    terminal.sendText(`${escapePath(zigPath)} run ${escapePath(filePath)}`);
+}
+
+function escapePath(rawPath: string): string {
+    if (/[ !"#$&'()*,;:<>?\[\\\]^`{|}]/.test(rawPath)) {
+        return `"${rawPath.replaceAll("\"", "\"\\\"\"")}"`;
+    }
+    return rawPath;
 }
 
 function hasBuildFile(workspaceFspath: string): boolean {
