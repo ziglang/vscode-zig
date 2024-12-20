@@ -26,7 +26,12 @@
       "[zig]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "ziglang.vscode-zig",
+        "editor.stickyScroll.defaultModel": "foldingProviderModel",
         "files.eol": "\n"
+      },
+      "explorer.autoRevealExclude": {
+        "**/.zig-cache": true,
+        "**/zig-cache": true
       }
     },
     "languages": [
