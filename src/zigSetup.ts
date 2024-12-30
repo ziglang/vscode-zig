@@ -3,6 +3,7 @@ import vscode from "vscode";
 import path from "path";
 
 import axios from "axios";
+import { debounce } from "lodash-es";
 import semver from "semver";
 
 import * as minisign from "./minisign";
@@ -452,7 +453,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
     const watcher1 = vscode.workspace.createFileSystemWatcher("**/.zigversion");
     const watcher2 = vscode.workspace.createFileSystemWatcher("**/build.zig.zon");
 
-    const refreshZigInstallation = async () => {
+    const refreshZigInstallation = debounce(async () => {
         if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
             await installZig(context);
         } else {
@@ -460,7 +461,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
             updateLanguageStatusItem(languageStatusItem, zigProvider.getZigVersion());
             updateZigEnvironmentVariableCollection(context, zigProvider.getZigPath());
         }
-    };
+    }, 200);
 
     const onDidChangeActiveTextEditor = (editor: vscode.TextEditor | undefined) => {
         if (editor?.document.languageId === "zig") {
