@@ -41,7 +41,7 @@ export async function restartClient(context: vscode.ExtensionContext): Promise<v
 
     try {
         const newClient = await startClient(result.exe, result.version);
-        await stopClient();
+        void stopClient();
         client = newClient;
         updateStatusItem(result.version);
     } catch (reason) {
@@ -94,11 +94,12 @@ async function startClient(zlsPath: string, zlsVersion: semver.SemVer): Promise<
 
 async function stopClient(): Promise<void> {
     if (!client) return;
-    // The `stop` call will send the "shutdown" notification to the LSP
-    await client.stop();
-    // The `dipose` call will send the "exit" request to the LSP which actually tells the child process to exit
-    await client.dispose();
+    const oldClient = client;
     client = null;
+    // The `stop` call will send the "shutdown" notification to the LSP
+    await oldClient.stop();
+    // The `dipose` call will send the "exit" request to the LSP which actually tells the child process to exit
+    await oldClient.dispose();
 }
 
 /** returns the file system path to the zls executable */
