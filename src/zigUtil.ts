@@ -6,6 +6,7 @@ import os from "os";
 import path from "path";
 
 import assert from "assert";
+import { debounce } from "lodash-es";
 import semver from "semver";
 import which from "which";
 
@@ -100,6 +101,24 @@ export function resolveExePathAndVersion(
     const version = getVersion(exePath, versionArg);
     if (!version) return { message: `Failed to run '${exePath} ${versionArg}'!` };
     return { exe: exePath, version: version };
+}
+
+export function asyncDebounce<T extends (...args: unknown[]) => Promise<Awaited<ReturnType<T>>>>(
+    func: T,
+    wait?: number,
+): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>> {
+    const debounced = debounce(
+        (resolve: (value: Awaited<ReturnType<T>>) => void, reject: (reason?: unknown) => void, args: Parameters<T>) => {
+            void func(...args)
+                .then(resolve)
+                .catch(reject);
+        },
+        wait,
+    );
+    return (...args) =>
+        new Promise((resolve, reject) => {
+            debounced(resolve, reject, args);
+        });
 }
 
 // Check timestamp `key` to avoid automatically checking for updates
