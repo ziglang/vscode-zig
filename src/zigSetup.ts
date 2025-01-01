@@ -3,12 +3,11 @@ import vscode from "vscode";
 import path from "path";
 
 import axios from "axios";
-import { debounce } from "lodash-es";
 import semver from "semver";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
-import { VersionIndex, ZigVersion, getHostZigName, resolveExePathAndVersion } from "./zigUtil";
+import { VersionIndex, ZigVersion, asyncDebounce, getHostZigName, resolveExePathAndVersion } from "./zigUtil";
 import { ZigProvider } from "./zigProvider";
 
 let statusItem: vscode.StatusBarItem;
@@ -538,7 +537,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
     const watcher1 = vscode.workspace.createFileSystemWatcher("**/.zigversion");
     const watcher2 = vscode.workspace.createFileSystemWatcher("**/build.zig.zon");
 
-    const refreshZigInstallation = debounce(async () => {
+    const refreshZigInstallation = asyncDebounce(async () => {
         if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
             await installZig(context);
         } else {
@@ -562,10 +561,10 @@ export async function setupZig(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand("zig.install", async () => {
             await selectVersionAndInstall(context);
         }),
-        vscode.workspace.onDidChangeConfiguration(async (change) => {
+        vscode.workspace.onDidChangeConfiguration((change) => {
             // The `zig.path` config option is handled by `zigProvider.onChange`.
             if (change.affectsConfiguration("zig.version")) {
-                await refreshZigInstallation();
+                void refreshZigInstallation();
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(onDidChangeActiveTextEditor),
