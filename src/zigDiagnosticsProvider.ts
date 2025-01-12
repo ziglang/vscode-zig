@@ -6,6 +6,7 @@ import path from "path";
 // This will be treeshaked to only the debounce function
 import { DebouncedFunc, throttle } from "lodash-es";
 
+import * as semver from "semver";
 import * as zls from "./zls";
 import { handleConfigOption } from "./zigUtil";
 import { zigProvider } from "./zigSetup";
@@ -21,7 +22,7 @@ export default class ZigDiagnosticsProvider {
     constructor() {
         this.doASTGenErrorCheck = throttle(
             (change: vscode.TextDocumentChangeEvent) => {
-                this._doASTGenErrorCheck(change);
+                this._doASTGenErrorCheck(change.document);
             },
             16,
             {
@@ -85,19 +86,24 @@ export default class ZigDiagnosticsProvider {
         this.dirtyChange.set(document.uri, document.isDirty);
     }
 
-    private _doASTGenErrorCheck(change: vscode.TextDocumentChangeEvent) {
-        const textDocument = change.document;
-        if (textDocument.languageId !== "zig") {
-            return;
-        }
+    private _doASTGenErrorCheck(textDocument: vscode.TextDocument) {
         const zigPath = zigProvider.getZigPath();
-        if (!zigPath) return null;
-        const { error, stderr } = childProcess.spawnSync(zigPath, ["ast-check"], {
+        const zigVersion = zigProvider.getZigVersion();
+        if (!zigPath || !zigVersion) return null;
+
+        const args = ["ast-check"];
+
+        const addedZonSupportVersion = new semver.SemVer("0.14.0-dev.2508+7e8be2136");
+        if (path.extname(textDocument.fileName) === ".zon" && semver.gte(zigVersion, addedZonSupportVersion)) {
+            args.push("--zon");
+        }
+
+        const { error, stderr } = childProcess.spawnSync(zigPath, args, {
             input: textDocument.getText(),
             maxBuffer: 10 * 1024 * 1024, // 10MB
             encoding: "utf8",
             stdio: ["pipe", "ignore", "pipe"],
-            timeout: 60000, // 60 seconds (this is a very high value because 'zig ast-check' is just in time compiled)
+            timeout: 5000, // 5 seconds
         });
 
         if (error ?? stderr.length === 0) {
