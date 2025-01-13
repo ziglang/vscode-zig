@@ -44,13 +44,14 @@ function zigRun() {
     if (!zigPath) return;
     const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
     const terminal = vscode.window.createTerminal("Run Zig Program");
+    const callOperator = /(powershell.exe$|powershell$|pwsh.exe$|pwsh$)/.test(vscode.env.shell) ? "& " : "";
     terminal.show();
     const wsFolder = getWorkspaceFolder(filePath);
     if (wsFolder && isWorkspaceFile(filePath) && hasBuildFile(wsFolder.uri.fsPath)) {
-        terminal.sendText(`${escapePath(zigPath)} build run`);
+        terminal.sendText(`${callOperator}${escapePath(zigPath)} build run`);
         return;
     }
-    terminal.sendText(`${escapePath(zigPath)} run ${escapePath(filePath)}`);
+    terminal.sendText(`${callOperator}${escapePath(zigPath)} run ${escapePath(filePath)}`);
 }
 
 function escapePath(rawPath: string): string {
