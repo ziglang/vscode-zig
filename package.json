@@ -79,7 +79,7 @@
         "zig.buildOnSave": {
           "type": "boolean",
           "default": false,
-          "description": "Compiles code on file save using the settings specified in 'Build Option'."
+          "description": "Compiles code on file save using the settings specified in 'Build Option'. Should not be used with ZLS's build on save feature."
         },
         "zig.buildOption": {
           "type": "string",
