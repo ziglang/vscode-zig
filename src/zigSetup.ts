@@ -24,16 +24,30 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
             context,
             Object.values(WantedZigVersionSource) as WantedZigVersionSource[],
         );
-        if (!wantedZig) {
-            await zigProvider.setAndSave(null);
+        version = wantedZig?.version;
+        if (wantedZig?.source === WantedZigVersionSource.workspaceBuildZigZon) {
+            version = await findClosestSatisfyingZigVersion(context, wantedZig.version);
+        }
+    }
+
+    if (!version) {
+        // Lookup zig in $PATH
+        const result = resolveExePathAndVersion(null, "zig", null, "version");
+        if ("exe" in result) {
+            await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
+            zigProvider.set(result);
             return;
         }
+    }
 
-        if (wantedZig.source === WantedZigVersionSource.workspaceBuildZigZon) {
-            version = await findClosestSatisfyingZigVersion(context, wantedZig.version);
-        } else {
-            version = wantedZig.version;
-        }
+    if (!version) {
+        // Default to the latest tagged release
+        version = (await getLatestTaggedZigVersion(context)) ?? undefined;
+    }
+
+    if (!version) {
+        await zigProvider.setAndSave(null);
+        return;
     }
 
     try {
@@ -66,6 +80,23 @@ async function findClosestSatisfyingZigVersion(
     } catch {
         const selectedVersion = context.globalState.get<string | null>(cacheKey, null);
         return selectedVersion ? new semver.SemVer(selectedVersion) : version;
+    }
+}
+
+async function getLatestTaggedZigVersion(context: vscode.ExtensionContext): Promise<semver.SemVer | null> {
+    const cacheKey = "zig-latest-tagged";
+    try {
+        const zigVersion = await getVersions();
+        const latestTagged = zigVersion.find((item) => item.version.prerelease.length === 0);
+        const result = latestTagged?.version ?? null;
+        await context.globalState.update(cacheKey, latestTagged?.version.raw);
+        return result;
+    } catch {
+        const latestTagged = context.globalState.get<string | null>(cacheKey, null);
+        if (latestTagged) {
+            return new semver.SemVer(latestTagged);
+        }
+        return null;
     }
 }
 
@@ -267,18 +298,9 @@ async function showUpdateWorkspaceVersionDialog(
 ): Promise<void> {
     const workspace = getWorkspaceFolder();
 
-    switch (source) {
-        case WantedZigVersionSource.latestTagged:
-            source = undefined;
-        // intentional fallthrough
-        case undefined:
-            source = workspace
-                ? WantedZigVersionSource.workspaceZigVersionFile
-                : WantedZigVersionSource.zigVersionConfigOption;
-            break;
-        default:
-            break;
-    }
+    source ??= workspace
+        ? WantedZigVersionSource.workspaceZigVersionFile
+        : WantedZigVersionSource.zigVersionConfigOption;
 
     let sourceName;
     switch (source) {
@@ -380,7 +402,6 @@ enum WantedZigVersionSource {
     workspaceBuildZigZon = "build.zig.zon",
     /** `zig.version` */
     zigVersionConfigOption = "zig.version",
-    latestTagged = "latest-tagged",
 }
 
 /** Try to resolve the (workspace-specific) Zig version. */
@@ -425,20 +446,6 @@ async function getWantedZigVersion(
                             void vscode.window.showErrorMessage(
                                 `Invalid 'zig.version' config option. '${versionString}' is not a valid Zig version`,
                             );
-                        }
-                    }
-                    break;
-                case WantedZigVersionSource.latestTagged:
-                    const cacheKey = "zig-latest-tagged";
-                    try {
-                        const zigVersion = await getVersions();
-                        const latestTagged = zigVersion.find((item) => item.version.prerelease.length === 0);
-                        result = latestTagged?.version ?? null;
-                        await context.globalState.update(cacheKey, latestTagged?.version.raw);
-                    } catch {
-                        const latestTagged = context.globalState.get<string | null>(cacheKey, null);
-                        if (latestTagged) {
-                            result = new semver.SemVer(latestTagged);
                         }
                     }
                     break;
