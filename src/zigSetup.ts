@@ -495,11 +495,9 @@ function updateLanguageStatusItem(item: vscode.LanguageStatusItem, version: semv
 
 function updateZigEnvironmentVariableCollection(context: vscode.ExtensionContext, zigExePath: string | null) {
     if (zigExePath) {
-        const envValue = path.delimiter + path.dirname(zigExePath);
-        // Calling `append` means that zig from a user-defined PATH value will take precedence.
-        // The added value may have already been added by the user but since we
-        // append, it doesn't have any observable.
-        context.environmentVariableCollection.append("PATH", envValue);
+        const envValue = path.dirname(zigExePath) + path.delimiter;
+        // This will take priority over a user-defined PATH values.
+        context.environmentVariableCollection.prepend("PATH", envValue);
     } else {
         context.environmentVariableCollection.delete("PATH");
     }
