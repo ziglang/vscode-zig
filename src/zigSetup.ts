@@ -298,26 +298,28 @@ async function showUpdateWorkspaceVersionDialog(
 ): Promise<void> {
     const workspace = getWorkspaceFolder();
 
-    source ??= workspace
-        ? WantedZigVersionSource.workspaceZigVersionFile
-        : WantedZigVersionSource.zigVersionConfigOption;
-
-    let sourceName;
+    let buttonName;
     switch (source) {
         case WantedZigVersionSource.workspaceZigVersionFile:
-            sourceName = ".ziversion";
+            buttonName = "update .zigversion";
             break;
         case WantedZigVersionSource.workspaceBuildZigZon:
-            sourceName = "build.zig.zon";
+            buttonName = "update build.zig.zon";
             break;
         case WantedZigVersionSource.zigVersionConfigOption:
-            sourceName = "workspace settings";
+            buttonName = "update workspace settings";
+            break;
+        default:
+            source = workspace
+                ? WantedZigVersionSource.workspaceZigVersionFile
+                : WantedZigVersionSource.zigVersionConfigOption;
+            buttonName = workspace ? "create .zigversion" : "update settings";
             break;
     }
 
     const response = await vscode.window.showInformationMessage(
-        "Would you like to save this version for this workspace?",
-        `update ${sourceName}`,
+        `Would you like to save Zig ${version.toString()} in this workspace?`,
+        buttonName,
     );
     if (!response) return;
 
