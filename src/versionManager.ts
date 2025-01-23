@@ -213,6 +213,18 @@ async function installFromMirror(
 
             await chmod(exeUri.fsPath, 0o755);
 
+            try {
+                await removeUnusedInstallations(config);
+            } catch (err) {
+                if (err instanceof Error) {
+                    void vscode.window.showWarningMessage(
+                        `Failed to uninstall unused ${config.title} versions: ${err.message}`,
+                    );
+                } else {
+                    void vscode.window.showWarningMessage(`Failed to uninstall unused ${config.title} versions`);
+                }
+            }
+
             return exeUri.fsPath;
         },
     );
@@ -249,7 +261,7 @@ async function setLastAccessTime(config: Config, version: semver.SemVer): Promis
 }
 
 /** Remove installations with the oldest last access time until at most `VersionManager.maxInstallCount` versions remain. */
-export async function removeUnusedInstallations(config: Config) {
+async function removeUnusedInstallations(config: Config) {
     const storageDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName);
 
     const keys: { key: string; installDir: vscode.Uri; lastAccessTime: number }[] = [];
@@ -275,7 +287,7 @@ export async function removeUnusedInstallations(config: Config) {
         throw e;
     }
 
-    keys.sort((lhs, rhs) => lhs.lastAccessTime - rhs.lastAccessTime);
+    keys.sort((lhs, rhs) => rhs.lastAccessTime - lhs.lastAccessTime);
 
     for (const item of keys.slice(maxInstallCount)) {
         await vscode.workspace.fs.delete(item.installDir, { recursive: true, useTrash: false });
