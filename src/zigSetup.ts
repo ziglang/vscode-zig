@@ -286,8 +286,8 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
             break;
         default:
             const version = new semver.SemVer(selection.detail ?? selection.label);
+            await showUpdateWorkspaceVersionDialog(version, workspaceZig?.source);
             await installZig(context, version);
-            void showUpdateWorkspaceVersionDialog(version, workspaceZig?.source);
             break;
     }
 }
