@@ -532,7 +532,7 @@ async function updateStatus(context: vscode.ExtensionContext): Promise<void> {
 
     void vscode.window
         .showWarningMessage(
-            `Your Zig version '${zigVersion.toString()}' does not satify the minimum Zig version '${buildZigZonMetadata.minimumZigVersion.toString()}' of your project.`,
+            `Your Zig version '${zigVersion.toString()}' does not satisfy the minimum Zig version '${buildZigZonMetadata.minimumZigVersion.toString()}' of your project.`,
             "update Zig",
             "open build.zig.zon",
         )
