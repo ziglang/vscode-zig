@@ -298,30 +298,33 @@ async function showUpdateWorkspaceVersionDialog(
 ): Promise<void> {
     const workspace = getWorkspaceFolder();
 
-    let buttonName;
-    switch (source) {
-        case WantedZigVersionSource.workspaceZigVersionFile:
-            buttonName = "update .zigversion";
-            break;
-        case WantedZigVersionSource.workspaceBuildZigZon:
-            buttonName = "update build.zig.zon";
-            break;
-        case WantedZigVersionSource.zigVersionConfigOption:
-            buttonName = "update workspace settings";
-            break;
-        default:
-            source = workspace
-                ? WantedZigVersionSource.workspaceZigVersionFile
-                : WantedZigVersionSource.zigVersionConfigOption;
-            buttonName = workspace ? "create .zigversion" : "update settings";
-            break;
+    if (workspace !== null) {
+        let buttonName;
+        switch (source) {
+            case WantedZigVersionSource.workspaceZigVersionFile:
+                buttonName = "update .zigversion";
+                break;
+            case WantedZigVersionSource.workspaceBuildZigZon:
+                buttonName = "update build.zig.zon";
+                break;
+            case WantedZigVersionSource.zigVersionConfigOption:
+                buttonName = "update workspace settings";
+                break;
+            case undefined:
+                buttonName = "create .zigversion";
+                break;
+        }
+
+        const response = await vscode.window.showInformationMessage(
+            `Would you like to save Zig ${version.toString()} in this workspace?`,
+            buttonName,
+        );
+        if (!response) return;
     }
 
-    const response = await vscode.window.showInformationMessage(
-        `Would you like to save Zig ${version.toString()} in this workspace?`,
-        buttonName,
-    );
-    if (!response) return;
+    source ??= workspace
+        ? WantedZigVersionSource.workspaceZigVersionFile
+        : WantedZigVersionSource.zigVersionConfigOption;
 
     switch (source) {
         case WantedZigVersionSource.workspaceZigVersionFile: {
