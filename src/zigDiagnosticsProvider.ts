@@ -89,7 +89,7 @@ export default class ZigDiagnosticsProvider {
     private _doASTGenErrorCheck(textDocument: vscode.TextDocument) {
         const zigPath = zigProvider.getZigPath();
         const zigVersion = zigProvider.getZigVersion();
-        if (!zigPath || !zigVersion) return null;
+        if (!zigPath || !zigVersion) return;
 
         const args = ["ast-check"];
 
@@ -143,7 +143,7 @@ export default class ZigDiagnosticsProvider {
         const config = vscode.workspace.getConfiguration("zig");
 
         const zigPath = zigProvider.getZigPath();
-        if (!zigPath) return null;
+        if (!zigPath) return;
 
         const buildOption = config.get<string>("buildOption", "build");
         const processArg: string[] = [buildOption];

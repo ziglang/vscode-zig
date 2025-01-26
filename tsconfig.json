@@ -4,9 +4,15 @@
         "target": "ESNext",
         "outDir": "out",
         "esModuleInterop": true,
-        "strict": true,
         "lib": ["esnext"],
         "sourceMap": true,
-        "rootDir": "src"
+        "rootDir": "src",
+
+        "strict": true,
+        "allowUnreachableCode": false,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noPropertyAccessFromIndexSignature": true
     }
 }
