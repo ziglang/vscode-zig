@@ -1,3 +1,13 @@
+## 0.6.4
+- Prevent `.zig-cache` files from being automatically revealed in the explorer (@Techatrix)
+- Add missing PowerShell call operator when using the run button (@BlueBlue21)
+- Update ZLS options (@Techatrix)
+- Look for zig in `$PATH` before defaulting to latest tagged release (@Techatrix)
+- Offer to update workspace config when selecting Zig version (@Techatrix)
+    - Selecting a different Zig version is no longer permanent by default and will reset
+      to the previous version after a restart.
+- Properly clean unused installations (@Techatrix)
+
 ## 0.6.3
 - Fix boolean ZLS options being ignored (@Techatrix)
 - Always refer to ZLS as "ZLS language server" (@Techatrix)
