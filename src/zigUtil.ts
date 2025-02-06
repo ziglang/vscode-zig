@@ -121,6 +121,28 @@ export function asyncDebounce<T extends (...args: unknown[]) => Promise<Awaited<
         });
 }
 
+/**
+ * Wrapper around `vscode.WorkspaceConfiguration.update` that doesn't throw an exception.
+ * A common cause of an exception is when the `settings.json` file is read-only.
+ */
+export async function workspaceConfigUpdateNoThrow(
+    config: vscode.WorkspaceConfiguration,
+    section: string,
+    value: unknown,
+    configurationTarget?: vscode.ConfigurationTarget | boolean | null,
+    overrideInLanguage?: boolean,
+): Promise<void> {
+    try {
+        await config.update(section, value, configurationTarget, overrideInLanguage);
+    } catch (err) {
+        if (err instanceof Error) {
+            void vscode.window.showErrorMessage(err.message);
+        } else {
+            void vscode.window.showErrorMessage("failed to update settings.json");
+        }
+    }
+}
+
 // Check timestamp `key` to avoid automatically checking for updates
 // more than once in an hour.
 export async function shouldCheckUpdate(context: vscode.ExtensionContext, key: string): Promise<boolean> {

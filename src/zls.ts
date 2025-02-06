@@ -17,7 +17,7 @@ import semver from "semver";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
-import { getHostZigName, handleConfigOption, resolveExePathAndVersion } from "./zigUtil";
+import { getHostZigName, handleConfigOption, resolveExePathAndVersion, workspaceConfigUpdateNoThrow } from "./zigUtil";
 import { zigProvider } from "./zigSetup";
 
 const ZIG_MODE: DocumentSelector = [
@@ -201,8 +201,13 @@ async function configurationMiddleware(
             switch (response) {
                 case `Use ${optionName} instead`:
                     const { [optionName]: newValue, ...updatedAdditionalOptions } = additionalOptions;
-                    await configuration.update("additionalOptions", updatedAdditionalOptions, true);
-                    await configuration.update(section, newValue, true);
+                    await workspaceConfigUpdateNoThrow(
+                        configuration,
+                        "additionalOptions",
+                        updatedAdditionalOptions,
+                        true,
+                    );
+                    await workspaceConfigUpdateNoThrow(configuration, section, newValue, true);
                     break;
                 case "Show zig.zls.additionalOptions":
                     await vscode.commands.executeCommand("workbench.action.openSettingsJson", {
@@ -337,10 +342,10 @@ async function isEnabled(): Promise<boolean> {
             );
             switch (response) {
                 case "Yes":
-                    await zlsConfig.update("enabled", "on", true);
+                    await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
                     return true;
                 case "No":
-                    await zlsConfig.update("enabled", "off", true);
+                    await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "off", true);
                     return false;
                 case undefined:
                     return false;
@@ -391,8 +396,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
         const zlsPath = zlsConfig.get<string>("path", "");
         if (zlsPath.startsWith(context.globalStorageUri.fsPath)) {
-            await zlsConfig.update("enabled", "on", true);
-            await zlsConfig.update("path", undefined, true);
+            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
+            await workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined, true);
         }
     }
 
@@ -421,14 +426,14 @@ export async function activate(context: vscode.ExtensionContext) {
         statusItem,
         vscode.commands.registerCommand("zig.zls.enable", async () => {
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            await zlsConfig.update("enabled", "on", true);
+            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
         }),
         vscode.commands.registerCommand("zig.zls.stop", async () => {
             await stopClient();
         }),
         vscode.commands.registerCommand("zig.zls.startRestart", async () => {
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            await zlsConfig.update("enabled", "on", true);
+            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
             await restartClient(context);
         }),
         vscode.commands.registerCommand("zig.zls.openOutput", () => {

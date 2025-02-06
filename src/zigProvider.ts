@@ -2,7 +2,7 @@ import vscode from "vscode";
 
 import semver from "semver";
 
-import { resolveExePathAndVersion } from "./zigUtil";
+import { resolveExePathAndVersion, workspaceConfigUpdateNoThrow } from "./zigUtil";
 
 interface ExeWithVersion {
     exe: string;
@@ -50,13 +50,14 @@ export class ZigProvider implements vscode.Disposable {
      * @param zigPath The path to the zig executable. If `null`, the `zig.path` config option will be removed.
      */
     public async setAndSave(zigPath: string | null) {
+        const zigConfig = vscode.workspace.getConfiguration("zig");
         if (!zigPath) {
-            await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
+            await workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
             return;
         }
         const newValue = this.resolveZigPathConfigOption(zigPath);
         if (!newValue) return;
-        await vscode.workspace.getConfiguration("zig").update("path", newValue.exe, true);
+        await workspaceConfigUpdateNoThrow(zigConfig, "path", newValue.exe, true);
         this.set(newValue);
     }
 
