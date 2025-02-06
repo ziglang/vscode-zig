@@ -7,7 +7,14 @@ import semver from "semver";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
-import { VersionIndex, ZigVersion, asyncDebounce, getHostZigName, resolveExePathAndVersion } from "./zigUtil";
+import {
+    VersionIndex,
+    ZigVersion,
+    asyncDebounce,
+    getHostZigName,
+    resolveExePathAndVersion,
+    workspaceConfigUpdateNoThrow,
+} from "./zigUtil";
 import { ZigProvider } from "./zigProvider";
 
 let statusItem: vscode.StatusBarItem;
@@ -52,7 +59,8 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
 
     try {
         const exePath = await versionManager.install(versionManagerConfig, version);
-        await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
+        const zigConfig = vscode.workspace.getConfiguration("zig");
+        await workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
         zigProvider.set({ exe: exePath, version: version });
     } catch (err) {
         zigProvider.set(null);
@@ -272,7 +280,8 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
             await installZig(context);
             break;
         case "Use Zig in PATH":
-            await vscode.workspace.getConfiguration("zig").update("path", "zig", true);
+            const zigConfig = vscode.workspace.getConfiguration("zig");
+            await workspaceConfigUpdateNoThrow(zigConfig, "path", "zig", true);
             break;
         case "Manually Specify Path":
             const uris = await vscode.window.showOpenDialog({
@@ -573,10 +582,10 @@ export async function setupZig(context: vscode.ExtensionContext) {
         const zigConfig = vscode.workspace.getConfiguration("zig");
         const zigPath = zigConfig.get<string>("path", "");
         if (zigPath.startsWith(context.globalStorageUri.fsPath)) {
-            await zigConfig.update("path", undefined, true);
+            await workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
         }
 
-        await zigConfig.update("initialSetupDone", undefined, true);
+        await workspaceConfigUpdateNoThrow(zigConfig, "initialSetupDone", undefined, true);
 
         await context.workspaceState.update("zig-version", undefined);
     }
