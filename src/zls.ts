@@ -178,6 +178,16 @@ async function configurationMiddleware(
             // Make sure that `""` gets converted to `null` and resolve predefined values
             result[index] = configValue ? handleConfigOption(configValue) : null;
         }
+
+        const inspect = configuration.inspect(section);
+        const isDefaultValue =
+            configValue === inspect?.defaultValue &&
+            inspect?.globalValue === undefined &&
+            inspect?.workspaceValue === undefined &&
+            inspect?.workspaceFolderValue === undefined;
+        if(isDefaultValue) {
+            result[index] = null;
+        }
     }
 
     const indexOfZigPath = optionIndices["zig.path"];
