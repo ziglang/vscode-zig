@@ -40,6 +40,8 @@ export class ZigProvider implements vscode.Disposable {
 
     /** Set the path the Zig executable. The `zig.path` config option will be ignored */
     public set(value: ExeWithVersion | null) {
+        if (value === null && this.value === null) return;
+        if (value !== null && this.value !== null && value.version.compare(this.value.version) === 0) return;
         this.value = value;
         this.onChange.fire(value);
     }
