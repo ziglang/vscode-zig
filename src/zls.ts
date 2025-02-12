@@ -185,7 +185,12 @@ async function configurationMiddleware(
             inspect?.globalValue === undefined &&
             inspect?.workspaceValue === undefined &&
             inspect?.workspaceFolderValue === undefined;
-        if(isDefaultValue) {
+        if (isDefaultValue) {
+            if (name === "zig.zls.semanticTokens") {
+                // The extension has a different default value for this config
+                // option compared to ZLS
+                continue;
+            }
             result[index] = null;
         }
     }
