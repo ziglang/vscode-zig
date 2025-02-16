@@ -1,6 +1,7 @@
 import vscode from "vscode";
 
 import childProcess from "child_process";
+import fs from "fs";
 import path from "path";
 import util from "util";
 
@@ -125,11 +126,17 @@ export default class ZigTestRunnerProvider {
         if (test.uri === undefined) {
             return { output: "Unable to determine file location", success: false };
         }
+
+        const wsFolder = getWorkspaceFolder(test.uri.fsPath)?.uri.fsPath ?? path.dirname(test.uri.fsPath);
+        const buildFilePath = path.join(wsFolder, "build.zig");
+
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
-        const args = ["test", "--test-filter", lastPart, test.uri.fsPath];
+        const args = fs.existsSync(buildFilePath)
+            ? ["build", "test", "--summary", "all", "--", lastPart]
+            : ["test", "--test-filter", lastPart, test.uri.fsPath];
         try {
-            const { stderr: output } = await execFile(zigPath, args);
+            const { stderr: output } = await execFile(zigPath, args, { cwd: wsFolder });
             return { output: output.replaceAll("\n", "\r\n"), success: true };
         } catch (e) {
             return { output: (e as Error).message.replaceAll("\n", "\r\n"), success: false };
