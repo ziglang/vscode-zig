@@ -185,7 +185,7 @@ async function configurationMiddleware(
             inspect?.globalValue === undefined &&
             inspect?.workspaceValue === undefined &&
             inspect?.workspaceFolderValue === undefined;
-        if(isDefaultValue) {
+        if (isDefaultValue) {
             result[index] = null;
         }
     }
