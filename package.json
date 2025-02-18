@@ -136,6 +136,14 @@
           ],
           "default": "zls"
         },
+        "zig.testArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments to passed to 'zig build' when running tests."
+        },
         "zig.zls.debugLog": {
           "scope": "resource",
           "type": "boolean",

@@ -119,6 +119,7 @@ export default class ZigTestRunnerProvider {
     }
 
     private async runTest(test: vscode.TestItem): Promise<{ output: string; success: boolean }> {
+        const config = vscode.workspace.getConfiguration("zig");
         const zigPath = zigProvider.getZigPath();
         if (!zigPath) {
             return { output: "Unable to run test without Zig", success: false };
@@ -128,15 +129,17 @@ export default class ZigTestRunnerProvider {
         }
 
         const wsFolder = getWorkspaceFolder(test.uri.fsPath)?.uri.fsPath ?? path.dirname(test.uri.fsPath);
-        const buildFilePath = path.join(wsFolder, "build.zig");
 
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
-        const args = fs.existsSync(buildFilePath)
-            ? ["build", "test", "--summary", "all", "--", lastPart]
-            : ["test", "--test-filter", lastPart, test.uri.fsPath];
+
+        const defaultArgs = ["test", "--test-filter", lastPart, test.uri.fsPath];
+        const testArgs = config.get<Array<string>>('testArgs') || [];
+        const args = testArgs.length > 0 ? ["build"].concat(testArgs).concat([lastPart]) : defaultArgs;
+
         try {
             const { stderr: output } = await execFile(zigPath, args, { cwd: wsFolder });
+
             return { output: output.replaceAll("\n", "\r\n"), success: true };
         } catch (e) {
             return { output: (e as Error).message.replaceAll("\n", "\r\n"), success: false };
