@@ -1,7 +1,6 @@
 import vscode from "vscode";
 
 import childProcess from "child_process";
-import fs from "fs";
 import path from "path";
 import util from "util";
 
@@ -134,8 +133,8 @@ export default class ZigTestRunnerProvider {
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
 
-        const testArgsConf = config.get<Array<string>>('testArgs') || [];
-        const args: Array<string> = (testArgsConf.length > 0)
+        const testArgsConf = config.get<string[]>('testArgs') || [];
+        const args: string[] = (testArgsConf.length > 0)
             ? testArgsConf.map((v) => v.replace("${filter}", lastPart).replace("${path}", testUri.fsPath))
             : [];
 
