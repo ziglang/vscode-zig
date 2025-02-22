@@ -141,8 +141,8 @@
           "items": {
             "type": "string"
           },
-          "default": [],
-          "description": "Extra arguments to passed to 'zig build' when running tests."
+          "default": ["test", "--test-filter", "${filter}", "${path}"],
+          "description": "Arguments to pass to 'zig' for running tests. Supported variables: ${filter}, ${path}."
         },
         "zig.zls.debugLog": {
           "scope": "resource",

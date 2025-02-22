@@ -128,14 +128,16 @@ export default class ZigTestRunnerProvider {
             return { output: "Unable to determine file location", success: false };
         }
 
-        const wsFolder = getWorkspaceFolder(test.uri.fsPath)?.uri.fsPath ?? path.dirname(test.uri.fsPath);
+        const testUri = test.uri;
+        const wsFolder = getWorkspaceFolder(testUri.fsPath)?.uri.fsPath ?? path.dirname(testUri.fsPath);
 
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
 
-        const defaultArgs = ["test", "--test-filter", lastPart, test.uri.fsPath];
-        const testArgs = config.get<Array<string>>('testArgs') || [];
-        const args = testArgs.length > 0 ? ["build"].concat(testArgs).concat([lastPart]) : defaultArgs;
+        const testArgsConf = config.get<Array<string>>('testArgs') || [];
+        const args: Array<string> = (testArgsConf.length > 0)
+            ? testArgsConf.map((v) => v.replace("${filter}", lastPart).replace("${path}", testUri.fsPath))
+            : [];
 
         try {
             const { stderr: output } = await execFile(zigPath, args, { cwd: wsFolder });
