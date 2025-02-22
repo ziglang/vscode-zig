@@ -375,6 +375,7 @@
     "@types/lodash-es": "^4.17.12",
     "@types/mocha": "^2.2.48",
     "@types/node": "^18.0.0",
+    "@types/semver": "^7.5.8",
     "@types/vscode": "^1.80.0",
     "@types/which": "^2.0.1",
     "@vscode/test-electron": "^2.3.9",
