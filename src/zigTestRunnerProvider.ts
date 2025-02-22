@@ -118,6 +118,7 @@ export default class ZigTestRunnerProvider {
     }
 
     private async runTest(test: vscode.TestItem): Promise<{ output: string; success: boolean }> {
+        const config = vscode.workspace.getConfiguration("zig");
         const zigPath = zigProvider.getZigPath();
         if (!zigPath) {
             return { output: "Unable to run test without Zig", success: false };
@@ -125,11 +126,21 @@ export default class ZigTestRunnerProvider {
         if (test.uri === undefined) {
             return { output: "Unable to determine file location", success: false };
         }
+
+        const testUri = test.uri;
+        const wsFolder = getWorkspaceFolder(testUri.fsPath)?.uri.fsPath ?? path.dirname(testUri.fsPath);
+
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
-        const args = ["test", "--test-filter", lastPart, test.uri.fsPath];
+
+        const testArgsConf = config.get<string[]>('testArgs') || [];
+        const args: string[] = (testArgsConf.length > 0)
+            ? testArgsConf.map((v) => v.replace("${filter}", lastPart).replace("${path}", testUri.fsPath))
+            : [];
+
         try {
-            const { stderr: output } = await execFile(zigPath, args);
+            const { stderr: output } = await execFile(zigPath, args, { cwd: wsFolder });
+
             return { output: output.replaceAll("\n", "\r\n"), success: true };
         } catch (e) {
             return { output: (e as Error).message.replaceAll("\n", "\r\n"), success: false };
