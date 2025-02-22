@@ -56,7 +56,7 @@ function zigRun() {
 
 function escapePath(rawPath: string): string {
     if (/[ !"#$&'()*,;:<>?\[\\\]^`{|}]/.test(rawPath)) {
-        return `"${rawPath.replaceAll("\"", "\"\\\"\"")}"`;
+        return `"${rawPath.replaceAll('"', '"\\""')}"`;
     }
     return rawPath;
 }
