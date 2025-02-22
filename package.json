@@ -368,23 +368,22 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint ."
+    "lint": "eslint"
   },
   "devDependencies": {
     "@types/libsodium-wrappers": "^0.7.14",
     "@types/lodash-es": "^4.17.12",
-    "@types/mocha": "^2.2.48",
     "@types/node": "^18.0.0",
+    "@types/semver": "^7.5.8",
     "@types/vscode": "^1.80.0",
     "@types/which": "^2.0.1",
-    "@vscode/test-electron": "^2.3.9",
     "@vscode/vsce": "^2.24.0",
     "esbuild": "^0.12.1",
-    "eslint": "^8.57.0",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "3.2.5",
     "typescript": "^5.4.3",
-    "typescript-eslint": "^7.4.0"
+    "typescript-eslint": "^8.0.0"
   },
   "dependencies": {
     "axios": "^1.7.4",

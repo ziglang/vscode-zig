@@ -42,7 +42,7 @@ export function handleConfigOption(input: string): string {
     }
 
     if (input.includes("${env:")) {
-        for (let env = input.match(/\${env:([^}]+)}/)?.[1]; env; env = input.match(/\${env:([^}]+)}/)?.[1]) {
+        for (let env = /\${env:([^}]+)}/.exec(input)?.[1]; env; env = /\${env:([^}]+)}/.exec(input)?.[1]) {
             input = input.replaceAll(`\${env:${env}}`, process.env[env] ?? "");
         }
     }

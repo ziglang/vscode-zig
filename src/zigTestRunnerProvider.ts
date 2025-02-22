@@ -40,7 +40,7 @@ export default class ZigTestRunnerProvider {
                 this.updateTestItems(document);
             }),
             vscode.workspace.onDidCloseTextDocument((document) => {
-                !isWorkspaceFile(document.uri.fsPath) && this.deleteTestForAFile(document.uri);
+                if (!isWorkspaceFile(document.uri.fsPath)) this.deleteTestForAFile(document.uri);
             }),
             vscode.workspace.onDidChangeTextDocument((change) => {
                 this.updateTestItems(change.document);
