@@ -9,23 +9,12 @@ interface ExeWithVersion {
     version: semver.SemVer;
 }
 
-export class ZigProvider implements vscode.Disposable {
+export class ZigProvider {
     onChange: vscode.EventEmitter<ExeWithVersion | null> = new vscode.EventEmitter();
     private value: ExeWithVersion | null;
-    private disposables: vscode.Disposable[];
 
     constructor() {
-        this.value = this.resolveZigPathConfigOption();
-        this.disposables = [
-            vscode.workspace.onDidChangeConfiguration((change) => {
-                if (change.affectsConfiguration("zig.path")) {
-                    const newValue = this.resolveZigPathConfigOption();
-                    if (newValue) {
-                        this.set(newValue);
-                    }
-                }
-            }),
-        ];
+        this.value = this.resolveZigPathConfigOption() ?? null;
     }
 
     /** Returns the version of the Zig executable that is currently being used. */
@@ -40,6 +29,8 @@ export class ZigProvider implements vscode.Disposable {
 
     /** Set the path the Zig executable. The `zig.path` config option will be ignored */
     public set(value: ExeWithVersion | null) {
+        if (value === null && this.value === null) return;
+        if (value !== null && this.value !== null && value.version.compare(this.value.version) === 0) return;
         this.value = value;
         this.onChange.fire(value);
     }
@@ -61,22 +52,16 @@ export class ZigProvider implements vscode.Disposable {
         this.set(newValue);
     }
 
-    /** Resolves the `zig.path` configuration option */
-    private resolveZigPathConfigOption(zigPath?: string): ExeWithVersion | null {
+    /** Resolves the `zig.path` configuration option. */
+    public resolveZigPathConfigOption(zigPath?: string): ExeWithVersion | null | undefined {
         zigPath ??= vscode.workspace.getConfiguration("zig").get<string>("path", "");
         if (!zigPath) return null;
         const exePath = zigPath !== "zig" ? zigPath : null; // the string "zig" means lookup in PATH
         const result = resolveExePathAndVersion(exePath, "zig", "zig.path", "version");
         if ("message" in result) {
             void vscode.window.showErrorMessage(result.message);
-            return null;
+            return undefined;
         }
         return result;
-    }
-
-    dispose() {
-        for (const disposable of this.disposables) {
-            disposable.dispose();
-        }
     }
 }

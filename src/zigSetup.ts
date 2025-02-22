@@ -641,15 +641,21 @@ export async function setupZig(context: vscode.ExtensionContext) {
     onDidChangeActiveTextEditor(vscode.window.activeTextEditor);
 
     context.subscriptions.push(
-        zigProvider,
         statusItem,
         languageStatusItem,
         vscode.commands.registerCommand("zig.install", async () => {
             await selectVersionAndInstall(context);
         }),
         vscode.workspace.onDidChangeConfiguration((change) => {
-            // The `zig.path` config option is handled by `zigProvider.onChange`.
             if (change.affectsConfiguration("zig.version")) {
+                void refreshZigInstallation();
+            }
+            if (change.affectsConfiguration("zig.path")) {
+                const result = zigProvider.resolveZigPathConfigOption();
+                if (result === undefined) return; // error message already reported
+                if (result !== null) {
+                    zigProvider.set(result);
+                }
                 void refreshZigInstallation();
             }
         }),
