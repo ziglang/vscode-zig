@@ -367,6 +367,7 @@
     "test": "npm run compile && node ./node_modules/vscode/bin/test",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint ."
   },
   "devDependencies": {
