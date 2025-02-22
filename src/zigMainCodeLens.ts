@@ -89,7 +89,11 @@ async function zigDebug() {
         };
         await vscode.debug.startDebugging(undefined, debugConfig);
     } catch (e) {
-        void vscode.window.showErrorMessage(`Failed to build debug binary: ${(e as Error).message}`);
+        if (e instanceof Error) {
+            void vscode.window.showErrorMessage(`Failed to build debug binary: ${e.message}`);
+        } else {
+            void vscode.window.showErrorMessage(`Failed to build debug binary`);
+        }
     }
 }
 
