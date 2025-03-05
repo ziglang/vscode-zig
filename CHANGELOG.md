@@ -1,3 +1,7 @@
+## 0.6.5
+- Prevent the extension from overriding options in `zls.json` with default values (@Techatrix)
+- Fix various version management edge cases (@Techatrix)
+
 ## 0.6.4
 - Prevent `.zig-cache` files from being automatically revealed in the explorer (@Techatrix)
 - Add missing PowerShell call operator when using the run button (@BlueBlue21)
