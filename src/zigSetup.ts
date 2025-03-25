@@ -1,5 +1,6 @@
 import vscode from "vscode";
 
+import fs from "fs/promises";
 import path from "path";
 
 import semver from "semver";
@@ -594,6 +595,33 @@ export async function setupZig(context: vscode.ExtensionContext) {
         await workspaceConfigUpdateNoThrow(zigConfig, "initialSetupDone", undefined, true);
 
         await context.workspaceState.update("zig-version", undefined);
+    }
+
+    /// Workaround https://github.com/ziglang/zig/issues/21905
+    switch (process.platform) {
+        case "darwin":
+        case "freebsd":
+        case "openbsd":
+        case "netbsd":
+        case "haiku":
+            vscode.workspace.onDidSaveTextDocument(async (document) => {
+                if (document.languageId !== "zig") return;
+                if (document.uri.scheme !== "file") return;
+
+                const fsPath = document.uri.fsPath;
+                try {
+                    await fs.copyFile(fsPath, fsPath + ".tmp", fs.constants.COPYFILE_EXCL);
+                    await fs.rename(fsPath + ".tmp", fsPath);
+                } catch {}
+            }, context.subscriptions);
+            break;
+        case "aix":
+        case "android":
+        case "linux":
+        case "sunos":
+        case "win32":
+        case "cygwin":
+            break;
     }
 
     versionManagerConfig = {
