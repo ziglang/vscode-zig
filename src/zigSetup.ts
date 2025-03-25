@@ -388,7 +388,12 @@ async function parseBuildZigZon(): Promise<BuildZigZonMetadata | null> {
 
     const manifestUri = vscode.Uri.joinPath(workspace.uri, "build.zig.zon");
 
-    const manifest = await vscode.workspace.openTextDocument(manifestUri);
+    let manifest;
+    try {
+        manifest = await vscode.workspace.openTextDocument(manifestUri);
+    } catch {
+        return null;
+    }
     // Not perfect, but good enough
     const regex = /\n\s*\.minimum_zig_version\s=\s\"(.*)\"/;
     const matches = regex.exec(manifest.getText());
