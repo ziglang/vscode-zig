@@ -16,7 +16,6 @@ import fs from "fs";
 import util from "util";
 import which from "which";
 
-import axios from "axios";
 import semver from "semver";
 
 import * as minisign from "./minisign";
@@ -138,28 +137,37 @@ async function installFromMirror(
             const artifactMinisignUrl = vscode.Uri.joinPath(mirrorUrl, `${fileName}.minisig`);
             const artifactMinisignUrlWithQuery = artifactMinisignUrl.with({ query: "source=vscode-zig" });
 
-            const signatureResponse = await axios.get<Buffer>(artifactMinisignUrlWithQuery.toString(), {
-                responseType: "arraybuffer",
+            const signatureResponse = await fetch(artifactMinisignUrlWithQuery.toString(), {
                 signal: abortController.signal,
             });
-            const signatureData = Buffer.from(signatureResponse.data);
+            const signatureData = Buffer.from(await signatureResponse.arrayBuffer());
 
-            const artifactResponse = await axios.get<Buffer>(artifactUrlWithQuery.toString(), {
-                responseType: "arraybuffer",
+            let artifactResponse = await fetch(artifactUrlWithQuery.toString(), {
                 signal: abortController.signal,
-                onDownloadProgress: (progressEvent) => {
-                    if (progressEvent.total) {
-                        const increment = (progressEvent.bytes / progressEvent.total) * 100;
+            });
+
+            let contentLength = artifactResponse.headers.has("content-length")
+                ? Number(artifactResponse.headers.get("content-length"))
+                : null;
+            if (!Number.isFinite(contentLength)) contentLength = null;
+
+            if (contentLength) {
+                let receivedLength = 0;
+                const progressStream = new TransformStream<{ length: number }>({
+                    transform(chunk, controller) {
+                        receivedLength += chunk.length;
+                        const increment = (chunk.length / contentLength) * 100;
+                        const currentProgress = (receivedLength / contentLength) * 100;
                         progress.report({
-                            message: progressEvent.progress
-                                ? `downloading tarball ${(progressEvent.progress * 100).toFixed()}%`
-                                : "downloading tarball...",
+                            message: `downloading tarball ${currentProgress.toFixed()}%`,
                             increment: increment,
                         });
-                    }
-                },
-            });
-            const artifactData = Buffer.from(artifactResponse.data);
+                        controller.enqueue(chunk);
+                    },
+                });
+                artifactResponse = new Response(artifactResponse.body?.pipeThrough(progressStream));
+            }
+            const artifactData = Buffer.from(await artifactResponse.arrayBuffer());
 
             progress.report({ message: "Verifying Signature..." });
 
@@ -175,7 +183,7 @@ async function installFromMirror(
                 await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
             } catch {}
             await vscode.workspace.fs.createDirectory(installDir);
-            await vscode.workspace.fs.writeFile(tarballUri, new Uint8Array(artifactData));
+            await vscode.workspace.fs.writeFile(tarballUri, artifactData);
 
             progress.report({ message: "Extracting..." });
             try {

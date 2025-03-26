@@ -2,7 +2,6 @@ import vscode from "vscode";
 
 import path from "path";
 
-import axios from "axios";
 import semver from "semver";
 
 import * as minisign from "./minisign";
@@ -115,11 +114,13 @@ async function getLatestTaggedZigVersion(context: vscode.ExtensionContext): Prom
  * Throws an exception when no network connection is available.
  */
 async function getVersions(): Promise<ZigVersion[]> {
-    const [zigIndexJson, machIndexJson] = await Promise.all([
-        axios.get<VersionIndex>("https://ziglang.org/download/index.json", {}),
-        axios.get<VersionIndex>("https://pkg.machengine.org/zig/index.json", {}),
-    ]);
-    const indexJson = { ...machIndexJson.data, ...zigIndexJson.data };
+    const [zigIndexJson, machIndexJson] = await Promise.all(
+        ["https://ziglang.org/download/index.json", "https://pkg.machengine.org/zig/index.json"].map(async (url) => {
+            const response = await fetch(url);
+            return response.json() as Promise<VersionIndex>;
+        }),
+    );
+    const indexJson = { ...machIndexJson, ...zigIndexJson };
 
     const hostName = getHostZigName();
     const result: ZigVersion[] = [];

@@ -11,7 +11,6 @@ import {
     ResponseError,
     ServerOptions,
 } from "vscode-languageclient/node";
-import axios from "axios";
 import camelCase from "camelcase";
 import semver from "semver";
 
@@ -299,18 +298,12 @@ async function fetchVersion(
 
     let response: SelectVersionResponse | SelectVersionFailureResponse | null = null;
     try {
-        response = (
-            await axios.get<SelectVersionResponse | SelectVersionFailureResponse>(
-                "https://releases.zigtools.org/v1/zls/select-version",
-                {
-                    params: {
-                        // eslint-disable-next-line @typescript-eslint/naming-convention
-                        zig_version: zigVersion.raw,
-                        compatibility: "only-runtime",
-                    },
-                },
-            )
-        ).data;
+        const url = new URL("https://releases.zigtools.org/v1/zls/select-version");
+        url.searchParams.append("zig_version", zigVersion.raw);
+        url.searchParams.append("compatibility", "only-runtime");
+
+        const fetchResponse = await fetch(url);
+        response = (await fetchResponse.json()) as SelectVersionResponse | SelectVersionFailureResponse;
 
         // Cache the response
         if (useCache) {
