@@ -113,7 +113,20 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
         // It should be more likely that the given executable is invalid than someone using ZLS 0.9.0 or older.
         const result = resolveExePathAndVersion(zlsExePath, "zls", "zig.zls.path", "--version");
         if ("message" in result) {
-            void vscode.window.showErrorMessage(result.message);
+            vscode.window.showErrorMessage(result.message, "install ZLS", "open settings").then(async (response) => {
+                switch (response) {
+                    case "install ZLS":
+                        const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
+                        await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
+                        await workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined);
+                        break;
+                    case "open settings":
+                        await vscode.commands.executeCommand("workbench.action.openSettings", "zig.zls.path");
+                        break;
+                    case undefined:
+                        break;
+                }
+            });
             return null;
         }
         return result;
