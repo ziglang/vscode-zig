@@ -1,12 +1,17 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "ESNext",
+        "moduleResolution": "bundler",
+        "target": "ES2021",
         "outDir": "out",
-        "esModuleInterop": true,
-        "strict": true,
-        "lib": ["esnext"],
+        "lib": ["ES2021"],
         "sourceMap": true,
-        "rootDir": "src"
+        "rootDir": "src",
+
+        "strict": true,
+        "allowUnreachableCode": false,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noPropertyAccessFromIndexSignature": true
     }
 }

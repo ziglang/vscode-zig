@@ -56,7 +56,7 @@ function preCompileZigFmt() {
     if (vscode.workspace.getConfiguration("zig").get<string>("formattingProvider") === "off") return;
 
     const zigPath = zigProvider.getZigPath();
-    if (!zigPath) return null;
+    if (!zigPath) return;
 
     try {
         childProcess.execFile(zigPath, ["fmt", "--help"], {
