@@ -114,7 +114,20 @@ async function installFromMirror(
     const exeUri = vscode.Uri.joinPath(installDir, exeName);
     const tarballUri = vscode.Uri.joinPath(installDir, fileName);
 
-    const tarPath = await which("tar", { nothrow: true });
+    let tarPath = null;
+    if (isWindows && process.env["SYSTEMROOT"]) {
+        // We may be running from within Git Bash which adds GNU tar to
+        // the $PATH but we need bsdtar to extract zip files so we look
+        // in the system directory before falling back to the $PATH.
+        // See https://github.com/ziglang/vscode-zig/issues/382
+        tarPath = `${process.env["SYSTEMROOT"]}\\system32\\tar.exe`;
+        try {
+            await vscode.workspace.fs.stat(vscode.Uri.file(tarPath));
+        } catch {
+            tarPath = null;
+        }
+    }
+    tarPath ??= await which("tar", { nothrow: true });
     if (!tarPath) {
         throw new Error(`Downloaded ${config.title} tarball can't be extracted because 'tar' could not be found`);
     }
