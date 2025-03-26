@@ -65,42 +65,46 @@ export function resolveExePathAndVersion(
 ): { exe: string; version: semver.SemVer } | { message: string } {
     /* `optionName === null` implies `exePath === null` */
     assert(optionName !== null || exePath === null);
+
+    let resolvedExePath;
     if (!exePath) {
-        exePath = which.sync(exeName, { nothrow: true });
+        resolvedExePath = which.sync(exeName, { nothrow: true });
     } else {
         // allow passing predefined variables
-        exePath = handleConfigOption(exePath);
+        resolvedExePath = handleConfigOption(exePath);
 
         if (exePath.startsWith("~")) {
-            exePath = path.join(os.homedir(), exePath.substring(1));
+            resolvedExePath = path.join(os.homedir(), exePath.substring(1));
         } else if (!path.isAbsolute(exePath)) {
-            exePath = which.sync(exePath, { nothrow: true });
+            resolvedExePath = which.sync(exePath, { nothrow: true });
         }
     }
 
-    if (!exePath) {
-        return { message: `Could not find ${exeName} in PATH` };
+    if (!resolvedExePath) {
+        return {
+            message: (optionName ? `\`${optionName}\` ` : "") + `Could not find '${exePath ?? exeName}' in PATH`,
+        };
     }
 
-    if (!fs.existsSync(exePath)) {
+    if (!fs.existsSync(resolvedExePath)) {
         return {
-            message: optionName ? `\`${optionName}\` ${exePath} does not exist` : `${exePath} does not exist`,
+            message: (optionName ? `\`${optionName}\` ` : "") + `${resolvedExePath} does not exist`,
         };
     }
 
     try {
-        fs.accessSync(exePath, fs.constants.R_OK | fs.constants.X_OK);
+        fs.accessSync(resolvedExePath, fs.constants.R_OK | fs.constants.X_OK);
     } catch {
         return {
             message: optionName
-                ? `\`${optionName}\` ${exePath} is not an executable`
-                : `${exePath} is not an executable`,
+                ? `\`${optionName}\` ${resolvedExePath} is not an executable`
+                : `${resolvedExePath} is not an executable`,
         };
     }
 
-    const version = getVersion(exePath, versionArg);
-    if (!version) return { message: `Failed to run '${exePath} ${versionArg}'!` };
-    return { exe: exePath, version: version };
+    const version = getVersion(resolvedExePath, versionArg);
+    if (!version) return { message: `Failed to run '${resolvedExePath} ${versionArg}'!` };
+    return { exe: resolvedExePath, version: version };
 }
 
 export function asyncDebounce<T extends (...args: unknown[]) => Promise<Awaited<ReturnType<T>>>>(
