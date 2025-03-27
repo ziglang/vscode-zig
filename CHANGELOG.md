@@ -1,3 +1,7 @@
+## 0.6.7
+- Windows: prefer tar.exe in system32 over $PATH if available (@Techatrix)
+- Add a workaround for [ziglang/zig#21905](https://github.com/ziglang/zig/issues/21905) on MacOS and BSDs (@Techatrix)
+
 ## 0.6.5
 - Prevent the extension from overriding options in `zls.json` with default values (@Techatrix)
 - Fix various version management edge cases (@Techatrix)
