@@ -73,10 +73,10 @@ export function resolveExePathAndVersion(
         // allow passing predefined variables
         resolvedExePath = handleConfigOption(exePath);
 
-        if (exePath.startsWith("~")) {
-            resolvedExePath = path.join(os.homedir(), exePath.substring(1));
-        } else if (!path.isAbsolute(exePath)) {
-            resolvedExePath = which.sync(exePath, { nothrow: true });
+        if (resolvedExePath.startsWith("~")) {
+            resolvedExePath = path.join(os.homedir(), resolvedExePath.substring(1));
+        } else if (!path.isAbsolute(resolvedExePath)) {
+            resolvedExePath = which.sync(resolvedExePath, { nothrow: true });
         }
     }
 
