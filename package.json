@@ -136,6 +136,12 @@
           ],
           "default": "zls"
         },
+        "zig.testrunner.no-llvm": {
+         "scope": "resource",
+         "type": "boolean",
+         "description": "Use the non-LLVM experimental x86 backend when running tests. Tests will run significantly faster.",
+         "default": false
+       },
         "zig.zls.debugLog": {
           "scope": "resource",
           "type": "boolean",

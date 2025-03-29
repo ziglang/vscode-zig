@@ -125,11 +125,23 @@ export default class ZigTestRunnerProvider {
         if (test.uri === undefined) {
             return { output: "Unable to determine file location", success: false };
         }
+        const testPath = test.uri.fsPath;
+        const wsFolder = getWorkspaceFolder(testPath)?.uri.fsPath ?? path.dirname(testPath);
+
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
-        const args = ["test", "--test-filter", lastPart, test.uri.fsPath];
+        const args = ["test"];
+
+        const config = vscode.workspace.getConfiguration("zig");
+        if (config.get<boolean>("testrunner.no-llvm")) {
+            args.push("-fno-llvm");
+        }
+        args.push("--test-filter", lastPart, testPath);
+
         try {
-            const { stderr: output } = await execFile(zigPath, args);
+            const { stderr: output } = await execFile(zigPath, args, {
+                cwd: wsFolder
+            });
             return { output: output.replaceAll("\n", "\r\n"), success: true };
         } catch (e) {
             return { output: (e as Error).message.replaceAll("\n", "\r\n"), success: false };
@@ -156,13 +168,16 @@ export default class ZigTestRunnerProvider {
         if (testItem.uri === undefined) {
             throw new Error("Unable to determine file location");
         }
-        const testBinaryPath = await this.buildTestBinary(run, testItem.uri.fsPath, getTestDesc(testItem));
+        const testPath = testItem.uri.fsPath;
+        const wsFolder = getWorkspaceFolder(testPath)?.uri.fsPath ?? path.dirname(testPath);
+        const testBinaryPath = await this.buildTestBinary(run, testPath, getTestDesc(testItem));
+
         const debugConfig: vscode.DebugConfiguration = {
             type: "lldb",
             name: `Debug ${testItem.label}`,
             request: "launch",
             program: testBinaryPath,
-            cwd: path.dirname(testItem.uri.fsPath),
+            cwd: wsFolder,
             stopAtEntry: false,
         };
         await vscode.debug.startDebugging(undefined, debugConfig);
