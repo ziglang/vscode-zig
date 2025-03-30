@@ -130,13 +130,8 @@ export default class ZigTestRunnerProvider {
 
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
-        const args = ["test"];
 
-        const config = vscode.workspace.getConfiguration("zig");
-        if (config.get<boolean>("testrunner.no-llvm")) {
-            args.push("-fno-llvm");
-        }
-        args.push("--test-filter", lastPart, testPath);
+        const args = getTestArgs(testPath, lastPart, false);
 
         try {
             const { stderr: output } = await execFile(zigPath, args, {
@@ -170,7 +165,7 @@ export default class ZigTestRunnerProvider {
         }
         const testPath = testItem.uri.fsPath;
         const wsFolder = getWorkspaceFolder(testPath)?.uri.fsPath ?? path.dirname(testPath);
-        const testBinaryPath = await this.buildTestBinary(run, testPath, getTestDesc(testItem));
+        const testBinaryPath = await this.buildTestBinary(run, testPath, getTestDesc(testItem), true);
 
         const debugConfig: vscode.DebugConfiguration = {
             type: "lldb",
@@ -183,7 +178,7 @@ export default class ZigTestRunnerProvider {
         await vscode.debug.startDebugging(undefined, debugConfig);
     }
 
-    private async buildTestBinary(run: vscode.TestRun, testFilePath: string, testDesc: string): Promise<string> {
+    private async buildTestBinary(run: vscode.TestRun, testFilePath: string, testDesc: string, isDebug: boolean): Promise<string> {
         const zigPath = zigProvider.getZigPath();
         if (!zigPath) {
             throw new Error("Unable to build test binary without Zig");
@@ -195,14 +190,10 @@ export default class ZigTestRunnerProvider {
         const binaryPath = path.join(outputDir, binaryName);
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(outputDir));
 
-        const { stdout, stderr } = await execFile(zigPath, [
-            "test",
-            testFilePath,
-            "--test-filter",
-            testDesc,
-            "--test-no-exec",
-            `-femit-bin=${binaryPath}`,
-        ]);
+        const args = getTestArgs(testFilePath, testDesc, isDebug);
+        args.push("--test-no-exec", `-femit-bin=${binaryPath}`);
+
+        const { stdout, stderr } = await execFile(zigPath, args);
         if (stderr) {
             run.appendOutput(stderr.replaceAll("\n", "\r\n"));
             throw new Error(`Failed to build test binary: ${stderr}`);
@@ -210,6 +201,25 @@ export default class ZigTestRunnerProvider {
         run.appendOutput(stdout.replaceAll("\n", "\r\n"));
         return binaryPath;
     }
+}
+
+function getTestArgs(testFilePath: string, testFilter: string, isDebug: boolean): string[] {
+    const args = ["test"];
+
+    if (!isDebug) {
+        // Note when running in an lldb debugger. the experimental x86 backend does not produce debug symbols
+        // for local variables. Therefore until this is resolved, debug sessions have to use the llvm backend.
+        //
+        const config = vscode.workspace.getConfiguration("zig");
+        if (config.get<boolean>("testrunner.no-llvm")) {
+            args.push("-fno-llvm");
+        }
+    }
+
+    args.push(testFilePath, "--test-filter", testFilter);
+
+    console.log("Test args", args);
+    return args;
 }
 
 function getTestDesc(testItem: vscode.TestItem): string {
