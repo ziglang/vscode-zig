@@ -1,3 +1,6 @@
+## 0.6.8
+- Fix regression in using config options placeholders in paths. 
+
 ## 0.6.7
 - Windows: prefer tar.exe in system32 over $PATH if available (@Techatrix)
 - Add a workaround for [ziglang/zig#21905](https://github.com/ziglang/zig/issues/21905) on MacOS and BSDs (@Techatrix)
