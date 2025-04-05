@@ -70,7 +70,7 @@ export default class ZigTestRunnerProvider {
     private _updateTestItems(textDocument: vscode.TextDocument) {
         if (textDocument.languageId !== "zig") return;
 
-        const regex = /\btest\s(?:"([^"])"|([a-zA-Z0-9_][\w]*)|@"([^"])")\s*\{/g;
+        const regex = /\btest\s+(?:"([^"]+)"|([a-zA-Z0-9_][\w]*)|@"([^"]+)")\s*\{/g;
         const matches = Array.from(textDocument.getText().matchAll(regex));
         this.deleteTestForAFile(textDocument.uri);
 
