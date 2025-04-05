@@ -141,7 +141,7 @@ const regex = /\btest\s(?:"([^"])"|([a-zA-Z0-9_][\w]*)|@"([^"])")\s*\{/g;
         try {
             const { stderr: output } = await execFile(zigPath, args, { cwd: wsFolder });
 
-            return { output: output, success: true };
+            return { output: output.replaceAll("\n", "\r\n"), success: true };
         } catch (e) {
             if (e instanceof Error) {
                 if (
@@ -166,9 +166,9 @@ const regex = /\btest\s(?:"([^"])"|([a-zA-Z0-9_][\w]*)|@"([^"])")\s*\{/g;
                             }
                         });
                 }
-                return { output: e.message, success: false };
+                return { output: e.message.replaceAll("\n", "\r\n"), success: false };
             } else {
-                return { output: "Failed to run test", success: false };
+                return { output: "Failed to run test\r\n", success: false };
             }
         }
     }
