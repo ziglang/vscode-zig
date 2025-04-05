@@ -337,6 +337,11 @@
         "category": "Zig Setup"
       },
       {
+        "command": "zig.toggleMultilineStringLiteral",
+        "title": "Toggle Multiline String Literal",
+        "category": "Zig"
+      },
+      {
         "command": "zig.zls.enable",
         "title": "Enable Language Server",
         "category": "ZLS language server"
@@ -350,6 +355,14 @@
         "command": "zig.zls.stop",
         "title": "Stop Language Server",
         "category": "ZLS language server"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "zig.toggleMultilineStringLiteral",
+        "key": "ctrl+m ctrl+s",
+        "mac": "cmd+m cmd+s",
+        "when": "editorTextFocus && editorLangId == 'zig'"
       }
     ],
     "jsonValidation": [
