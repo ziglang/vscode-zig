@@ -133,7 +133,7 @@ export default class ZigTestRunnerProvider {
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
 
-        const testArgsConf = config.get<string[]>("testArgs") || [];
+        const testArgsConf = config.get<string[]>("testArgs") ?? [];
         const args: string[] =
             testArgsConf.length > 0
                 ? testArgsConf.map((v) => v.replace("${filter}", lastPart).replace("${path}", testUri.fsPath))
