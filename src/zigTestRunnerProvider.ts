@@ -133,10 +133,11 @@ export default class ZigTestRunnerProvider {
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
 
-        const testArgsConf = config.get<string[]>('testArgs') || [];
-        const args: string[] = (testArgsConf.length > 0)
-            ? testArgsConf.map((v) => v.replace("${filter}", lastPart).replace("${path}", testUri.fsPath))
-            : [];
+        const testArgsConf = config.get<string[]>("testArgs") || [];
+        const args: string[] =
+            testArgsConf.length > 0
+                ? testArgsConf.map((v) => v.replace("${filter}", lastPart).replace("${path}", testUri.fsPath))
+                : [];
 
         try {
             const { stderr: output } = await execFile(zigPath, args, { cwd: wsFolder });
@@ -145,9 +146,9 @@ export default class ZigTestRunnerProvider {
         } catch (e) {
             if (e instanceof Error) {
                 if (
-                    config.get<string[]>("testArgs")?.toString() === config.inspect<string[]>("testArgs")?.defaultValue?.toString() &&
-                    (e.message.includes("no module named") ||
-                        e.message.includes("import of file outside module path"))
+                    config.get<string[]>("testArgs")?.toString() ===
+                        config.inspect<string[]>("testArgs")?.defaultValue?.toString() &&
+                    (e.message.includes("no module named") || e.message.includes("import of file outside module path"))
                 ) {
                     void vscode.window
                         .showInformationMessage("Use build script to run tests?", "Yes", "No")

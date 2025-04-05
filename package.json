@@ -141,7 +141,12 @@
           "items": {
             "type": "string"
           },
-          "default": ["test", "--test-filter", "${filter}", "${path}"],
+          "default": [
+            "test",
+            "--test-filter",
+            "${filter}",
+            "${path}"
+          ],
           "description": "Arguments to pass to 'zig' for running tests. Supported variables: ${filter}, ${path}."
         },
         "zig.zls.debugLog": {
