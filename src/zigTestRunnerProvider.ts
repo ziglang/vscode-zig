@@ -70,7 +70,7 @@ export default class ZigTestRunnerProvider {
     private _updateTestItems(textDocument: vscode.TextDocument) {
         if (textDocument.languageId !== "zig") return;
 
-const regex = /\btest\s(?:"([^"])"|([a-zA-Z0-9_][\w]*)|@"([^"])")\s*\{/g;
+        const regex = /\btest\s(?:"([^"])"|([a-zA-Z0-9_][\w]*)|@"([^"])")\s*\{/g;
         const matches = Array.from(textDocument.getText().matchAll(regex));
         this.deleteTestForAFile(textDocument.uri);
 
@@ -144,28 +144,6 @@ const regex = /\btest\s(?:"([^"])"|([a-zA-Z0-9_][\w]*)|@"([^"])")\s*\{/g;
             return { output: output.replaceAll("\n", "\r\n"), success: true };
         } catch (e) {
             if (e instanceof Error) {
-                if (
-                    config.get<string[]>("testArgs")?.toString() === config.inspect<string[]>("testArgs")?.defaultValue?.toString() &&
-                    (e.message.includes("error: no module named") ||
-                        e.message.includes("error: import of file outside module path"))
-                ) {
-                    void vscode.window
-                        .showInformationMessage("Use build script to run tests?", "Yes", "No")
-                        .then(async (response) => {
-                            if (response === "Yes") {
-                                await workspaceConfigUpdateNoThrow(
-                                    config,
-                                    "testArgs",
-                                    ["build", "test-unit", "-Dtest-filter=${filter}"],
-                                    false,
-                                );
-                                void vscode.commands.executeCommand(
-                                    "workbench.action.openSettings",
-                                    "@id:zig.testArgs",
-                                );
-                            }
-                        });
-                }
                 return { output: e.message.replaceAll("\n", "\r\n"), success: false };
             } else {
                 return { output: "Failed to run test\r\n", success: false };
