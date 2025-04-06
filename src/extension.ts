@@ -24,7 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 new ZigMainCodeLensProvider(),
             ),
             vscode.commands.registerCommand(
-                'zig.toggleMultilineStringLiteral', 
+                'zig.toggleMultilineStringLiteral',
                 toggleMultilineStringLiteral
             ),
         );
@@ -37,30 +37,32 @@ export async function deactivate() {
 }
 
 async function toggleMultilineStringLiteral() {
-	const editor = vscode.window.activeTextEditor;
-	if (!editor) { return; }
-	const { document, selection } = editor;
-	if (document.languageId !== 'zig') { return; }
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) { return; }
+    const { document, selection } = editor;
+    if (document.languageId !== 'zig') { return; }
 
-	let newText = '';
-	let range = new vscode.Range(selection.start, selection.end);
+    let newText = '';
+    let range = new vscode.Range(selection.start, selection.end);
 
-	const firstLine = document.lineAt(selection.start.line);
-	const nonWhitespaceIndex = firstLine.firstNonWhitespaceCharacterIndex;
+    const firstLine = document.lineAt(selection.start.line);
+    const nonWhitespaceIndex = firstLine.firstNonWhitespaceCharacterIndex;
 
-	for (var lineNum = selection.start.line; lineNum <= selection.end.line; lineNum++) {
-		const line = document.lineAt(lineNum);
+    for (var lineNum = selection.start.line; lineNum <= selection.end.line; lineNum++) {
+        const line = document.lineAt(lineNum);
 
-		const isMLSL = line.text.slice(line.firstNonWhitespaceCharacterIndex).startsWith('\\\\');
-		const breakpoint = Math.min(nonWhitespaceIndex, line.firstNonWhitespaceCharacterIndex);
+        const isMLSL = line.text.slice(line.firstNonWhitespaceCharacterIndex).startsWith('\\\\');
+        const breakpoint = Math.min(nonWhitespaceIndex, line.firstNonWhitespaceCharacterIndex);
 
-		const newLine = isMLSL
-			? line.text.slice(0, line.firstNonWhitespaceCharacterIndex) + line.text.slice(line.firstNonWhitespaceCharacterIndex).slice(2)
-			: line.text.slice(0, breakpoint) + '\\\\' + line.text.slice(breakpoint);
-		newText += newLine;
-		if (lineNum < selection.end.line) { newText += '\n'; }
-		range = range.union(line.range);
-	}
+        const newLine = isMLSL
+            ? line.text.slice(0, line.firstNonWhitespaceCharacterIndex) + line.text.slice(line.firstNonWhitespaceCharacterIndex).slice(2)
+            : line.isEmptyOrWhitespace
+                ? ' '.repeat(nonWhitespaceIndex) + '\\\\'
+                : line.text.slice(0, breakpoint) + '\\\\' + line.text.slice(breakpoint);
+        newText += newLine;
+        if (lineNum < selection.end.line) { newText += '\n'; }
+        range = range.union(line.range);
+    }
 
-	await editor.edit((builder) => builder.replace(range, newText));
+    await editor.edit((builder) => builder.replace(range, newText));
 }
