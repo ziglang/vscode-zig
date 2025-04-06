@@ -6,7 +6,7 @@ import util from "util";
 
 import { DebouncedFunc, throttle } from "lodash-es";
 
-import { getWorkspaceFolder, isWorkspaceFile } from "./zigUtil";
+import { getWorkspaceFolder, isWorkspaceFile, workspaceConfigUpdateNoThrow } from "./zigUtil";
 import { zigProvider } from "./zigSetup";
 
 const execFile = util.promisify(childProcess.execFile);
@@ -118,6 +118,7 @@ export default class ZigTestRunnerProvider {
     }
 
     private async runTest(test: vscode.TestItem): Promise<{ output: string; success: boolean }> {
+        const config = vscode.workspace.getConfiguration("zig");
         const zigPath = zigProvider.getZigPath();
         if (!zigPath) {
             return { output: "Unable to run test without Zig", success: false };
@@ -125,14 +126,52 @@ export default class ZigTestRunnerProvider {
         if (test.uri === undefined) {
             return { output: "Unable to determine file location", success: false };
         }
+
+        const testUri = test.uri;
+        const wsFolder = getWorkspaceFolder(testUri.fsPath)?.uri.fsPath ?? path.dirname(testUri.fsPath);
+
         const parts = test.id.split(".");
         const lastPart = parts[parts.length - 1];
-        const args = ["test", "--test-filter", lastPart, test.uri.fsPath];
+
+        const testArgsConf = config.get<string[]>("testArgs") ?? [];
+        const args: string[] =
+            testArgsConf.length > 0
+                ? testArgsConf.map((v) => v.replace("${filter}", lastPart).replace("${path}", testUri.fsPath))
+                : [];
+
         try {
-            const { stderr: output } = await execFile(zigPath, args);
+            const { stderr: output } = await execFile(zigPath, args, { cwd: wsFolder });
+
             return { output: output.replaceAll("\n", "\r\n"), success: true };
         } catch (e) {
-            return { output: (e as Error).message.replaceAll("\n", "\r\n"), success: false };
+            if (e instanceof Error) {
+                if (
+                    config.get<string[]>("testArgs")?.toString() ===
+                        config.inspect<string[]>("testArgs")?.defaultValue?.toString() &&
+                    (e.message.includes("no module named") || e.message.includes("import of file outside module path"))
+                ) {
+                    void vscode.window
+                        .showInformationMessage("Use build script to run tests?", "Yes", "No")
+                        .then(async (response) => {
+                            if (response === "Yes") {
+                                await workspaceConfigUpdateNoThrow(
+                                    config,
+                                    "testArgs",
+                                    ["build", "test", "-Dtest-filter=${filter}"],
+                                    false,
+                                );
+                                void vscode.commands.executeCommand(
+                                    "workbench.action.openWorkspaceSettings",
+                                    "@id:zig.testArgs",
+                                );
+                            }
+                        });
+                }
+
+                return { output: e.message.replaceAll("\n", "\r\n"), success: false };
+            } else {
+                return { output: "Failed to run test\r\n", success: false };
+            }
         }
     }
 
