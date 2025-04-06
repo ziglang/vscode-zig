@@ -360,8 +360,7 @@
     "keybindings": [
       {
         "command": "zig.toggleMultilineStringLiteral",
-        "key": "ctrl+m ctrl+s",
-        "mac": "cmd+m cmd+s",
+        "key": "alt+m alt+s",
         "when": "editorTextFocus && editorLangId == 'zig'"
       }
     ],
