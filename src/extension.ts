@@ -48,7 +48,7 @@ async function toggleMultilineStringLiteral() {
     const firstLine = document.lineAt(selection.start.line);
     const nonWhitespaceIndex = firstLine.firstNonWhitespaceCharacterIndex;
 
-    for (var lineNum = selection.start.line; lineNum <= selection.end.line; lineNum++) {
+    for (let lineNum = selection.start.line; lineNum <= selection.end.line; lineNum++) {
         const line = document.lineAt(lineNum);
 
         const isMLSL = line.text.slice(line.firstNonWhitespaceCharacterIndex).startsWith('\\\\');
@@ -64,5 +64,5 @@ async function toggleMultilineStringLiteral() {
         range = range.union(line.range);
     }
 
-    await editor.edit((builder) => builder.replace(range, newText));
+    await editor.edit((builder) => { builder.replace(range, newText); });
 }
