@@ -25,6 +25,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ),
             vscode.commands.registerCommand("zig.toggleMultilineStringLiteral", toggleMultilineStringLiteral),
         );
+
         void activateZls(context);
     });
 }
