@@ -58,7 +58,24 @@ export class ZigProvider {
         if (!zigPath) return null;
         const result = resolveExePathAndVersion(zigPath, "version");
         if ("message" in result) {
-            void vscode.window.showErrorMessage(`Unexpected 'zig.path': ${result.message}`);
+            vscode.window
+                .showErrorMessage(`Unexpected 'zig.path': ${result.message}`, "install Zig", "open settings")
+                .then(async (response) => {
+                    switch (response) {
+                        case "install Zig":
+                            await workspaceConfigUpdateNoThrow(
+                                vscode.workspace.getConfiguration("zig"),
+                                "path",
+                                undefined,
+                            );
+                            break;
+                        case "open settings":
+                            await vscode.commands.executeCommand("workbench.action.openSettings", "zig.path");
+                            break;
+                        case undefined:
+                            break;
+                    }
+                });
             return undefined;
         }
         return result;
