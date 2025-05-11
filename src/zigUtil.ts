@@ -59,8 +59,6 @@ export function resolveExePathAndVersion(
      * - resolves possible executable file extensions on windows like '.exe' or '.cmd'.
      */
     cmd: string,
-    /** e.g. `zig.path` or `zig.zls.path`. Can be null if `exePath === null` */
-    optionName: string | null,
     /**
      * The command-line argument that is used to query the version of the executable.
      * Zig uses `version`. ZLS uses `--version`.
@@ -81,28 +79,37 @@ export function resolveExePathAndVersion(
     const hasPathSeparator = !!/\//.exec(cmd) || (isWindows && !!/\\/.exec(cmd));
     if (!isAbsolute && hasPathSeparator) {
         // A value like `./zig` would be looked up relative to the cwd of the VS Code process which makes little sense.
-        return { message: (optionName ? `\`${optionName}\` ` : "") + `${cmd} is not valid` };
+        return {
+            message: `'${cmd}' is not valid. Use '$\{workspaceFolder}' to specify a path relative to the current workspace folder and '~' for the home directory.`,
+        };
     }
 
     const exePath = which.sync(cmd, { nothrow: true });
     if (!exePath) {
         if (!isAbsolute) {
-            return { message: (optionName ? `\`${optionName}\` ` : "") + `Could not find '${cmd}' in PATH` };
+            return { message: `Could not find '${cmd}' in PATH.` };
         }
 
-        if (!fs.existsSync(cmd)) {
+        const stats = fs.statSync(cmd, { throwIfNoEntry: false });
+        if (!stats) {
             return {
-                message: (optionName ? `\`${optionName}\` ` : "") + `${cmd} does not exist`,
+                message: `'${cmd}' does not exist.`,
+            };
+        }
+
+        if (stats.isDirectory()) {
+            return {
+                message: `'${cmd}' is a directory and not an executable.`,
             };
         }
 
         return {
-            message: (optionName ? `\`${optionName}\` ` : "") + `${cmd} is not an executable.`,
+            message: `'${cmd}' is not an executable.`,
         };
     }
 
     const version = getVersion(exePath, versionArg);
-    if (!version) return { message: `Failed to run '${exePath} ${versionArg}'!` };
+    if (!version) return { message: `Failed to run '${exePath} ${versionArg}'.` };
     return { exe: exePath, version: version };
 }
 

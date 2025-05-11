@@ -56,9 +56,9 @@ export class ZigProvider {
     public resolveZigPathConfigOption(zigPath?: string): ExeWithVersion | null | undefined {
         zigPath ??= vscode.workspace.getConfiguration("zig").get<string>("path", "");
         if (!zigPath) return null;
-        const result = resolveExePathAndVersion(zigPath, "zig.path", "version");
+        const result = resolveExePathAndVersion(zigPath, "version");
         if ("message" in result) {
-            void vscode.window.showErrorMessage(result.message);
+            void vscode.window.showErrorMessage(`Unexpected 'zig.path': ${result.message}`);
             return undefined;
         }
         return result;
