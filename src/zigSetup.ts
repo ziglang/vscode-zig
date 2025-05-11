@@ -39,7 +39,7 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
 
     if (!version) {
         // Lookup zig in $PATH
-        const result = resolveExePathAndVersion(null, "zig", null, "version");
+        const result = resolveExePathAndVersion("zig", null, "version");
         if ("exe" in result) {
             await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
             zigProvider.set(result);
@@ -234,7 +234,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
         });
     }
 
-    const zigInPath = resolveExePathAndVersion(null, "zig", null, "version");
+    const zigInPath = resolveExePathAndVersion("zig", null, "version");
     if (!("message" in zigInPath)) {
         items.push({
             label: "Use Zig in PATH",

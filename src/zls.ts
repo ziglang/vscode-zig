@@ -110,7 +110,7 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
     if (!!zlsExePath) {
         // This will fail on older ZLS version that do not support `zls --version`.
         // It should be more likely that the given executable is invalid than someone using ZLS 0.9.0 or older.
-        const result = resolveExePathAndVersion(zlsExePath, "zls", "zig.zls.path", "--version");
+        const result = resolveExePathAndVersion(zlsExePath, "zig.zls.path", "--version");
         if ("message" in result) {
             vscode.window.showErrorMessage(result.message, "install ZLS", "open settings").then(async (response) => {
                 switch (response) {
