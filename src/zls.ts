@@ -3,7 +3,6 @@ import vscode from "vscode";
 import {
     CancellationToken,
     ConfigurationParams,
-    DocumentSelector,
     LSPAny,
     LanguageClient,
     LanguageClientOptions,
@@ -19,14 +18,14 @@ import * as versionManager from "./versionManager";
 import { getHostZigName, handleConfigOption, resolveExePathAndVersion, workspaceConfigUpdateNoThrow } from "./zigUtil";
 import { zigProvider } from "./zigSetup";
 
-const ZIG_MODE: DocumentSelector = [
+const ZIG_MODE = [
     { language: "zig", scheme: "file" },
     { language: "zig", scheme: "untitled" },
 ];
 
 let versionManagerConfig: versionManager.Config;
 let statusItem: vscode.LanguageStatusItem;
-let outputChannel: vscode.OutputChannel;
+let outputChannel: vscode.LogOutputChannel;
 export let client: LanguageClient | null = null;
 
 export async function restartClient(context: vscode.ExtensionContext): Promise<void> {
@@ -87,7 +86,7 @@ async function startClient(zlsPath: string, zlsVersion: semver.SemVer): Promise<
     const languageClient = new LanguageClient("zig.zls", "ZLS language server", serverOptions, clientOptions);
     await languageClient.start();
     // Formatting is handled by `zigFormat.ts`
-    languageClient.getFeature("textDocument/formatting").dispose();
+    languageClient.getFeature("textDocument/formatting").clear();
     return languageClient;
 }
 
@@ -439,7 +438,7 @@ export async function activate(context: vscode.ExtensionContext) {
         },
     };
 
-    outputChannel = vscode.window.createOutputChannel("ZLS language server");
+    outputChannel = vscode.window.createOutputChannel("ZLS language server", { log: true });
     statusItem = vscode.languages.createLanguageStatusItem("zig.zls.status", ZIG_MODE);
     statusItem.name = "ZLS";
     updateStatusItem(null);
