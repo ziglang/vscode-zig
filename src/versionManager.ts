@@ -58,10 +58,10 @@ export async function install(config: Config, version: semver.SemVer): Promise<s
         return await entry;
     }
 
-    const fn = installGuarded.apply(null, [config, version]);
-    inProgressInstalls.set(key, fn);
+    const promise = installGuarded(config, version);
+    inProgressInstalls.set(key, promise);
 
-    return await fn.finally(() => {
+    return await promise.finally(() => {
         inProgressInstalls.delete(key);
     });
 }
