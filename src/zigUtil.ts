@@ -10,8 +10,10 @@ import { debounce } from "lodash-es";
 import semver from "semver";
 import which from "which";
 
-// Replace any references to predefined variables in config string.
-// https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
+/**
+ * Replace any references to predefined variables in config string.
+ * https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
+ */
 export function handleConfigOption(input: string): string {
     if (input.includes("${userHome}")) {
         input = input.replaceAll("${userHome}", os.homedir());
@@ -51,60 +53,64 @@ export function handleConfigOption(input: string): string {
 
 /** Resolves the absolute executable path and version of a program like Zig or ZLS. */
 export function resolveExePathAndVersion(
-    /** `null` means lookup in PATH */
-    exePath: string | null,
-    /** e.g. `zig` or `zig` */
-    exeName: string,
-    /** e.g. `zig.path` or `zig.zls.path`. Can be null if `exePath === null` */
-    optionName: string | null,
+    /**
+     * - resolves '~' to the user home directory.
+     * - resolves VS Code predefined variables.
+     * - resolves possible executable file extensions on windows like '.exe' or '.cmd'.
+     */
+    cmd: string,
     /**
      * The command-line argument that is used to query the version of the executable.
      * Zig uses `version`. ZLS uses `--version`.
      */
     versionArg: string,
 ): { exe: string; version: semver.SemVer } | { message: string } {
-    /* `optionName === null` implies `exePath === null` */
-    assert(optionName !== null || exePath === null);
+    assert(cmd.length);
 
-    let resolvedExePath;
+    // allow passing predefined variables
+    cmd = handleConfigOption(cmd);
+
+    if (cmd.startsWith("~")) {
+        cmd = path.join(os.homedir(), cmd.substring(1));
+    }
+
+    const isWindows = os.platform() === "win32";
+    const isAbsolute = path.isAbsolute(cmd);
+    const hasPathSeparator = !!/\//.exec(cmd) || (isWindows && !!/\\/.exec(cmd));
+    if (!isAbsolute && hasPathSeparator) {
+        // A value like `./zig` would be looked up relative to the cwd of the VS Code process which makes little sense.
+        return {
+            message: `'${cmd}' is not valid. Use '$\{workspaceFolder}' to specify a path relative to the current workspace folder and '~' for the home directory.`,
+        };
+    }
+
+    const exePath = which.sync(cmd, { nothrow: true });
     if (!exePath) {
-        resolvedExePath = which.sync(exeName, { nothrow: true });
-    } else {
-        // allow passing predefined variables
-        resolvedExePath = handleConfigOption(exePath);
-
-        if (resolvedExePath.startsWith("~")) {
-            resolvedExePath = path.join(os.homedir(), resolvedExePath.substring(1));
-        } else if (!path.isAbsolute(resolvedExePath)) {
-            resolvedExePath = which.sync(resolvedExePath, { nothrow: true });
+        if (!isAbsolute) {
+            return { message: `Could not find '${cmd}' in PATH.` };
         }
-    }
 
-    if (!resolvedExePath) {
+        const stats = fs.statSync(cmd, { throwIfNoEntry: false });
+        if (!stats) {
+            return {
+                message: `'${cmd}' does not exist.`,
+            };
+        }
+
+        if (stats.isDirectory()) {
+            return {
+                message: `'${cmd}' is a directory and not an executable.`,
+            };
+        }
+
         return {
-            message: (optionName ? `\`${optionName}\` ` : "") + `Could not find '${exePath ?? exeName}' in PATH`,
+            message: `'${cmd}' is not an executable.`,
         };
     }
 
-    if (!fs.existsSync(resolvedExePath)) {
-        return {
-            message: (optionName ? `\`${optionName}\` ` : "") + `${resolvedExePath} does not exist`,
-        };
-    }
-
-    try {
-        fs.accessSync(resolvedExePath, fs.constants.R_OK | fs.constants.X_OK);
-    } catch {
-        return {
-            message: optionName
-                ? `\`${optionName}\` ${resolvedExePath} is not an executable`
-                : `${resolvedExePath} is not an executable`,
-        };
-    }
-
-    const version = getVersion(resolvedExePath, versionArg);
-    if (!version) return { message: `Failed to run '${resolvedExePath} ${versionArg}'!` };
-    return { exe: resolvedExePath, version: version };
+    const version = getVersion(exePath, versionArg);
+    if (!version) return { message: `Failed to run '${exePath} ${versionArg}'.` };
+    return { exe: exePath, version: version };
 }
 
 export function asyncDebounce<T extends (...args: unknown[]) => Promise<Awaited<ReturnType<T>>>>(
