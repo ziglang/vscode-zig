@@ -26,6 +26,8 @@ const chmod = util.promisify(fs.chmod);
 
 /** The maxmimum number of installation that can be store until they will be removed */
 const maxInstallCount = 5;
+/** Maps concurrent requests to install a version of an exe to a single promise */
+const inProgressInstalls = new Map<string, Promise<string>>();
 
 export interface Config {
     context: vscode.ExtensionContext;
@@ -50,6 +52,21 @@ export interface Config {
 
 /** Returns the path to the executable */
 export async function install(config: Config, version: semver.SemVer): Promise<string> {
+    const key = config.exeName + version.raw;
+    const entry = inProgressInstalls.get(key);
+    if (entry) {
+        return await entry;
+    }
+
+    const fn = installGuarded.apply(null, [config, version]);
+    inProgressInstalls.set(key, fn);
+
+    return await fn.finally(() => {
+        inProgressInstalls.delete(key);
+    });
+}
+
+async function installGuarded(config: Config, version: semver.SemVer): Promise<string> {
     const exeName = config.exeName + (process.platform === "win32" ? ".exe" : "");
     const subDirName = `${getZigOSName()}-${getZigArchName()}-${version.raw}`;
     const exeUri = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName, subDirName, exeName);
