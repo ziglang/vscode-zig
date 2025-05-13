@@ -1,3 +1,10 @@
+## 0.6.9
+- Add config option for arguments used in test runner (@omissis)
+- Add toggleMultilineStringLiteral command (@devhawk)
+- Resolve file extensions and relative paths when looking up exe (@Techatrix)
+- Improve error messages when executable path could not be resolved (@Techatrix)
+- Prevent concurrent installations of exes that cause all of them to fail
+
 ## 0.6.8
 - Fix regression in using config options placeholders in paths. 
 
