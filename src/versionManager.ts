@@ -68,10 +68,12 @@ export async function install(config: Config, version: semver.SemVer): Promise<s
 
 async function installGuarded(config: Config, version: semver.SemVer): Promise<string> {
     const exeName = config.exeName + (process.platform === "win32" ? ".exe" : "");
-    // With the release of Zig 0.14.1 the release scripts were updated to put the
-    // architecture first as they are in target triples.
+    // After version 0.14.1/0.15.0-dev.631+9a3540d61 Zig tarballs put
+    // the architecture first like it is in target triples.
     const subDirName =
-        config.exeName === "zig" && version.compare("0.14.0") === 1
+        config.exeName === "zig" &&
+        ((version.prerelease.length === 0 && semver.gte(version, "0.14.1")) ||
+            semver.gte(version, "0.15.0-dev.631+9a3540d61"))
             ? `${getZigArchName()}-${getZigOSName()}-${version.raw}`
             : `${getZigOSName()}-${getZigArchName()}-${version.raw}`;
     const exeUri = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName, subDirName, exeName);
