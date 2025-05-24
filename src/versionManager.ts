@@ -294,6 +294,7 @@ export async function query(config: Config): Promise<semver.SemVer[]> {
                     vscode.Uri.joinPath(storageDir, name),
                     vscode.Uri.joinPath(storageDir, `${prefix}-${version}`),
                 );
+                await setLastAccessTime(config, new semver.SemVer(version));
                 available.push(new semver.SemVer(version));
             }
         }
