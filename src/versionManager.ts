@@ -88,31 +88,44 @@ async function installGuarded(config: Config, version: semver.SemVer): Promise<s
         }
     }
 
+    const tarPath = await getTarExePath();
+    if (!tarPath) {
+        throw new Error(`Can't install ${config.title} because 'tar' could not be found`);
+    }
+
     const mirrors = [...config.mirrorUrls]
         .map((mirror) => ({ mirror, sort: Math.random() }))
         .sort((a, b) => a.sort - b.sort)
         .map(({ mirror }) => mirror);
 
-    for (const mirrorUrl of mirrors) {
-        const mirrorName = new URL(mirrorUrl.toString()).host;
-        try {
-            return await installFromMirror(config, version, mirrorUrl, mirrorName);
-        } catch (err) {
-            if (err instanceof Error) {
-                void vscode.window.showWarningMessage(
-                    `Failed to download ${config.exeName} from ${mirrorName}: ${err.message}, trying different mirror`,
-                );
-            } else {
-                void vscode.window.showWarningMessage(
-                    `Failed to download ${config.exeName} from ${mirrorName}, trying different mirror`,
-                );
+    return await vscode.window.withProgress<string>(
+        {
+            title: `Installing ${config.title} ${version.toString()}`,
+            location: vscode.ProgressLocation.Notification,
+            cancellable: true,
+        },
+        async (progress, cancelToken) => {
+            for (const mirrorUrl of mirrors) {
+                const mirrorName = new URL(mirrorUrl.toString()).host;
+                try {
+                    return await installFromMirror(
+                        config,
+                        version,
+                        mirrorUrl,
+                        mirrorName,
+                        tarPath,
+                        progress,
+                        cancelToken,
+                    );
+                } catch {}
             }
-        }
-    }
 
-    const canonicalUrl = version.prerelease.length === 0 ? config.canonicalUrl.release : config.canonicalUrl.nightly;
-    const mirrorName = new URL(canonicalUrl.toString()).host;
-    return await installFromMirror(config, version, canonicalUrl, mirrorName);
+            const canonicalUrl =
+                version.prerelease.length === 0 ? config.canonicalUrl.release : config.canonicalUrl.nightly;
+            const mirrorName = new URL(canonicalUrl.toString()).host;
+            return await installFromMirror(config, version, canonicalUrl, mirrorName, tarPath, progress, cancelToken);
+        },
+    );
 }
 
 /** Returns the path to the executable */
@@ -121,7 +134,15 @@ async function installFromMirror(
     version: semver.SemVer,
     mirrorUrl: vscode.Uri,
     mirrorName: string,
+    tarPath: string,
+    progress: vscode.Progress<{
+        message?: string;
+        increment?: number;
+    }>,
+    cancelToken: vscode.CancellationToken,
 ): Promise<string> {
+    progress.report({ message: `trying ${mirrorName}` });
+
     const isWindows = process.platform === "win32";
     const exeName = config.exeName + (isWindows ? ".exe" : "");
     const subDirName = `${getHostZigName()}-${version.raw}`;
@@ -131,141 +152,122 @@ async function installFromMirror(
     const exeUri = vscode.Uri.joinPath(installDir, exeName);
     const tarballUri = vscode.Uri.joinPath(installDir, fileName);
 
-    let tarPath = null;
-    if (isWindows && process.env["SYSTEMROOT"]) {
-        // We may be running from within Git Bash which adds GNU tar to
-        // the $PATH but we need bsdtar to extract zip files so we look
-        // in the system directory before falling back to the $PATH.
-        // See https://github.com/ziglang/vscode-zig/issues/382
-        tarPath = `${process.env["SYSTEMROOT"]}\\system32\\tar.exe`;
+    const abortController = new AbortController();
+    cancelToken.onCancellationRequested(() => {
+        abortController.abort();
+    });
+
+    const artifactUrl = vscode.Uri.joinPath(mirrorUrl, fileName);
+    /** https://github.com/mlugg/setup-zig adds a `?source=github-actions` query parameter so we add our own.  */
+    const artifactUrlWithQuery = artifactUrl.with({ query: "source=vscode-zig" });
+
+    const artifactMinisignUrl = vscode.Uri.joinPath(mirrorUrl, `${fileName}.minisig`);
+    const artifactMinisignUrlWithQuery = artifactMinisignUrl.with({ query: "source=vscode-zig" });
+
+    const signatureResponse = await fetch(artifactMinisignUrlWithQuery.toString(), {
+        signal: abortController.signal,
+    });
+
+    if (signatureResponse.status !== 200) {
+        throw new Error(`${signatureResponse.statusText} (${signatureResponse.status.toString()})`);
+    }
+
+    let artifactResponse = await fetch(artifactUrlWithQuery.toString(), {
+        signal: abortController.signal,
+    });
+
+    if (artifactResponse.status !== 200) {
+        throw new Error(`${artifactResponse.statusText} (${artifactResponse.status.toString()})`);
+    }
+
+    progress.report({ message: `downloading from ${mirrorName}` });
+
+    const signatureData = Buffer.from(await signatureResponse.arrayBuffer());
+
+    let contentLength = artifactResponse.headers.has("content-length")
+        ? Number(artifactResponse.headers.get("content-length"))
+        : null;
+    if (!Number.isFinite(contentLength)) contentLength = null;
+
+    if (contentLength) {
+        let receivedLength = 0;
+        const progressStream = new TransformStream<{ length: number }>({
+            transform(chunk, controller) {
+                receivedLength += chunk.length;
+                const increment = (chunk.length / contentLength) * 100;
+                const currentProgress = (receivedLength / contentLength) * 100;
+                progress.report({
+                    message: `downloading tarball ${currentProgress.toFixed()}%`,
+                    increment: increment,
+                });
+                controller.enqueue(chunk);
+            },
+        });
+        artifactResponse = new Response(artifactResponse.body?.pipeThrough(progressStream));
+    }
+    const artifactData = Buffer.from(await artifactResponse.arrayBuffer());
+
+    progress.report({ message: "Verifying Signature..." });
+
+    const signature = minisign.parseSignature(signatureData);
+    if (!minisign.verifySignature(config.minisignKey, signature, artifactData)) {
         try {
-            await vscode.workspace.fs.stat(vscode.Uri.file(tarPath));
-        } catch {
-            tarPath = null;
+            await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
+        } catch {}
+        throw new Error(`signature verification failed for '${artifactUrl.toString()}'`);
+    }
+
+    try {
+        await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
+    } catch {}
+    await vscode.workspace.fs.createDirectory(installDir);
+    await vscode.workspace.fs.writeFile(tarballUri, artifactData);
+
+    progress.report({ message: "Extracting..." });
+    try {
+        await execFile(tarPath, ["-xf", tarballUri.fsPath, "-C", installDir.fsPath].concat(config.extraTarArgs), {
+            signal: abortController.signal,
+            timeout: 60000, // 60 seconds
+        });
+    } catch (err) {
+        try {
+            await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
+        } catch {}
+        if (err instanceof Error) {
+            throw new Error(`Failed to extract ${config.title} tarball: ${err.message}`);
+        } else {
+            throw err;
+        }
+    } finally {
+        try {
+            await vscode.workspace.fs.delete(tarballUri, { useTrash: false });
+        } catch {}
+    }
+
+    const exeVersion = getVersion(exeUri.fsPath, config.versionArg);
+    if (!exeVersion || exeVersion.compare(version) !== 0) {
+        try {
+            await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
+        } catch {}
+        // a mirror may provide the wrong version
+        throw new Error(`Failed to validate version of ${config.title} installation!`);
+    }
+
+    await chmod(exeUri.fsPath, 0o755);
+
+    try {
+        await removeUnusedInstallations(config);
+    } catch (err) {
+        if (err instanceof Error) {
+            void vscode.window.showWarningMessage(
+                `Failed to uninstall unused ${config.title} versions: ${err.message}`,
+            );
+        } else {
+            void vscode.window.showWarningMessage(`Failed to uninstall unused ${config.title} versions`);
         }
     }
-    tarPath ??= await which("tar", { nothrow: true });
-    if (!tarPath) {
-        throw new Error(`Downloaded ${config.title} tarball can't be extracted because 'tar' could not be found`);
-    }
 
-    return await vscode.window.withProgress<string>(
-        {
-            title: `Installing ${config.title} from ${mirrorName}`,
-            location: vscode.ProgressLocation.Notification,
-        },
-        async (progress, cancelToken) => {
-            const abortController = new AbortController();
-            cancelToken.onCancellationRequested(() => {
-                abortController.abort();
-            });
-
-            const artifactUrl = vscode.Uri.joinPath(mirrorUrl, fileName);
-            /** https://github.com/mlugg/setup-zig adds a `?source=github-actions` query parameter so we add our own.  */
-            const artifactUrlWithQuery = artifactUrl.with({ query: "source=vscode-zig" });
-
-            const artifactMinisignUrl = vscode.Uri.joinPath(mirrorUrl, `${fileName}.minisig`);
-            const artifactMinisignUrlWithQuery = artifactMinisignUrl.with({ query: "source=vscode-zig" });
-
-            const signatureResponse = await fetch(artifactMinisignUrlWithQuery.toString(), {
-                signal: abortController.signal,
-            });
-            const signatureData = Buffer.from(await signatureResponse.arrayBuffer());
-
-            let artifactResponse = await fetch(artifactUrlWithQuery.toString(), {
-                signal: abortController.signal,
-            });
-
-            let contentLength = artifactResponse.headers.has("content-length")
-                ? Number(artifactResponse.headers.get("content-length"))
-                : null;
-            if (!Number.isFinite(contentLength)) contentLength = null;
-
-            if (contentLength) {
-                let receivedLength = 0;
-                const progressStream = new TransformStream<{ length: number }>({
-                    transform(chunk, controller) {
-                        receivedLength += chunk.length;
-                        const increment = (chunk.length / contentLength) * 100;
-                        const currentProgress = (receivedLength / contentLength) * 100;
-                        progress.report({
-                            message: `downloading tarball ${currentProgress.toFixed()}%`,
-                            increment: increment,
-                        });
-                        controller.enqueue(chunk);
-                    },
-                });
-                artifactResponse = new Response(artifactResponse.body?.pipeThrough(progressStream));
-            }
-            const artifactData = Buffer.from(await artifactResponse.arrayBuffer());
-
-            progress.report({ message: "Verifying Signature..." });
-
-            const signature = minisign.parseSignature(signatureData);
-            if (!minisign.verifySignature(config.minisignKey, signature, artifactData)) {
-                try {
-                    await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
-                } catch {}
-                throw new Error(`signature verification failed for '${artifactUrl.toString()}'`);
-            }
-
-            try {
-                await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
-            } catch {}
-            await vscode.workspace.fs.createDirectory(installDir);
-            await vscode.workspace.fs.writeFile(tarballUri, artifactData);
-
-            progress.report({ message: "Extracting..." });
-            try {
-                await execFile(
-                    tarPath,
-                    ["-xf", tarballUri.fsPath, "-C", installDir.fsPath].concat(config.extraTarArgs),
-                    {
-                        signal: abortController.signal,
-                        timeout: 60000, // 60 seconds
-                    },
-                );
-            } catch (err) {
-                try {
-                    await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
-                } catch {}
-                if (err instanceof Error) {
-                    throw new Error(`Failed to extract ${config.title} tarball: ${err.message}`);
-                } else {
-                    throw err;
-                }
-            } finally {
-                try {
-                    await vscode.workspace.fs.delete(tarballUri, { useTrash: false });
-                } catch {}
-            }
-
-            const exeVersion = getVersion(exeUri.fsPath, config.versionArg);
-            if (!exeVersion || exeVersion.compare(version) !== 0) {
-                try {
-                    await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
-                } catch {}
-                // a mirror may provide the wrong version
-                throw new Error(`Failed to validate version of ${config.title} installation!`);
-            }
-
-            await chmod(exeUri.fsPath, 0o755);
-
-            try {
-                await removeUnusedInstallations(config);
-            } catch (err) {
-                if (err instanceof Error) {
-                    void vscode.window.showWarningMessage(
-                        `Failed to uninstall unused ${config.title} versions: ${err.message}`,
-                    );
-                } else {
-                    void vscode.window.showWarningMessage(`Failed to uninstall unused ${config.title} versions`);
-                }
-            }
-
-            return exeUri.fsPath;
-        },
-    );
+    return exeUri.fsPath;
 }
 
 /** Returns all locally installed versions */
@@ -288,6 +290,21 @@ export async function query(config: Config): Promise<semver.SemVer[]> {
     }
 
     return available;
+}
+
+async function getTarExePath(): Promise<string | null> {
+    if (process.platform === "win32" && process.env["SYSTEMROOT"]) {
+        // We may be running from within Git Bash which adds GNU tar to
+        // the $PATH but we need bsdtar to extract zip files so we look
+        // in the system directory before falling back to the $PATH.
+        // See https://github.com/ziglang/vscode-zig/issues/382
+        const tarPath = `${process.env["SYSTEMROOT"]}\\system32\\tar.exe`;
+        try {
+            await vscode.workspace.fs.stat(vscode.Uri.file(tarPath));
+            return tarPath;
+        } catch {}
+    }
+    return await which("tar", { nothrow: true });
 }
 
 /** Set the last access time of the (installed) version. */
