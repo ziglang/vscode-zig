@@ -1,3 +1,6 @@
+## 0.6.10
+- Fix installing Zig 0.14.1 with new tarball name format
+
 ## 0.6.9
 - Add config option for arguments used in test runner (@omissis)
 - Add toggleMultilineStringLiteral command (@devhawk)
