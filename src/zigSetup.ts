@@ -681,6 +681,11 @@ export async function setupZig(context: vscode.ExtensionContext) {
         }
     }, 200);
 
+    if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
+        await installZig(context);
+    }
+    await updateStatus(context);
+
     const onDidChangeActiveTextEditor = (editor: vscode.TextEditor | undefined) => {
         if (editor?.document.languageId === "zig") {
             statusItem.show();
@@ -722,6 +727,4 @@ export async function setupZig(context: vscode.ExtensionContext) {
         watcher2.onDidDelete(refreshZigInstallation),
         watcher2,
     );
-
-    await refreshZigInstallation();
 }
