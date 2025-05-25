@@ -15,7 +15,14 @@ import semver from "semver";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
-import { getHostZigName, handleConfigOption, resolveExePathAndVersion, workspaceConfigUpdateNoThrow } from "./zigUtil";
+import {
+    getHostZigName,
+    getZigArchName,
+    getZigOSName,
+    handleConfigOption,
+    resolveExePathAndVersion,
+    workspaceConfigUpdateNoThrow,
+} from "./zigUtil";
 import { zigProvider } from "./zigSetup";
 
 const ZIG_MODE = [
@@ -436,7 +443,14 @@ export async function activate(context: vscode.ExtensionContext) {
             release: vscode.Uri.parse("https://builds.zigtools.org"),
             nightly: vscode.Uri.parse("https://builds.zigtools.org"),
         },
+        getArtifactName(version) {
+            const fileExtension = process.platform === "win32" ? "zip" : "tar.xz";
+            return `zls-${getZigOSName()}-${getZigArchName()}-${version.raw}.${fileExtension}`;
+        },
     };
+
+    // Remove after some time has passed from the prefix change.
+    await versionManager.convertOldInstallPrefixes(versionManagerConfig);
 
     outputChannel = vscode.window.createOutputChannel("ZLS language server", { log: true });
     statusItem = vscode.languages.createLanguageStatusItem("zig.zls.status", ZIG_MODE);
