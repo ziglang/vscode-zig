@@ -1,12 +1,5 @@
 /**
  * A version manager for Zig and ZLS.
- *
- * Expects a provider that follows the following scheme:
- * `${PROVIDER_URL}/${NAME}-${OS}-${ARCH}-${VERSION}.${FILE_EXTENSION}`
- *
- * Example:
- *   - `https://ziglang.org/download/0.13.0/zig-windows-x86_64-0.13.0.zip`
- *   - `https://builds.zigtools.org/zls-linux-x86_64-0.13.0.tar.xz`
  */
 
 import vscode from "vscode";
@@ -19,7 +12,7 @@ import which from "which";
 import semver from "semver";
 
 import * as minisign from "./minisign";
-import { getVersion, getZigArchName, getZigOSName } from "./zigUtil";
+import { getHostZigName, getVersion, getZigArchName, getZigOSName } from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
 const chmod = util.promisify(fs.chmod);
@@ -48,6 +41,14 @@ export interface Config {
         release: vscode.Uri;
         nightly: vscode.Uri;
     };
+    /**
+     * Get the artifact file name for a specific version.
+     *
+     * Example:
+     *   - `zig-x86_64-windows-0.14.1.zip`
+     *   - `zls-linux-x86_64-0.14.0.tar.xz`
+     */
+    getArtifactName: (version: semver.SemVer) => string;
 }
 
 /** Returns the path to the executable */
@@ -68,7 +69,7 @@ export async function install(config: Config, version: semver.SemVer): Promise<s
 
 async function installGuarded(config: Config, version: semver.SemVer): Promise<string> {
     const exeName = config.exeName + (process.platform === "win32" ? ".exe" : "");
-    const subDirName = `${getZigOSName()}-${getZigArchName()}-${version.raw}`;
+    const subDirName = `${getHostZigName()}-${version.raw}`;
     const exeUri = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName, subDirName, exeName);
 
     await setLastAccessTime(config, version);
@@ -122,10 +123,9 @@ async function installFromMirror(
     mirrorName: string,
 ): Promise<string> {
     const isWindows = process.platform === "win32";
-    const fileExtension = isWindows ? "zip" : "tar.xz";
     const exeName = config.exeName + (isWindows ? ".exe" : "");
-    const subDirName = `${getZigOSName()}-${getZigArchName()}-${version.raw}`;
-    const fileName = `${config.exeName}-${subDirName}.${fileExtension}`;
+    const subDirName = `${getHostZigName()}-${version.raw}`;
+    const fileName = config.getArtifactName(version);
 
     const installDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName, subDirName);
     const exeUri = vscode.Uri.joinPath(installDir, exeName);
@@ -271,7 +271,7 @@ async function installFromMirror(
 /** Returns all locally installed versions */
 export async function query(config: Config): Promise<semver.SemVer[]> {
     const available: semver.SemVer[] = [];
-    const prefix = `${getZigOSName()}-${getZigArchName()}`;
+    const prefix = getHostZigName();
 
     const storageDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName);
     try {
@@ -293,7 +293,7 @@ export async function query(config: Config): Promise<semver.SemVer[]> {
 /** Set the last access time of the (installed) version. */
 async function setLastAccessTime(config: Config, version: semver.SemVer): Promise<void> {
     await config.context.globalState.update(
-        `${config.exeName}-last-access-time-${getZigOSName()}-${getZigArchName()}-${version.raw}`,
+        `${config.exeName}-last-access-time-${getHostZigName()}-${version.raw}`,
         Date.now(),
     );
 }
@@ -331,4 +331,36 @@ async function removeUnusedInstallations(config: Config) {
         await vscode.workspace.fs.delete(item.installDir, { recursive: true, useTrash: false });
         await config.context.globalState.update(item.key, undefined);
     }
+}
+
+/** Remove after some time has passed from the prefix change. */
+export async function convertOldInstallPrefixes(config: Config): Promise<void> {
+    const oldPrefix = `${getZigOSName()}-${getZigArchName()}`;
+    const newPrefix = `${getZigArchName()}-${getZigOSName()}`;
+
+    const storageDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName);
+    try {
+        for (const [name] of await vscode.workspace.fs.readDirectory(storageDir)) {
+            if (!name.startsWith(oldPrefix)) continue;
+
+            const version = name.substring(oldPrefix.length + 1);
+            const oldInstallDir = vscode.Uri.joinPath(storageDir, name);
+            const newInstallDir = vscode.Uri.joinPath(storageDir, `${newPrefix}-${version}`);
+            try {
+                await vscode.workspace.fs.rename(oldInstallDir, newInstallDir);
+            } catch {
+                // A possible cause could be that the user downgraded the extension
+                // version to install it to the old install prefix while it was
+                // already present with the new prefix.
+            }
+
+            const oldKey = `${config.exeName}-last-access-time-${oldPrefix}-${version}`;
+            const newKey = `${config.exeName}-last-access-time-${newPrefix}-${version}`;
+            const lastAccessTime = config.context.globalState.get<number>(oldKey);
+            if (lastAccessTime !== undefined) {
+                config.context.globalState.update(newKey, lastAccessTime);
+                config.context.globalState.update(oldKey, undefined);
+            }
+        }
+    } catch {}
 }

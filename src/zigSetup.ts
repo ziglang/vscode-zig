@@ -12,6 +12,8 @@ import {
     ZigVersion,
     asyncDebounce,
     getHostZigName,
+    getZigArchName,
+    getZigOSName,
     resolveExePathAndVersion,
     workspaceConfigUpdateNoThrow,
 } from "./zigUtil";
@@ -644,7 +646,21 @@ export async function setupZig(context: vscode.ExtensionContext) {
             release: vscode.Uri.parse("https://ziglang.org/download"),
             nightly: vscode.Uri.parse("https://ziglang.org/builds"),
         },
+        getArtifactName(version) {
+            const fileExtension = process.platform === "win32" ? "zip" : "tar.xz";
+            if (
+                (version.prerelease.length === 0 && semver.gte(version, "0.14.1")) ||
+                semver.gte(version, "0.15.0-dev.631+9a3540d61")
+            ) {
+                return `zig-${getZigArchName()}-${getZigOSName()}-${version.raw}.${fileExtension}`;
+            } else {
+                return `zig-${getZigOSName()}-${getZigArchName()}-${version.raw}.${fileExtension}`;
+            }
+        },
     };
+
+    // Remove after some time has passed from the prefix change.
+    await versionManager.convertOldInstallPrefixes(versionManagerConfig);
 
     zigProvider = new ZigProvider();
 
