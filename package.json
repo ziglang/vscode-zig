@@ -18,7 +18,8 @@
   ],
   "activationEvents": [
     "workspaceContains:build.zig",
-    "workspaceContains:build.zig.zon"
+    "workspaceContains:build.zig.zon",
+    "workspaceContains:./.zigversion"
   ],
   "main": "./out/extension",
   "contributes": {
