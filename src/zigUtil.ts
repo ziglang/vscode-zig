@@ -84,7 +84,19 @@ export function resolveExePathAndVersion(
         };
     }
 
-    const exePath = which.sync(cmd, { nothrow: true });
+    let pathEnviron = process.env["PATH"];
+    if (!isWindows) {
+        // When VS Code is started through a graphical environment instead of
+        // a terminal, shell startup files (e.g. `.bashrc`) won't be sourced.
+        const result = childProcess.spawnSync("echo", ["$PATH"], { shell: true, encoding: "utf-8" });
+        if (pathEnviron === undefined) {
+            pathEnviron = result.stdout.trimEnd();
+        } else {
+            pathEnviron += ":" + result.stdout.trimEnd();
+        }
+    }
+
+    const exePath = which.sync(cmd, { nothrow: true, path: pathEnviron });
     if (!exePath) {
         if (!isAbsolute) {
             return { message: `Could not find '${cmd}' in PATH.` };
