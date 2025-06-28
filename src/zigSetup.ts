@@ -85,7 +85,7 @@ async function findClosestSatisfyingZigVersion(
         // We can't just return `version` because `0.12.0` should return `0.12.1`.
         const availableVersions = (await getVersions()).map((item) => item.version);
         const selectedVersion = semver.maxSatisfying(availableVersions, `^${version.toString()}`);
-        await context.globalState.update(cacheKey, selectedVersion ?? undefined);
+        await context.globalState.update(cacheKey, selectedVersion ? selectedVersion.raw : undefined);
         return selectedVersion ?? version;
     } catch {
         const selectedVersion = context.globalState.get<string | null>(cacheKey, null);
@@ -597,6 +597,16 @@ export async function setupZig(context: vscode.ExtensionContext) {
         await workspaceConfigUpdateNoThrow(zigConfig, "initialSetupDone", undefined, true);
 
         await context.workspaceState.update("zig-version", undefined);
+
+        // Remove incorrect values in the global state that have been added by
+        // an older version of the extension.
+        for (const key of context.globalState.keys()) {
+            if (!key.startsWith("zig-satisfying-version-")) continue;
+            const value = context.globalState.get(key);
+            if (value !== undefined && typeof value !== "string") {
+                await context.globalState.update(key, undefined);
+            }
+        }
     }
 
     /// Workaround https://github.com/ziglang/zig/issues/21905
