@@ -636,6 +636,19 @@ export async function setupZig(context: vscode.ExtensionContext) {
             break;
     }
 
+    let mirrors: vscode.Uri[] = [];
+    try {
+        const response = await fetch("https://ziglang.org/download/community-mirrors.txt");
+        if (response.status !== 200) throw Error("invalid mirrors");
+        const mirrorList = await response.text();
+        mirrors = mirrorList
+            .trim()
+            .split("\n")
+            .map((u) => vscode.Uri.parse(u));
+    } catch {
+        // Cannot fetch mirrors, attempt downloading from canonical source.
+    }
+
     versionManagerConfig = {
         context: context,
         title: "Zig",
@@ -644,14 +657,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
         /** https://ziglang.org/download */
         minisignKey: minisign.parseKey("RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U"),
         versionArg: "version",
-        // taken from https://github.com/mlugg/setup-zig/blob/main/mirrors.json
-        mirrorUrls: [
-            vscode.Uri.parse("https://pkg.machengine.org/zig"),
-            vscode.Uri.parse("https://zigmirror.hryx.net/zig"),
-            vscode.Uri.parse("https://zig.linus.dev/zig"),
-            vscode.Uri.parse("https://fs.liujiacai.net/zigbuilds"),
-            vscode.Uri.parse("https://zigmirror.nesovic.dev/zig"),
-        ],
+        mirrorUrls: mirrors,
         canonicalUrl: {
             release: vscode.Uri.parse("https://ziglang.org/download"),
             nightly: vscode.Uri.parse("https://ziglang.org/builds"),
