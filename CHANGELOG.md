@@ -1,3 +1,6 @@
+## 0.6.11
+- Use Zig mirror list from ziglang.org
+
 ## 0.6.10
 - Fix installing Zig 0.14.1 with new tarball name format
 
