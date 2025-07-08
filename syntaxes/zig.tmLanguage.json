@@ -140,7 +140,7 @@
         },
         {
           "name": "keyword.control.async.zig",
-          "match": "\\b(await|resume|suspend|async|nosuspend)\\b"
+          "match": "\\b(resume|suspend|nosuspend)\\b"
         },
         {
           "name": "keyword.control.trycatch.zig",
@@ -160,7 +160,7 @@
         },
         {
           "name": "keyword.default.zig",
-          "match": "\\b(usingnamespace|test|and|or)\\b"
+          "match": "\\b(test|and|or)\\b"
         },
         {
           "name": "keyword.type.zig",
