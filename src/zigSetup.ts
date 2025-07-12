@@ -740,11 +740,15 @@ export async function setupZig(context: vscode.ExtensionContext) {
             }
             if (change.affectsConfiguration("zig.path")) {
                 const result = zigProvider.resolveZigPathConfigOption();
-                if (result) {
+                if (result === undefined) {
+                    // Invalid path - error already shown, do nothing
+                    return;
+                }
+                if (result === null) {
+                    void refreshZigInstallation();
+                } else {
                     zigProvider.set(result);
                     void updateStatus(context);
-                } else {
-                    void refreshZigInstallation();
                 }
             }
         }),
