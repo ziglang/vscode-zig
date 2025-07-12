@@ -119,14 +119,9 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
         const result = resolveExePathAndVersion(zlsExePath, "--version");
         if ("message" in result) {
             vscode.window
-                .showErrorMessage(`Unexpected 'zig.zls.path': ${result.message}`, "install ZLS", "open settings")
+                .showErrorMessage(`Unexpected 'zig.zls.path': ${result.message}`, "open settings")
                 .then(async (response) => {
                     switch (response) {
-                        case "install ZLS":
-                            const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-                            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
-                            await workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined);
-                            break;
                         case "open settings":
                             await vscode.commands.executeCommand("workbench.action.openSettings", "zig.zls.path");
                             break;
