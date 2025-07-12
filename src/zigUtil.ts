@@ -84,12 +84,9 @@ export function resolveExePathAndVersion(
         };
     }
 
-    const exePath = which.sync(cmd, { nothrow: true });
-    if (!exePath) {
-        if (!isAbsolute) {
-            return { message: `Could not find '${cmd}' in PATH.` };
-        }
+    let exePath: string | null = null;
 
+    if (isAbsolute) {
         const stats = fs.statSync(cmd, { throwIfNoEntry: false });
         if (!stats) {
             return {
@@ -103,9 +100,12 @@ export function resolveExePathAndVersion(
             };
         }
 
-        return {
-            message: `'${cmd}' is not an executable.`,
-        };
+        exePath = cmd;
+    } else {
+        exePath = which.sync(cmd, { nothrow: true });
+        if (!exePath) {
+            return { message: `Could not find '${cmd}' in PATH.` };
+        }
     }
 
     const version = getVersion(exePath, versionArg);
