@@ -24,8 +24,17 @@ let languageStatusItem: vscode.LanguageStatusItem;
 let versionManagerConfig: versionManager.Config;
 export let zigProvider: ZigProvider;
 
-/** Removes the `zig.path` config option. */
+/** Installs Zig, respecting existing `zig.path` config option. */
 async function installZig(context: vscode.ExtensionContext, temporaryVersion?: semver.SemVer) {
+    const existingPath = vscode.workspace.getConfiguration("zig").get<string>("path");
+    if (existingPath) {
+        const result = resolveExePathAndVersion(existingPath, "version");
+        if ("exe" in result) {
+            zigProvider.set(result);
+            return;
+        }
+    }
+
     let version = temporaryVersion;
 
     if (!version) {
@@ -43,7 +52,6 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
         // Lookup zig in $PATH
         const result = resolveExePathAndVersion("zig", "version");
         if ("exe" in result) {
-            await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
             zigProvider.set(result);
             return;
         }
@@ -61,8 +69,6 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
 
     try {
         const exePath = await versionManager.install(versionManagerConfig, version);
-        const zigConfig = vscode.workspace.getConfiguration("zig");
-        await workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
         zigProvider.set({ exe: exePath, version: version });
     } catch (err) {
         zigProvider.set(null);
@@ -690,15 +696,26 @@ export async function setupZig(context: vscode.ExtensionContext) {
     const watcher2 = vscode.workspace.createFileSystemWatcher("**/build.zig.zon");
 
     const refreshZigInstallation = asyncDebounce(async () => {
-        if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
+        const zigPath = vscode.workspace.getConfiguration("zig").get<string>("path");
+        if (!zigPath) {
             await installZig(context);
         } else {
-            await updateStatus(context);
+            const result = zigProvider.resolveZigPathConfigOption(zigPath);
+            if (result) {
+                zigProvider.set(result);
+            }
         }
+        await updateStatus(context);
     }, 200);
 
-    if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
+    const zigPath = vscode.workspace.getConfiguration("zig").get<string>("path");
+    if (!zigPath) {
         await installZig(context);
+    } else {
+        const result = zigProvider.resolveZigPathConfigOption(zigPath);
+        if (result) {
+            zigProvider.set(result);
+        }
     }
     await updateStatus(context);
 
@@ -723,11 +740,12 @@ export async function setupZig(context: vscode.ExtensionContext) {
             }
             if (change.affectsConfiguration("zig.path")) {
                 const result = zigProvider.resolveZigPathConfigOption();
-                if (result === undefined) return; // error message already reported
-                if (result !== null) {
+                if (result) {
                     zigProvider.set(result);
+                    void updateStatus(context);
+                } else {
+                    void refreshZigInstallation();
                 }
-                void refreshZigInstallation();
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(onDidChangeActiveTextEditor),
