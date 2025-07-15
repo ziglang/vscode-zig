@@ -209,22 +209,27 @@ async function installFromMirror(
 
     progress.report({ message: "Verifying Signature..." });
 
+    await minisign.ready;
+
     const signature = minisign.parseSignature(signatureData);
     if (!minisign.verifySignature(config.minisignKey, signature, artifactData)) {
-        try {
-            await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
-        } catch {}
         throw new Error(`signature verification failed for '${artifactUrl.toString()}'`);
     }
+
+    const match = /^timestamp:\d+\s+file:([^\s]+)\s+hashed$/.test(signature.trustedComment.toString());
+    if (!match) {
+        throw new Error(`filename verification failed for '${artifactUrl.toString()}'`);
+    }
+
+    progress.report({ message: "Extracting..." });
 
     try {
         await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
     } catch {}
-    await vscode.workspace.fs.createDirectory(installDir);
-    await vscode.workspace.fs.writeFile(tarballUri, artifactData);
 
-    progress.report({ message: "Extracting..." });
     try {
+        await vscode.workspace.fs.createDirectory(installDir);
+        await vscode.workspace.fs.writeFile(tarballUri, artifactData);
         await execFile(tarPath, ["-xf", tarballUri.fsPath, "-C", installDir.fsPath].concat(config.extraTarArgs), {
             signal: abortController.signal,
             timeout: 60000, // 60 seconds
