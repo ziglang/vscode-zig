@@ -8,9 +8,8 @@ import {
     ResponseError,
     ServerOptions,
 } from "vscode-languageclient/node";
-import camelCase from "camelcase";
+import { camelCase, snakeCase } from "lodash-es";
 import semver from "semver";
-import { snakeCase } from "lodash-es";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";

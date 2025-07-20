@@ -412,7 +412,6 @@
     "typescript-eslint": "^8.0.0"
   },
   "dependencies": {
-    "camelcase": "^7.0.1",
     "libsodium-wrappers": "^0.7.15",
     "lodash-es": "^4.17.21",
     "semver": "^7.5.2",
