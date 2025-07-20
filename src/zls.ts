@@ -170,6 +170,7 @@ function configurationMiddleware(params: ConfigurationParams): LSPAny[] | Respon
 
         const scopeUri = param.scopeUri ? client?.protocol2CodeConverter.asUri(param.scopeUri) : undefined;
         const configuration = vscode.workspace.getConfiguration("zig", scopeUri);
+        const workspaceFolder = scopeUri ? vscode.workspace.getWorkspaceFolder(scopeUri) : undefined;
 
         const updateConfigOption = (section: string, value: unknown) => {
             if (section === "zls.zigExePath") {
@@ -178,7 +179,7 @@ function configurationMiddleware(params: ConfigurationParams): LSPAny[] | Respon
 
             if (typeof value === "string") {
                 // Make sure that `""` gets converted to `undefined` and resolve predefined values
-                value = value ? handleConfigOption(value) : undefined;
+                value = value ? handleConfigOption(value, workspaceFolder ?? "guess") : undefined;
             } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
                 // Recursively update the config options
                 const newValue: Record<string, unknown> = {};
