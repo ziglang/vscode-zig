@@ -219,11 +219,14 @@ export default class ZigTestRunnerProvider {
         const binaryPath = path.join(outputDir, binaryName);
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(outputDir));
 
+        const config = vscode.workspace.getConfiguration("zig");
+        const testArgsConf = config.get<string[]>("testArgs") ?? [];
+        const args: string[] =
+            testArgsConf.length > 0
+                ? testArgsConf.map((v) => v.replace("${filter}", testDesc).replace("${path}", testFilePath))
+                : [];
         const { stdout, stderr } = await execFile(zigPath, [
-            "test",
-            testFilePath,
-            "--test-filter",
-            testDesc,
+            ...args,
             "--test-no-exec",
             `-femit-bin=${binaryPath}`,
         ]);
