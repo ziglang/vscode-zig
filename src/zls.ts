@@ -1,17 +1,16 @@
 import vscode from "vscode";
 
 import {
-    CancellationToken,
     ConfigurationParams,
     LSPAny,
     LanguageClient,
     LanguageClientOptions,
-    RequestHandler,
     ResponseError,
     ServerOptions,
 } from "vscode-languageclient/node";
 import camelCase from "camelcase";
 import semver from "semver";
+import { snakeCase } from "lodash-es";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
@@ -165,105 +164,136 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
     };
 }
 
-async function configurationMiddleware(
-    params: ConfigurationParams,
-    token: CancellationToken,
-    next: RequestHandler<ConfigurationParams, LSPAny[], void>,
-): Promise<LSPAny[] | ResponseError> {
-    const optionIndices: Record<string, number | undefined> = {};
+function configurationMiddleware(params: ConfigurationParams): LSPAny[] | ResponseError {
+    void validateAdditionalOptions();
+    return params.items.map((param) => {
+        if (!param.section) return null;
 
-    params.items.forEach((param, index) => {
-        if (param.section) {
-            if (param.section === "zls.zig_exe_path") {
-                param.section = "zig.path";
-            } else {
-                param.section = `zig.zls.${camelCase(param.section.slice(4))}`;
+        const scopeUri = param.scopeUri ? client?.protocol2CodeConverter.asUri(param.scopeUri) : undefined;
+        const configuration = vscode.workspace.getConfiguration("zig", scopeUri);
+
+        const updateConfigOption = (section: string, value: unknown) => {
+            if (section === "zls.zigExePath") {
+                return zigProvider.getZigPath();
             }
-            optionIndices[param.section] = index;
+
+            if (typeof value === "string") {
+                // Make sure that `""` gets converted to `undefined` and resolve predefined values
+                value = value ? handleConfigOption(value) : undefined;
+            } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+                // Recursively update the config options
+                const newValue: Record<string, unknown> = {};
+                for (const [fieldName, fieldValue] of Object.entries(value)) {
+                    newValue[snakeCase(fieldName)] = updateConfigOption(section + "." + fieldName, fieldValue);
+                }
+                return newValue;
+            }
+
+            const inspect = configuration.inspect(section);
+            const isDefaultValue =
+                value === inspect?.defaultValue &&
+                inspect?.globalValue === undefined &&
+                inspect?.workspaceValue === undefined &&
+                inspect?.workspaceFolderValue === undefined;
+
+            if (isDefaultValue) {
+                if (section === "zls.semanticTokens") {
+                    // The extension has a different default value for this config
+                    // option compared to ZLS
+                    return value;
+                } else {
+                    return undefined;
+                }
+            }
+            return value;
+        };
+
+        let additionalOptions = configuration.get<Record<string, unknown>>("zls.additionalOptions", {});
+
+        // Remove the `zig.zls.` prefix from the entries in `zig.zls.additionalOptions`
+        additionalOptions = Object.fromEntries(
+            Object.entries(additionalOptions)
+                .filter(([key]) => key.startsWith("zig.zls."))
+                .map(([key, value]) => [key.slice("zig.zls.".length), value]),
+        );
+
+        if (param.section === "zls") {
+            // ZLS has requested all config options.
+
+            const options = { ...configuration.get<Record<string, unknown>>(param.section, {}) };
+            // Some config options are specific to the VS Code
+            // extension. ZLS should ignore unknown values but
+            // we remove them here anyway.
+            delete options["debugLog"]; // zig.zls.debugLog
+            delete options["trace"]; // zig.zls.trace.server
+            delete options["enabled"]; // zig.zls.enabled
+            delete options["path"]; // zig.zls.path
+            delete options["additionalOptions"]; // zig.zls.additionalOptions
+
+            return updateConfigOption(param.section, {
+                ...additionalOptions,
+                ...options,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                zig_exe_path: zigProvider.getZigPath(),
+            });
+        } else if (param.section.startsWith("zls.")) {
+            // ZLS has requested a specific config option.
+
+            // ZLS names it's config options in snake_case but the VS Code extension uses camelCase
+            const camelCaseSection = param.section
+                .split(".")
+                .map((str) => camelCase(str))
+                .join(".");
+
+            return updateConfigOption(
+                camelCaseSection,
+                configuration.get(camelCaseSection, additionalOptions[camelCaseSection.slice("zls.".length)]),
+            );
+        } else {
+            // Do not allow ZLS to request other editor config options.
+            return null;
         }
     });
+}
 
-    const result = await next(params, token);
-    if (result instanceof ResponseError) {
-        return result;
-    }
-
-    const configuration = vscode.workspace.getConfiguration("zig.zls");
-
-    for (const name in optionIndices) {
-        const index = optionIndices[name] as unknown as number;
-        const section = name.slice("zig.zls.".length);
-        const configValue = configuration.get(section);
-        if (typeof configValue === "string") {
-            // Make sure that `""` gets converted to `null` and resolve predefined values
-            result[index] = configValue ? handleConfigOption(configValue) : null;
-        }
-
-        const inspect = configuration.inspect(section);
-        const isDefaultValue =
-            configValue === inspect?.defaultValue &&
-            inspect?.globalValue === undefined &&
-            inspect?.workspaceValue === undefined &&
-            inspect?.workspaceFolderValue === undefined;
-        if (isDefaultValue) {
-            if (name === "zig.zls.semanticTokens") {
-                // The extension has a different default value for this config
-                // option compared to ZLS
-                continue;
-            }
-            result[index] = null;
-        }
-    }
-
-    const indexOfZigPath = optionIndices["zig.path"];
-    if (indexOfZigPath !== undefined) {
-        result[indexOfZigPath] = zigProvider.getZigPath();
-    }
-
+async function validateAdditionalOptions(): Promise<void> {
+    const configuration = vscode.workspace.getConfiguration("zig.zls", null);
     const additionalOptions = configuration.get<Record<string, unknown>>("additionalOptions", {});
 
     for (const optionName in additionalOptions) {
+        if (!optionName.startsWith("zig.zls.")) continue;
         const section = optionName.slice("zig.zls.".length);
 
-        const doesOptionExist = configuration.inspect(section)?.defaultValue !== undefined;
-        if (doesOptionExist) {
-            // The extension has defined a config option with the given name but the user still used `additionalOptions`.
-            const response = await vscode.window.showWarningMessage(
-                `The config option 'zig.zls.additionalOptions' contains the already existing option '${optionName}'`,
-                `Use ${optionName} instead`,
-                "Show zig.zls.additionalOptions",
-            );
-            switch (response) {
-                case `Use ${optionName} instead`:
-                    const { [optionName]: newValue, ...updatedAdditionalOptions } = additionalOptions;
-                    await workspaceConfigUpdateNoThrow(
-                        configuration,
-                        "additionalOptions",
-                        updatedAdditionalOptions,
-                        true,
-                    );
-                    await workspaceConfigUpdateNoThrow(configuration, section, newValue, true);
-                    break;
-                case "Show zig.zls.additionalOptions":
-                    await vscode.commands.executeCommand("workbench.action.openSettingsJson", {
-                        revealSetting: { key: "zig.zls.additionalOptions" },
-                    });
-                    continue;
-                case undefined:
-                    continue;
-            }
-        }
+        const inspect = configuration.inspect(section);
+        const doesOptionExist = inspect?.defaultValue !== undefined;
+        if (!doesOptionExist) continue;
 
-        const optionIndex = optionIndices[optionName];
-        if (!optionIndex) {
-            // ZLS has not requested a config option with the given name.
-            continue;
+        // The extension has defined a config option with the given name but the user still used `additionalOptions`.
+        const response = await vscode.window.showWarningMessage(
+            `The config option 'zig.zls.additionalOptions' contains the already existing option '${optionName}'`,
+            `Use ${optionName} instead`,
+            "Show zig.zls.additionalOptions",
+        );
+        switch (response) {
+            case `Use ${optionName} instead`:
+                const { [optionName]: newValue, ...updatedAdditionalOptions } = additionalOptions;
+                await workspaceConfigUpdateNoThrow(
+                    configuration,
+                    "additionalOptions",
+                    Object.keys(updatedAdditionalOptions).length ? updatedAdditionalOptions : undefined,
+                    true,
+                );
+                await workspaceConfigUpdateNoThrow(configuration, section, newValue, true);
+                break;
+            case "Show zig.zls.additionalOptions":
+                await vscode.commands.executeCommand("workbench.action.openSettingsJson", {
+                    revealSetting: { key: "zig.zls.additionalOptions" },
+                });
+                break;
+            case undefined:
+                return;
         }
-
-        result[optionIndex] = additionalOptions[optionName];
     }
-
-    return result as unknown[];
 }
 
 /**
