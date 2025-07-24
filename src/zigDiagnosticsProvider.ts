@@ -160,7 +160,7 @@ export default class ZigDiagnosticsProvider {
                 if (!buildFilePath) break;
                 processArg.push("--build-file");
                 try {
-                    processArg.push(path.resolve(handleConfigOption(buildFilePath)));
+                    processArg.push(path.resolve(handleConfigOption(buildFilePath, workspaceFolder)));
                 } catch {
                     //
                 }

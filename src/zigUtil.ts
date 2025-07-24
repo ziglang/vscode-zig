@@ -14,14 +14,20 @@ import which from "which";
  * Replace any references to predefined variables in config string.
  * https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables
  */
-export function handleConfigOption(input: string): string {
+export function handleConfigOption(input: string, workspaceFolder: vscode.WorkspaceFolder | "none" | "guess"): string {
     if (input.includes("${userHome}")) {
         input = input.replaceAll("${userHome}", os.homedir());
     }
 
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-        input = input.replaceAll("${workspaceFolder}", vscode.workspace.workspaceFolders[0].uri.fsPath);
-        input = input.replaceAll("${workspaceFolderBasename}", vscode.workspace.workspaceFolders[0].name);
+    if (workspaceFolder === "guess") {
+        workspaceFolder = vscode.workspace.workspaceFolders?.length ? vscode.workspace.workspaceFolders[0] : "none";
+    }
+
+    if (workspaceFolder !== "none") {
+        input = input.replaceAll("${workspaceFolder}", workspaceFolder.uri.fsPath);
+        input = input.replaceAll("${workspaceFolderBasename}", workspaceFolder.name);
+    } else {
+        // This may end up reporting a confusing error message.
     }
 
     const document = vscode.window.activeTextEditor?.document;
@@ -68,7 +74,7 @@ export function resolveExePathAndVersion(
     assert(cmd.length);
 
     // allow passing predefined variables
-    cmd = handleConfigOption(cmd);
+    cmd = handleConfigOption(cmd, "guess");
 
     if (cmd.startsWith("~")) {
         cmd = path.join(os.homedir(), cmd.substring(1));
