@@ -1,3 +1,8 @@
+## 0.6.12
+- Remove syntax highlighting for async and await keywords
+- Update minisign verification (@Techatrix)
+- Address various issues with the ZLS config middleware (@Techatrix)
+
 ## 0.6.11
 - Use Zig mirror list from ziglang.org
 
