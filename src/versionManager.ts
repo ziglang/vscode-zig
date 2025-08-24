@@ -12,7 +12,7 @@ import which from "which";
 import semver from "semver";
 
 import * as minisign from "./minisign";
-import { getHostZigName, getVersion, getZigArchName, getZigOSName } from "./zigUtil";
+import * as zigUtil from "./zigUtil";
 
 const execFile = util.promisify(childProcess.execFile);
 const chmod = util.promisify(fs.chmod);
@@ -69,7 +69,7 @@ export async function install(config: Config, version: semver.SemVer): Promise<s
 
 async function installGuarded(config: Config, version: semver.SemVer): Promise<string> {
     const exeName = config.exeName + (process.platform === "win32" ? ".exe" : "");
-    const subDirName = `${getHostZigName()}-${version.raw}`;
+    const subDirName = `${getTargetName()}-${version.raw}`;
     const exeUri = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName, subDirName, exeName);
 
     await setLastAccessTime(config, version);
@@ -145,7 +145,7 @@ async function installFromMirror(
 
     const isWindows = process.platform === "win32";
     const exeName = config.exeName + (isWindows ? ".exe" : "");
-    const subDirName = `${getHostZigName()}-${version.raw}`;
+    const subDirName = `${getTargetName()}-${version.raw}`;
     const fileName = config.getArtifactName(version);
 
     const installDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName, subDirName);
@@ -249,7 +249,7 @@ async function installFromMirror(
         } catch {}
     }
 
-    const exeVersion = getVersion(exeUri.fsPath, config.versionArg);
+    const exeVersion = zigUtil.getVersion(exeUri.fsPath, config.versionArg);
     if (!exeVersion || exeVersion.compare(version) !== 0) {
         try {
             await vscode.workspace.fs.delete(installDir, { recursive: true, useTrash: false });
@@ -278,7 +278,7 @@ async function installFromMirror(
 /** Returns all locally installed versions */
 export async function query(config: Config): Promise<semver.SemVer[]> {
     const available: semver.SemVer[] = [];
-    const prefix = getHostZigName();
+    const prefix = getTargetName();
 
     const storageDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName);
     try {
@@ -315,7 +315,7 @@ async function getTarExePath(): Promise<string | null> {
 /** Set the last access time of the (installed) version. */
 async function setLastAccessTime(config: Config, version: semver.SemVer): Promise<void> {
     await config.context.globalState.update(
-        `${config.exeName}-last-access-time-${getHostZigName()}-${version.raw}`,
+        `${config.exeName}-last-access-time-${getTargetName()}-${version.raw}`,
         Date.now(),
     );
 }
@@ -357,8 +357,8 @@ async function removeUnusedInstallations(config: Config) {
 
 /** Remove after some time has passed from the prefix change. */
 export async function convertOldInstallPrefixes(config: Config): Promise<void> {
-    const oldPrefix = `${getZigOSName()}-${getZigArchName()}`;
-    const newPrefix = `${getZigArchName()}-${getZigOSName()}`;
+    const oldPrefix = `${zigUtil.getZigOSName()}-${zigUtil.getZigArchName("armv7a")}`;
+    const newPrefix = getTargetName();
 
     const storageDir = vscode.Uri.joinPath(config.context.globalStorageUri, config.exeName);
     try {
@@ -385,4 +385,8 @@ export async function convertOldInstallPrefixes(config: Config): Promise<void> {
             }
         }
     } catch {}
+}
+
+function getTargetName(): string {
+    return `${zigUtil.getZigArchName("armv7a")}-${zigUtil.getZigOSName()}`;
 }

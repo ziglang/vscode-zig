@@ -170,20 +170,22 @@ export async function shouldCheckUpdate(context: vscode.ExtensionContext, key: s
     return true;
 }
 
-export function getZigArchName(): string {
+export function getZigArchName(armName: string): string {
     switch (process.arch) {
         case "ia32":
             return "x86";
         case "x64":
             return "x86_64";
         case "arm":
-            return "armv7a";
+            return armName;
         case "arm64":
             return "aarch64";
         case "ppc":
             return "powerpc";
         case "ppc64":
             return "powerpc64le";
+        case "loong64":
+            return "loongarch64";
         default:
             return process.arch;
     }
@@ -197,10 +199,6 @@ export function getZigOSName(): string {
         default:
             return process.platform;
     }
-}
-
-export function getHostZigName(): string {
-    return `${getZigArchName()}-${getZigOSName()}`;
 }
 
 export function getVersion(
