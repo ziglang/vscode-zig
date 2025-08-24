@@ -13,14 +13,7 @@ import semver from "semver";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
-import {
-    getHostZigName,
-    getZigArchName,
-    getZigOSName,
-    handleConfigOption,
-    resolveExePathAndVersion,
-    workspaceConfigUpdateNoThrow,
-} from "./zigUtil";
+import * as zigUtil from "./zigUtil";
 import { zigProvider } from "./zigSetup";
 
 const ZIG_MODE = [
@@ -114,7 +107,7 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
     if (!!zlsExePath) {
         // This will fail on older ZLS version that do not support `zls --version`.
         // It should be more likely that the given executable is invalid than someone using ZLS 0.9.0 or older.
-        const result = resolveExePathAndVersion(zlsExePath, "--version");
+        const result = zigUtil.resolveExePathAndVersion(zlsExePath, "--version");
         if ("message" in result) {
             vscode.window
                 .showErrorMessage(`Unexpected 'zig.zls.path': ${result.message}`, "install ZLS", "open settings")
@@ -122,8 +115,8 @@ async function getZLSPath(context: vscode.ExtensionContext): Promise<{ exe: stri
                     switch (response) {
                         case "install ZLS":
                             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-                            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
-                            await workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined);
+                            await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
+                            await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined);
                             break;
                         case "open settings":
                             await vscode.commands.executeCommand("workbench.action.openSettings", "zig.zls.path");
@@ -179,7 +172,7 @@ function configurationMiddleware(params: ConfigurationParams): LSPAny[] | Respon
 
             if (typeof value === "string") {
                 // Make sure that `""` gets converted to `undefined` and resolve predefined values
-                value = value ? handleConfigOption(value, workspaceFolder ?? "guess") : undefined;
+                value = value ? zigUtil.handleConfigOption(value, workspaceFolder ?? "guess") : undefined;
             } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
                 // Recursively update the config options
                 const newValue: Record<string, unknown> = {};
@@ -277,13 +270,13 @@ async function validateAdditionalOptions(): Promise<void> {
         switch (response) {
             case `Use ${optionName} instead`:
                 const { [optionName]: newValue, ...updatedAdditionalOptions } = additionalOptions;
-                await workspaceConfigUpdateNoThrow(
+                await zigUtil.workspaceConfigUpdateNoThrow(
                     configuration,
                     "additionalOptions",
                     Object.keys(updatedAdditionalOptions).length ? updatedAdditionalOptions : undefined,
                     true,
                 );
-                await workspaceConfigUpdateNoThrow(configuration, section, newValue, true);
+                await zigUtil.workspaceConfigUpdateNoThrow(configuration, section, newValue, true);
                 break;
             case "Show zig.zls.additionalOptions":
                 await vscode.commands.executeCommand("workbench.action.openSettingsJson", {
@@ -367,10 +360,11 @@ async function fetchVersion(
         void vscode.window.showErrorMessage(`Unable to fetch ZLS: ${response.message as string}`);
         return null;
     }
+    const version = new semver.SemVer(response.version);
+    const armName = semver.gte(version, "0.15.0") ? "arm" : "armv7a";
+    const targetName = `${zigUtil.getZigArchName(armName)}-${zigUtil.getZigOSName()}`;
 
-    const hostName = getHostZigName();
-
-    if (!(hostName in response)) {
+    if (!(targetName in response)) {
         void vscode.window.showErrorMessage(
             `A prebuilt ZLS ${response.version} binary is not available for your system. You can build it yourself with https://github.com/zigtools/zls#from-source`,
         );
@@ -378,8 +372,8 @@ async function fetchVersion(
     }
 
     return {
-        version: new semver.SemVer(response.version),
-        artifact: response[hostName] as ArtifactEntry,
+        version: version,
+        artifact: response[targetName] as ArtifactEntry,
     };
 }
 
@@ -401,10 +395,10 @@ async function isEnabled(): Promise<boolean> {
             );
             switch (response) {
                 case "Yes":
-                    await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
+                    await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
                     return true;
                 case "No":
-                    await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "off", true);
+                    await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "off", true);
                     return false;
                 case undefined:
                     return false;
@@ -455,8 +449,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
         const zlsPath = zlsConfig.get<string>("path", "");
         if (zlsPath.startsWith(context.globalStorageUri.fsPath)) {
-            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
-            await workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined, true);
+            await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
+            await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined, true);
         }
     }
 
@@ -475,7 +469,10 @@ export async function activate(context: vscode.ExtensionContext) {
         },
         getArtifactName(version) {
             const fileExtension = process.platform === "win32" ? "zip" : "tar.xz";
-            return `zls-${getZigOSName()}-${getZigArchName()}-${version.raw}.${fileExtension}`;
+            const targetName = semver.gte(version, "0.15.0")
+                ? `${zigUtil.getZigArchName("arm")}-${zigUtil.getZigOSName()}`
+                : `${zigUtil.getZigOSName()}-${zigUtil.getZigArchName("armv7a")}`;
+            return `zls-${targetName}-${version.raw}.${fileExtension}`;
         },
     };
 
@@ -492,14 +489,14 @@ export async function activate(context: vscode.ExtensionContext) {
         statusItem,
         vscode.commands.registerCommand("zig.zls.enable", async () => {
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
+            await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
         }),
         vscode.commands.registerCommand("zig.zls.stop", async () => {
             await stopClient();
         }),
         vscode.commands.registerCommand("zig.zls.startRestart", async () => {
             const zlsConfig = vscode.workspace.getConfiguration("zig.zls");
-            await workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
+            await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
             await restartClient(context);
         }),
         vscode.commands.registerCommand("zig.zls.openOutput", () => {

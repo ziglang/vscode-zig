@@ -7,16 +7,7 @@ import semver from "semver";
 
 import * as minisign from "./minisign";
 import * as versionManager from "./versionManager";
-import {
-    VersionIndex,
-    ZigVersion,
-    asyncDebounce,
-    getHostZigName,
-    getZigArchName,
-    getZigOSName,
-    resolveExePathAndVersion,
-    workspaceConfigUpdateNoThrow,
-} from "./zigUtil";
+import * as zigUtil from "./zigUtil";
 import { ZigProvider } from "./zigProvider";
 
 let statusItem: vscode.StatusBarItem;
@@ -41,7 +32,7 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
 
     if (!version) {
         // Lookup zig in $PATH
-        const result = resolveExePathAndVersion("zig", "version");
+        const result = zigUtil.resolveExePathAndVersion("zig", "version");
         if ("exe" in result) {
             await vscode.workspace.getConfiguration("zig").update("path", undefined, true);
             zigProvider.set(result);
@@ -62,7 +53,7 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
     try {
         const exePath = await versionManager.install(versionManagerConfig, version);
         const zigConfig = vscode.workspace.getConfiguration("zig");
-        await workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
+        await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
         zigProvider.set({ exe: exePath, version: version });
     } catch (err) {
         zigProvider.set(null);
@@ -116,21 +107,21 @@ async function getLatestTaggedZigVersion(context: vscode.ExtensionContext): Prom
  *
  * Throws an exception when no network connection is available.
  */
-async function getVersions(): Promise<ZigVersion[]> {
+async function getVersions(): Promise<zigUtil.ZigVersion[]> {
     const [zigIndexJson, machIndexJson] = await Promise.all(
         ["https://ziglang.org/download/index.json", "https://pkg.machengine.org/zig/index.json"].map(async (url) => {
             const response = await fetch(url);
-            return response.json() as Promise<VersionIndex>;
+            return response.json() as Promise<zigUtil.VersionIndex>;
         }),
     );
     const indexJson = { ...machIndexJson, ...zigIndexJson };
 
-    const hostName = getHostZigName();
-    const result: ZigVersion[] = [];
+    const result: zigUtil.ZigVersion[] = [];
     for (const [key, value] of Object.entries(indexJson)) {
         const name = key === "master" ? "nightly" : key;
         const version = new semver.SemVer(value.version ?? key);
-        const release = value[hostName];
+        const targetName = `${getZigArchName(version)}-${zigUtil.getZigOSName()}`;
+        const release = value[targetName];
         if (release) {
             result.push({
                 name: name,
@@ -144,11 +135,21 @@ async function getVersions(): Promise<ZigVersion[]> {
     }
     if (result.length === 0) {
         throw Error(
-            `no pre-built Zig is available for your system '${hostName}', you can build it yourself using https://github.com/ziglang/zig-bootstrap`,
+            `no pre-built Zig is available for your system '${zigUtil.getZigArchName("arm")}-${zigUtil.getZigOSName()}}', you can build it yourself using https://github.com/ziglang/zig-bootstrap`,
         );
     }
     sortVersions(result);
     return result;
+}
+
+function getZigArchName(zigVersion: semver.SemVer): string {
+    switch (zigVersion.compare(new semver.SemVer("0.15.0-dev.836+080ee25ec"))) {
+        case -1:
+        case 0:
+            return zigUtil.getZigArchName("armv7a");
+        case 1:
+            return zigUtil.getZigArchName("arm");
+    }
 }
 
 function sortVersions(versions: { name?: string; version: semver.SemVer; isMach: boolean }[]) {
@@ -236,7 +237,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
         });
     }
 
-    const zigInPath = resolveExePathAndVersion("zig", "version");
+    const zigInPath = zigUtil.resolveExePathAndVersion("zig", "version");
     if (!("message" in zigInPath)) {
         items.push({
             label: "Use Zig in PATH",
@@ -285,7 +286,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
             break;
         case "Use Zig in PATH":
             const zigConfig = vscode.workspace.getConfiguration("zig");
-            await workspaceConfigUpdateNoThrow(zigConfig, "path", "zig", true);
+            await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "path", "zig", true);
             break;
         case "Manually Specify Path":
             const uris = await vscode.window.showOpenDialog({
@@ -591,10 +592,10 @@ export async function setupZig(context: vscode.ExtensionContext) {
         const zigConfig = vscode.workspace.getConfiguration("zig");
         const zigPath = zigConfig.get<string>("path", "");
         if (zigPath.startsWith(context.globalStorageUri.fsPath)) {
-            await workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
+            await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "path", undefined, true);
         }
 
-        await workspaceConfigUpdateNoThrow(zigConfig, "initialSetupDone", undefined, true);
+        await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "initialSetupDone", undefined, true);
 
         await context.workspaceState.update("zig-version", undefined);
 
@@ -668,9 +669,9 @@ export async function setupZig(context: vscode.ExtensionContext) {
                 (version.prerelease.length === 0 && semver.gte(version, "0.14.1")) ||
                 semver.gte(version, "0.15.0-dev.631+9a3540d61")
             ) {
-                return `zig-${getZigArchName()}-${getZigOSName()}-${version.raw}.${fileExtension}`;
+                return `zig-${getZigArchName(version)}-${zigUtil.getZigOSName()}-${version.raw}.${fileExtension}`;
             } else {
-                return `zig-${getZigOSName()}-${getZigArchName()}-${version.raw}.${fileExtension}`;
+                return `zig-${zigUtil.getZigOSName()}-${getZigArchName(version)}-${version.raw}.${fileExtension}`;
             }
         },
     };
@@ -689,7 +690,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
     const watcher1 = vscode.workspace.createFileSystemWatcher("**/.zigversion");
     const watcher2 = vscode.workspace.createFileSystemWatcher("**/build.zig.zon");
 
-    const refreshZigInstallation = asyncDebounce(async () => {
+    const refreshZigInstallation = zigUtil.asyncDebounce(async () => {
         if (!vscode.workspace.getConfiguration("zig").get<string>("path")) {
             await installZig(context);
         } else {
