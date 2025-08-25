@@ -196,7 +196,7 @@ export default class ZigTestRunnerProvider {
             throw new Error("Unable to determine file location");
         }
         
-        const config = vscode.workspace.getConfiguration("zig.zls");
+        const config = vscode.workspace.getConfiguration("zig");
         const debugAdapter = config.get<string>("debugAdapter", "lldb");
        
         const testBinaryPath = await this.buildTestBinary(run, testItem.uri.fsPath, getTestDesc(testItem));

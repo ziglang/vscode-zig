@@ -150,7 +150,7 @@
           ],
           "description": "Arguments to pass to 'zig' for running tests. Supported variables: ${filter}, ${path}."
         },
-        "zig.zls.debugAdapter": {
+        "zig.debugAdapter": {
           "scope": "resource",
           "type": "string",
           "default": "lldb",
