@@ -1,3 +1,7 @@
+## 0.6.13
+- Resolve the correct tarball name for ZLS 0.15.0+ and arm (@Techatrix)
+- Make debug adapter used for tests and main configurable (@fred21O4)
+
 ## 0.6.12
 - Remove syntax highlighting for async and await keywords
 - Update minisign verification (@Techatrix)
