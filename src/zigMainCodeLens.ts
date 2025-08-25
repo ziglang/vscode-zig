@@ -79,8 +79,11 @@ async function zigDebug() {
         }
         if (!binaryPath) return;
 
+        const config = vscode.workspace.getConfiguration("zig.zls");
+        const debugAdapter = config.get<string>("debugAdapter", "lldb");
+
         const debugConfig: vscode.DebugConfiguration = {
-            type: "lldb",
+            type: debugAdapter,
             name: `Debug Zig`,
             request: "launch",
             program: binaryPath,
