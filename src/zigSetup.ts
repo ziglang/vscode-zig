@@ -621,6 +621,11 @@ export async function setupZig(context: vscode.ExtensionContext) {
                 if (document.languageId !== "zig") return;
                 if (document.uri.scheme !== "file") return;
 
+                const zigVersion = zigProvider.getZigVersion();
+                if (!zigVersion) return;
+
+                if (semver.gte(zigVersion, "0.15.0-dev.1372+abf179533")) return;
+
                 const fsPath = document.uri.fsPath;
                 try {
                     await fs.copyFile(fsPath, fsPath + ".tmp", fs.constants.COPYFILE_EXCL);
