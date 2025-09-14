@@ -181,17 +181,27 @@ export default class ZigTestRunnerProvider {
             if (token.isCancellationRequested) break;
             const test = Array.isArray(item) ? item[1] : item;
             run.started(test);
+            const start = new Date();
+            run.appendOutput(`[${start.toISOString()}] Running test: ${test.label}\r\n`);
             try {
-                await this.debugTest(run, test);
-                run.passed(test);
+                const [exitCode, output] = await this.debugTest(run, test);
+                run.appendOutput(output.replaceAll("\n", "\r\n"));
+                run.appendOutput("\r\n");
+                const elapsed = new Date().getMilliseconds() - start.getMilliseconds();
+                if (exitCode === 0) {
+                    run.passed(test, elapsed);
+                } else {
+                    run.failed(test, new vscode.TestMessage(output));
+                }
             } catch (e) {
-                run.failed(test, new vscode.TestMessage((e as Error).message));
+                const elapsed = new Date().getMilliseconds() - start.getMilliseconds();
+                run.failed(test, new vscode.TestMessage((e as Error).message), elapsed);
             }
         }
         run.end();
     }
 
-    private async debugTest(run: vscode.TestRun, testItem: vscode.TestItem) {
+    private async debugTest(run: vscode.TestRun, testItem: vscode.TestItem): Promise<[number, string]> {
         if (testItem.uri === undefined) {
             throw new Error("Unable to determine file location");
         }
@@ -208,7 +218,58 @@ export default class ZigTestRunnerProvider {
             cwd: path.dirname(testItem.uri.fsPath),
             stopAtEntry: false,
         };
-        await vscode.debug.startDebugging(undefined, debugConfig);
+        return new Promise((resolve, reject) => {
+            const disposables: vscode.Disposable[] = [];
+            let exitCode = 0;
+            let output = "";
+
+            vscode.debug.onDidTerminateDebugSession((session) => {
+                if (session.name === debugConfig.name) {
+                    for (const disposable of disposables) {
+                        disposable.dispose();
+                    }
+                    resolve([exitCode, output]);
+                }
+            }, disposables);
+
+            type Message =
+                | { type: "event"; event: "output"; body: { output: string } }
+                | { type: "event"; event: "exited"; body: { exitCode: number } }
+                | { type: "response" };
+            disposables.push(
+                vscode.debug.registerDebugAdapterTrackerFactory(debugAdapter, {
+                    createDebugAdapterTracker() {
+                        return {
+                            onDidSendMessage: (m: Message) => {
+                                if (m.type === "event" && m.event === "output") {
+                                    output += m.body.output;
+                                }
+                                if (m.type === "event" && m.event === "exited") {
+                                    exitCode = m.body.exitCode;
+                                }
+                            },
+                        };
+                    },
+                }),
+            );
+
+            vscode.debug.startDebugging(undefined, debugConfig).then(
+                (success) => {
+                    if (!success) {
+                        for (const disposable of disposables) {
+                            disposable.dispose();
+                        }
+                        reject(new Error("Failed to start debug session"));
+                    }
+                },
+                (err: unknown) => {
+                    for (const disposable of disposables) {
+                        disposable.dispose();
+                    }
+                    reject(err as Error);
+                },
+            );
+        });
     }
 
     private async buildTestBinary(run: vscode.TestRun, testFilePath: string, testDesc: string): Promise<string> {
