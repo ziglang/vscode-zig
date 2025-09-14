@@ -150,6 +150,21 @@
           ],
           "description": "Arguments to pass to 'zig' for running tests. Supported variables: ${filter}, ${path}."
         },
+        "zig.debugTestArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "test",
+            "${path}",
+            "--test-filter",
+            "${filter}",
+            "--test-no-exec",
+            "-femit-bin=${binaryPath}"
+          ],
+          "description": "Arguments to pass to 'zig' for debugging tests. Supported variables: ${filter}, ${path}, ${binaryPath}."
+        },
         "zig.debugAdapter": {
           "scope": "resource",
           "type": "string",

@@ -212,6 +212,7 @@ export default class ZigTestRunnerProvider {
     }
 
     private async buildTestBinary(run: vscode.TestRun, testFilePath: string, testDesc: string): Promise<string> {
+        const config = vscode.workspace.getConfiguration("zig");
         const zigPath = zigProvider.getZigPath();
         if (!zigPath) {
             throw new Error("Unable to build test binary without Zig");
@@ -223,14 +224,12 @@ export default class ZigTestRunnerProvider {
         const binaryPath = path.join(outputDir, binaryName);
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(outputDir));
 
-        const { stdout, stderr } = await execFile(zigPath, [
-            "test",
-            testFilePath,
-            "--test-filter",
-            testDesc,
-            "--test-no-exec",
-            `-femit-bin=${binaryPath}`,
-        ]);
+        const debugTestArgsConf = config.get<string[]>("debugTestArgs") ?? [];
+        const args = debugTestArgsConf.map((arg) =>
+            arg.replace("${filter}", testDesc).replace("${path}", testFilePath).replace("${binaryPath}", binaryPath),
+        );
+
+        const { stdout, stderr } = await execFile(zigPath, args, { cwd: wsFolder });
         if (stderr) {
             run.appendOutput(stderr.replaceAll("\n", "\r\n"));
             throw new Error(`Failed to build test binary: ${stderr}`);
