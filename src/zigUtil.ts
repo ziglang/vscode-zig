@@ -210,10 +210,11 @@ export function getVersion(
     arg: string,
 ): semver.SemVer | null {
     try {
-        const buffer = childProcess.execFileSync(filePath, [arg]);
+        const wsFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const buffer = childProcess.execFileSync(filePath, [arg], { cwd: wsFolder });
         const versionString = buffer.toString("utf8").trim();
         if (versionString === "0.2.0.83a2a36a") {
-            // Zig 0.2.0 reports the verion in a non-semver format
+            // Zig 0.2.0 reports the version in a non-semver format
             return semver.parse("0.2.0");
         }
         return semver.parse(versionString);
