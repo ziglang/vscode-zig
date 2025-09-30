@@ -1,3 +1,8 @@
+## 0.6.14
+- Add config option for arguments used in debugging tests (@luehmann)
+- Disable workaround for [ziglang/zig#21905](https://github.com/ziglang/zig/issues/21905)
+on newer versions of the compiler (@Techatrix)
+
 ## 0.6.13
 - Resolve the correct tarball name for ZLS 0.15.0+ and arm (@Techatrix)
 - Make debug adapter used for tests and main configurable (@fred21O4)
