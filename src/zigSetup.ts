@@ -40,6 +40,7 @@ async function installZig(context: vscode.ExtensionContext, temporaryVersion?: s
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     if (!version) {
         // Default to the latest tagged release
         version = (await getLatestTaggedZigVersion(context)) ?? undefined;
