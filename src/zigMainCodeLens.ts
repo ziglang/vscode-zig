@@ -6,6 +6,7 @@ import path from "path";
 import util from "util";
 
 import { getWorkspaceFolder, isWorkspaceFile } from "./zigUtil";
+import { getTerminalState } from "./terminalState";
 import { zigProvider } from "./zigSetup";
 
 const execFile = util.promisify(childProcess.execFile);
@@ -44,7 +45,7 @@ function zigRun() {
     if (!zigPath) return;
     const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
     const terminalName = "Run Zig Program";
-    const terminals = vscode.window.terminals.filter((t) => t.name === terminalName);
+    const terminals = vscode.window.terminals.filter((t) => t.name === terminalName && getTerminalState(t) === false);
     const terminal = terminals.length > 0 ? terminals[0] : vscode.window.createTerminal(terminalName);
     const callOperator = /(powershell.exe$|powershell$|pwsh.exe$|pwsh$)/.test(vscode.env.shell) ? "& " : "";
     terminal.show();

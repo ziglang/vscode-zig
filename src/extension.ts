@@ -5,6 +5,7 @@ import ZigDiagnosticsProvider from "./zigDiagnosticsProvider";
 import ZigMainCodeLensProvider from "./zigMainCodeLens";
 import ZigTestRunnerProvider from "./zigTestRunnerProvider";
 import { registerDocumentFormatting } from "./zigFormat";
+import { registerTerminalStateManagement } from "./terminalState";
 import { setupZig } from "./zigSetup";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -17,6 +18,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const testRunner = new ZigTestRunnerProvider();
         testRunner.activate(context.subscriptions);
 
+        registerTerminalStateManagement();
         ZigMainCodeLensProvider.registerCommands(context);
         context.subscriptions.push(
             vscode.languages.registerCodeLensProvider(
