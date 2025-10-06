@@ -43,7 +43,9 @@ function zigRun() {
     const zigPath = zigProvider.getZigPath();
     if (!zigPath) return;
     const filePath = vscode.window.activeTextEditor.document.uri.fsPath;
-    const terminal = vscode.window.createTerminal("Run Zig Program");
+    const terminalName = "Run Zig Program";
+    const terminals = vscode.window.terminals.filter((t) => t.name === terminalName);
+    const terminal = terminals.length > 0 ? terminals[0] : vscode.window.createTerminal(terminalName);
     const callOperator = /(powershell.exe$|powershell$|pwsh.exe$|pwsh$)/.test(vscode.env.shell) ? "& " : "";
     terminal.show();
     const wsFolder = getWorkspaceFolder(filePath);
