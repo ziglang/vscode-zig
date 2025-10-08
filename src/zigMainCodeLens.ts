@@ -16,7 +16,7 @@ export default class ZigMainCodeLensProvider implements vscode.CodeLensProvider 
         const codeLenses: vscode.CodeLens[] = [];
         const text = document.getText();
 
-        const mainRegex = /pub\s+fn\s+main\s*\(/g;
+        const mainRegex = /^(?!\s*\/\/\/?\s*)\s*pub\s+fn\s+main\s*\(/gm;
         let match;
         while ((match = mainRegex.exec(text))) {
             const position = document.positionAt(match.index);
