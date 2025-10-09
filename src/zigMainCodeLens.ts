@@ -16,11 +16,16 @@ export default class ZigMainCodeLensProvider implements vscode.CodeLensProvider 
         const codeLenses: vscode.CodeLens[] = [];
         const text = document.getText();
 
-        const mainRegex = /pub\s+fn\s+main\s*\(/g;
+        const mainRegex = /^(?!\s*\/\/\/?\s*)\s*pub\s+fn\s+main\s*\(/gm;
         let match;
         while ((match = mainRegex.exec(text))) {
             const position = document.positionAt(match.index);
-            const range = new vscode.Range(position, position);
+            const line = document.lineAt(position.line);
+            const nextLine = Math.min(line.lineNumber + 1, document.lineCount - 1);
+            const range = new vscode.Range(
+                document.lineAt(nextLine).range.start,
+                document.lineAt(nextLine).range.start,
+            );
             codeLenses.push(
                 new vscode.CodeLens(range, { title: "Run", command: "zig.run", arguments: [document.uri.fsPath] }),
             );
