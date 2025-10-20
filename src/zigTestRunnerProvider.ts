@@ -70,7 +70,8 @@ export default class ZigTestRunnerProvider {
     private _updateTestItems(textDocument: vscode.TextDocument) {
         if (textDocument.languageId !== "zig") return;
 
-        const regex = /^(?!\s*\/\/\/?\s*)\s*\btest\s+(?:"([^"]+)"|([A-Za-z0-9_][\w]*)|@"([^"]+)")\s*\{/gm;
+        const regex = /^(?![ \t]*\/\/\/?\s*)[ \t]*\btest\s+(?:"([^"]+)"|([A-Za-z0-9_]\w*)|@"([^"]+)")\s*\{/gm;
+
         const matches = Array.from(textDocument.getText().matchAll(regex));
         this.deleteTestForAFile(textDocument.uri);
 
@@ -79,11 +80,7 @@ export default class ZigTestRunnerProvider {
             const isDocTest = !match[1];
             const position = textDocument.positionAt(match.index);
             const line = textDocument.lineAt(position.line);
-            const nextLine = Math.min(line.lineNumber + 1, textDocument.lineCount - 1);
-            const range = new vscode.Range(
-                textDocument.lineAt(nextLine).range.start,
-                textDocument.lineAt(nextLine).range.start,
-            );
+            const range = textDocument.lineAt(line.lineNumber).range;
 
             const fileName = path.basename(textDocument.uri.fsPath);
 
