@@ -609,6 +609,37 @@ export async function setupZig(context: vscode.ExtensionContext) {
                 await context.globalState.update(key, undefined);
             }
         }
+
+        // convert `zig.buildOnSave` to `zig.buildOnSaveProvider`
+        {
+            const inspect = zigConfig.inspect("buildOnSave");
+            if (inspect?.globalValue !== undefined) {
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildOnSaveProvider", inspect.globalValue, true);
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildOnSave", undefined, true);
+            }
+            if (inspect?.workspaceValue !== undefined) {
+                await zigUtil.workspaceConfigUpdateNoThrow(
+                    zigConfig,
+                    "buildOnSaveProvider",
+                    inspect.workspaceValue,
+                    false,
+                );
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildOnSave", undefined, false);
+            }
+        }
+
+        // convert `zig.buildArgs` to `zig.buildOnSaveArgs`
+        {
+            const inspect = zigConfig.inspect("buildArgs");
+            if (inspect?.globalValue) {
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildOnSaveArgs", inspect.globalValue, true);
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildArgs", undefined, true);
+            }
+            if (inspect?.workspaceValue) {
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildOnSaveArgs", inspect.workspaceValue, false);
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildArgs", undefined, false);
+            }
+        }
     }
 
     /// Workaround https://github.com/ziglang/zig/issues/21905

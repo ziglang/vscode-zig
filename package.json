@@ -70,42 +70,23 @@
           "column": 3,
           "severity": 4,
           "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Build Summary:",
+          "endsPattern": "^error: (\\d+ compilation errors|the following command failed with )"
         }
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "zig"
       }
     ],
     "configuration": {
       "type": "object",
       "title": "Zig",
       "properties": {
-        "zig.buildOnSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Compiles code on file save using the settings specified in 'Build Option'. Should not be used with ZLS's build on save feature."
-        },
-        "zig.buildOption": {
-          "type": "string",
-          "default": "build",
-          "enum": [
-            "build",
-            "build-exe",
-            "build-lib",
-            "build-obj"
-          ],
-          "description": "Which build command Zig should use to build the code."
-        },
-        "zig.buildArgs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Extra arguments to passed to Zig."
-        },
-        "zig.buildFilePath": {
-          "type": "string",
-          "default": "${workspaceFolder}/build.zig",
-          "description": "The path to build.zig. This is only required if zig.buildOptions = build."
-        },
         "zig.path": {
           "scope": "machine-overridable",
           "type": "string",
@@ -171,6 +152,38 @@
           "default": "lldb",
           "description": "The debug adapter command to run when starting a debug session"
         },
+        "zig.buildOnSaveProvider": {
+          "scope": "resource",
+          "type": "string",
+          "description": "Specify how build on save diagnostics should be provided.",
+          "enum": [
+            "off",
+            "auto",
+            "extension",
+            "zls"
+          ],
+          "enumItemLabels": [
+            "Disabled",
+            "Automatic",
+            "Extension",
+            "ZLS language server"
+          ],
+          "enumDescriptions": [
+            "Disable build on save",
+            "Disabled unless ZLS has enabled [build on save](https://zigtools.org/zls/guides/build-on-save/) automatically.",
+            "Provide build on save by running `zig build --watch`",
+            "Provide build on save using ZLS"
+          ],
+          "default": "auto"
+        },
+        "zig.buildOnSaveArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Specify which additional arguments should be passed to `zig build` when running build on save. Use the `--build-file` argument to override which build file should be used."
+        },
         "zig.zls.debugLog": {
           "scope": "resource",
           "type": "boolean",
@@ -221,18 +234,6 @@
           "type": "boolean",
           "description": "Whether to show the function signature in completion results. May improve readability in some editors when disabled",
           "default": true
-        },
-        "zig.zls.enableBuildOnSave": {
-          "scope": "resource",
-          "type": "boolean",
-          "description": "Whether to enable build-on-save diagnostics. Will be automatically enabled if the `build.zig` has declared a 'check' step.\n\nFor more infromation, checkout the [Build-On-Save](https://zigtools.org/zls/guides/build-on-save/) Guide.",
-          "default": null
-        },
-        "zig.zls.buildOnSaveArgs": {
-          "scope": "resource",
-          "type": "array",
-          "description": "Specify which arguments should be passed to Zig when running build-on-save.\n\nIf the `build.zig` has declared a 'check' step, it will be preferred over the default 'install' step.",
-          "default": []
         },
         "zig.zls.semanticTokens": {
           "scope": "resource",
@@ -359,12 +360,6 @@
         "title": "Debug Zig",
         "category": "Zig",
         "description": "Debug the current Zig project / file"
-      },
-      {
-        "command": "zig.build.workspace",
-        "title": "Build Workspace",
-        "category": "Zig",
-        "description": "Build the current project using 'zig build'"
       },
       {
         "command": "zig.install",
