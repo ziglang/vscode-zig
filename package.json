@@ -179,7 +179,7 @@
         "zig.zls.trace.server": {
           "scope": "window",
           "type": "string",
-          "description": "Traces the communication between VS Code and the language server.",
+          "description": "Traces the communication between VS Code and the ZLS language server.\n\nThe log output can be accessed by running the \"Developer: Show Logs...\" command and selecting \"ZLS language server\". To display trace messages, use \"Developer: Set Log Level...\" or click the settings (⚙️) icon in the top-right corner of the output panel.",
           "enum": [
             "off",
             "messages",
