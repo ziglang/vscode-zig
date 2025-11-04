@@ -139,7 +139,7 @@ export function asyncDebounce<T extends (...args: unknown[]) => Promise<Awaited<
 
 /**
  * Wrapper around `vscode.WorkspaceConfiguration.update` that doesn't throw an exception.
- * A common cause of an exception is when the `settings.json` file is read-only.
+ * A common cause of an exception is when the `settings.json` file is read-only or has unsaved changes.
  */
 export async function workspaceConfigUpdateNoThrow(
     config: vscode.WorkspaceConfiguration,

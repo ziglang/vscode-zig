@@ -210,6 +210,18 @@ function configurationMiddleware(params: ConfigurationParams): LSPAny[] | Respon
                 .map(([key, value]) => [key.slice("zig.zls.".length), value]),
         );
 
+        switch (configuration.get<"off" | "auto" | "extension" | "zls">("buildOnSaveProvider", "auto")) {
+            case "auto":
+                break;
+            case "zls":
+                additionalOptions["enableBuildOnSave"] = true;
+                break;
+            case "off":
+            case "extension":
+                additionalOptions["enableBuildOnSave"] = false;
+                break;
+        }
+
         if (param.section === "zls") {
             // ZLS has requested all config options.
 
@@ -451,6 +463,43 @@ export async function activate(context: vscode.ExtensionContext) {
         if (zlsPath.startsWith(context.globalStorageUri.fsPath)) {
             await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enabled", "on", true);
             await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "path", undefined, true);
+        }
+
+        // convert `zig.zls.enableBuildOnSave` to `zig.buildOnSaveProvider`
+        {
+            const inspect = zlsConfig.inspect("enableBuildOnSave");
+            if (inspect?.globalValue !== undefined) {
+                await zigUtil.workspaceConfigUpdateNoThrow(
+                    vscode.workspace.getConfiguration("zig"),
+                    "buildOnSaveProvider",
+                    inspect.globalValue ? "zls" : "off",
+                    true,
+                );
+                await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enableBuildOnSave", undefined, true);
+            }
+            if (inspect?.workspaceValue !== undefined) {
+                await zigUtil.workspaceConfigUpdateNoThrow(
+                    vscode.workspace.getConfiguration("zig"),
+                    "buildOnSaveProvider",
+                    inspect.workspaceValue ? "zls" : "off",
+                    false,
+                );
+                await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "enableBuildOnSave", undefined, false);
+            }
+        }
+
+        // convert `zig.zls.buildOnSaveArgs` to `zig.buildOnSaveArgs`
+        {
+            const inspect = zlsConfig.inspect("buildOnSaveArgs");
+            const zigConfig = vscode.workspace.getConfiguration("zig");
+            if (inspect?.globalValue) {
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildOnSaveArgs", inspect.globalValue, true);
+                await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "buildOnSaveArgs", undefined, true);
+            }
+            if (inspect?.workspaceValue) {
+                await zigUtil.workspaceConfigUpdateNoThrow(zigConfig, "buildOnSaveArgs", inspect.workspaceValue, false);
+                await zigUtil.workspaceConfigUpdateNoThrow(zlsConfig, "buildOnSaveArgs", undefined, false);
+            }
         }
     }
 
