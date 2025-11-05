@@ -129,7 +129,7 @@
             "${filter}",
             "${path}"
           ],
-          "description": "Arguments to pass to 'zig' for running tests. Supported variables: ${filter}, ${path}."
+          "description": "Arguments to pass to 'zig' for running tests. Supported variables: ${filter}, ${path}.\n\nTo use test filter with a build script define a custom option to pass it to: `-Dtest-filter=${filter}`."
         },
         "zig.debugTestArgs": {
           "type": "array",
@@ -144,7 +144,7 @@
             "--test-no-exec",
             "-femit-bin=${binaryPath}"
           ],
-          "description": "Arguments to pass to 'zig' for debugging tests. Supported variables: ${filter}, ${path}, ${binaryPath}."
+          "description": "Arguments to pass to 'zig' for debugging tests. Supported variables: ${filter}, ${path}, ${binaryPath}.\n\nTo debug a test with a build script add a step that installs the test binary at `zig-out/bin/debug-unit-tests`:\n```zig\nb.step(\"debug-test-unit\", \"Debug unit tests\").dependOn(&b.addInstallArtifact(unit_tests, .{ .dest_sub_path = \"debug-unit-tests\" }).step);\n```"
         },
         "zig.debugAdapter": {
           "scope": "resource",

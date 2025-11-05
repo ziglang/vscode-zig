@@ -283,9 +283,8 @@ export default class ZigTestRunnerProvider {
         }
 
         const wsFolder = getWorkspaceFolder(testFilePath)?.uri.fsPath ?? path.dirname(testFilePath);
-        const outputDir = path.join(wsFolder, "zig-out", "tmp-debug-build", "bin");
-        const binaryName = `test-${path.basename(testFilePath, ".zig")}`;
-        const binaryPath = path.join(outputDir, binaryName);
+        const outputDir = path.join(wsFolder, "zig-out", "bin");
+        const binaryPath = path.join(outputDir, "debug-unit-tests");
         await vscode.workspace.fs.createDirectory(vscode.Uri.file(outputDir));
 
         const debugTestArgsConf = config.get<string[]>("debugTestArgs") ?? [];
