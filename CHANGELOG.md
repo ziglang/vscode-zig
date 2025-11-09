@@ -1,3 +1,8 @@
+## 0.6.15
+- Reuse terminal created for running main function (@Anglebase)
+- Disable CodeLens for commented main functions and tests (@soorya-u)
+- Replace extension based build on save and unify config options with ZLS (@Techatrix)
+
 ## 0.6.14
 - Add config option for arguments used in debugging tests (@luehmann)
 - Disable workaround for [ziglang/zig#21905](https://github.com/ziglang/zig/issues/21905)
