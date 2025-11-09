@@ -157,14 +157,14 @@ async function installFromMirror(
         abortController.abort();
     });
 
-    const artifactUrl = vscode.Uri.joinPath(mirrorUrl, fileName);
+    const artifactUrl = new URL(fileName, mirrorUrl.toString());
     /** https://github.com/mlugg/setup-zig adds a `?source=github-actions` query parameter so we add our own.  */
-    const artifactUrlWithQuery = artifactUrl.with({ query: "source=vscode-zig" });
+    artifactUrl.searchParams.set("source", "vscode-zig");
 
-    const artifactMinisignUrl = vscode.Uri.joinPath(mirrorUrl, `${fileName}.minisig`);
-    const artifactMinisignUrlWithQuery = artifactMinisignUrl.with({ query: "source=vscode-zig" });
+    const artifactMinisignUrl = new URL(`${fileName}.minisig`, mirrorUrl.toString());
+    artifactMinisignUrl.searchParams.set("source", "vscode-zig");
 
-    const signatureResponse = await fetch(artifactMinisignUrlWithQuery.toString(), {
+    const signatureResponse = await fetch(artifactMinisignUrl, {
         signal: abortController.signal,
     });
 
@@ -172,7 +172,7 @@ async function installFromMirror(
         throw new Error(`${signatureResponse.statusText} (${signatureResponse.status.toString()})`);
     }
 
-    let artifactResponse = await fetch(artifactUrlWithQuery.toString(), {
+    let artifactResponse = await fetch(artifactUrl, {
         signal: abortController.signal,
     });
 
