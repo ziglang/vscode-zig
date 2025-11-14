@@ -577,6 +577,37 @@ async function updateStatus(context: vscode.ExtensionContext): Promise<void> {
         });
 }
 
+async function getMirrors(context: vscode.ExtensionContext): Promise<vscode.Uri[]> {
+    let cached = { timestamp: 0, mirrors: "" };
+    const key = "mirror-cache";
+
+    const cachedStr = context.globalState.get<string>(key);
+    if (cachedStr !== undefined) {
+        cached = JSON.parse(cachedStr) as typeof cached;
+    }
+
+    const millisecondsInDay = 24 * 60 * 60 * 1000;
+    if (new Date().getTime() - cached.timestamp > millisecondsInDay) {
+        try {
+            const response = await fetch("https://ziglang.org/download/community-mirrors.txt");
+            if (response.status !== 200) throw Error("invalid mirrors");
+            const mirrorList = await response.text();
+            cached = {
+                timestamp: new Date().getTime(),
+                mirrors: mirrorList,
+            };
+            context.globalState.update(key, JSON.stringify(cached));
+        } catch {
+            // Cannot fetch mirrors, rely on cache.
+        }
+    }
+
+    return cached.mirrors
+        .trim()
+        .split("\n")
+        .map((u) => vscode.Uri.parse(u));
+}
+
 export async function setupZig(context: vscode.ExtensionContext) {
     {
         // This check can be removed once enough time has passed so that most users switched to the new value
@@ -674,19 +705,6 @@ export async function setupZig(context: vscode.ExtensionContext) {
             break;
     }
 
-    let mirrors: vscode.Uri[] = [];
-    try {
-        const response = await fetch("https://ziglang.org/download/community-mirrors.txt");
-        if (response.status !== 200) throw Error("invalid mirrors");
-        const mirrorList = await response.text();
-        mirrors = mirrorList
-            .trim()
-            .split("\n")
-            .map((u) => vscode.Uri.parse(u));
-    } catch {
-        // Cannot fetch mirrors, attempt downloading from canonical source.
-    }
-
     versionManagerConfig = {
         context: context,
         title: "Zig",
@@ -695,7 +713,7 @@ export async function setupZig(context: vscode.ExtensionContext) {
         /** https://ziglang.org/download */
         minisignKey: minisign.parseKey("RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U"),
         versionArg: "version",
-        mirrorUrls: mirrors,
+        mirrorUrls: await getMirrors(context),
         canonicalUrl: {
             release: vscode.Uri.parse("https://ziglang.org/download"),
             nightly: vscode.Uri.parse("https://ziglang.org/builds"),
