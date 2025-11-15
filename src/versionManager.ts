@@ -36,7 +36,7 @@ export interface Config {
      * `"version"` for Zig, `"--version"` for ZLS
      */
     versionArg: string;
-    mirrorUrls: vscode.Uri[];
+    getMirrorUrls: () => Promise<vscode.Uri[]>;
     canonicalUrl: {
         release: vscode.Uri;
         nightly: vscode.Uri;
@@ -93,7 +93,7 @@ async function installGuarded(config: Config, version: semver.SemVer): Promise<s
         throw new Error(`Can't install ${config.title} because 'tar' could not be found`);
     }
 
-    const mirrors = [...config.mirrorUrls]
+    const mirrors = [...(await config.getMirrorUrls())]
         .map((mirror) => ({ mirror, sort: Math.random() }))
         .sort((a, b) => a.sort - b.sort)
         .map(({ mirror }) => mirror);

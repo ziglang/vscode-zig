@@ -511,7 +511,9 @@ export async function activate(context: vscode.ExtensionContext) {
         /** https://github.com/zigtools/release-worker */
         minisignKey: minisign.parseKey("RWR+9B91GBZ0zOjh6Lr17+zKf5BoSuFvrx2xSeDE57uIYvnKBGmMjOex"),
         versionArg: "--version",
-        mirrorUrls: [],
+        getMirrorUrls() {
+            return Promise.resolve([]);
+        },
         canonicalUrl: {
             release: vscode.Uri.parse("https://builds.zigtools.org"),
             nightly: vscode.Uri.parse("https://builds.zigtools.org"),
