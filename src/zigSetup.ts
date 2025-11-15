@@ -578,13 +578,8 @@ async function updateStatus(context: vscode.ExtensionContext): Promise<void> {
 }
 
 async function getMirrors(context: vscode.ExtensionContext): Promise<vscode.Uri[]> {
-    let cached = { timestamp: 0, mirrors: "" };
-    const key = "mirror-cache";
-
-    const cachedStr = context.globalState.get<string>(key);
-    if (cachedStr !== undefined) {
-        cached = JSON.parse(cachedStr) as typeof cached;
-    }
+    const key = "zig-mirror-cache";
+    let cached = context.globalState.get(key, { timestamp: 0, mirrors: "" });
 
     const millisecondsInDay = 24 * 60 * 60 * 1000;
     if (new Date().getTime() - cached.timestamp > millisecondsInDay) {
@@ -596,7 +591,7 @@ async function getMirrors(context: vscode.ExtensionContext): Promise<vscode.Uri[
                 timestamp: new Date().getTime(),
                 mirrors: mirrorList,
             };
-            context.globalState.update(key, JSON.stringify(cached));
+            context.globalState.update(key, cached);
         } catch {
             // Cannot fetch mirrors, rely on cache.
         }
@@ -605,6 +600,7 @@ async function getMirrors(context: vscode.ExtensionContext): Promise<vscode.Uri[
     return cached.mirrors
         .trim()
         .split("\n")
+        .filter((u) => !!u)
         .map((u) => vscode.Uri.parse(u));
 }
 
@@ -713,7 +709,9 @@ export async function setupZig(context: vscode.ExtensionContext) {
         /** https://ziglang.org/download */
         minisignKey: minisign.parseKey("RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U"),
         versionArg: "version",
-        mirrorUrls: await getMirrors(context),
+        getMirrorUrls() {
+            return getMirrors(context);
+        },
         canonicalUrl: {
             release: vscode.Uri.parse("https://ziglang.org/download"),
             nightly: vscode.Uri.parse("https://ziglang.org/builds"),
