@@ -173,7 +173,12 @@ function configurationMiddleware(params: ConfigurationParams): LSPAny[] | Respon
             if (typeof value === "string") {
                 // Make sure that `""` gets converted to `undefined` and resolve predefined values
                 value = value ? zigUtil.handleConfigOption(value, workspaceFolder ?? "guess") : undefined;
-            } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+            } else if (Array.isArray(value)) {
+                value = value.map((elem: unknown) => {
+                    if (typeof elem !== "string") return elem;
+                    return zigUtil.handleConfigOption(elem, workspaceFolder ?? "guess");
+                });
+            } else if (typeof value === "object" && value !== null) {
                 // Recursively update the config options
                 const newValue: Record<string, unknown> = {};
                 for (const [fieldName, fieldValue] of Object.entries(value)) {
@@ -212,9 +217,11 @@ function configurationMiddleware(params: ConfigurationParams): LSPAny[] | Respon
 
         switch (configuration.get<"off" | "auto" | "extension" | "zls">("buildOnSaveProvider", "auto")) {
             case "auto":
+                additionalOptions["buildOnSaveArgs"] = configuration.get("buildOnSaveArgs");
                 break;
             case "zls":
                 additionalOptions["enableBuildOnSave"] = true;
+                additionalOptions["buildOnSaveArgs"] = configuration.get("buildOnSaveArgs");
                 break;
             case "off":
             case "extension":
