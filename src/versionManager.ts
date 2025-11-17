@@ -164,10 +164,10 @@ async function installFromMirror(
      */
     const sourceQuery = "ziglang-vscode-zig";
 
-    const artifactUrl = new URL(fileName, mirrorUrl.toString());
+    const artifactUrl = new URL(fileName, mirrorUrl.toString() + (mirrorUrl.path.endsWith("/") ? "" : "/"));
     artifactUrl.searchParams.set("source", sourceQuery);
 
-    const artifactMinisignUrl = new URL(`${fileName}.minisig`, mirrorUrl.toString());
+    const artifactMinisignUrl = new URL(`${artifactUrl.toString()}.minisig`);
     artifactMinisignUrl.searchParams.set("source", sourceQuery);
 
     const signatureResponse = await fetch(artifactMinisignUrl, {
