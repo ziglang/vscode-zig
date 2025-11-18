@@ -71,33 +71,24 @@ async function findClosestSatisfyingZigVersion(
     version: semver.SemVer,
 ): Promise<semver.SemVer> {
     if (version.prerelease.length !== 0) return version;
-    const cacheKey = `zig-satisfying-version-${version.raw}`;
 
     try {
         // We can't just return `version` because `0.12.0` should return `0.12.1`.
-        const availableVersions = (await getVersions()).map((item) => item.version);
+        const availableVersions = (await getVersions(context)).map((item) => item.version);
         const selectedVersion = semver.maxSatisfying(availableVersions, `^${version.toString()}`);
-        await context.globalState.update(cacheKey, selectedVersion ? selectedVersion.raw : undefined);
         return selectedVersion ?? version;
     } catch {
-        const selectedVersion = context.globalState.get<string | null>(cacheKey, null);
-        return selectedVersion ? new semver.SemVer(selectedVersion) : version;
+        return version;
     }
 }
 
 async function getLatestTaggedZigVersion(context: vscode.ExtensionContext): Promise<semver.SemVer | null> {
-    const cacheKey = "zig-latest-tagged";
     try {
-        const zigVersion = await getVersions();
+        const zigVersion = await getVersions(context);
         const latestTagged = zigVersion.find((item) => item.version.prerelease.length === 0);
         const result = latestTagged?.version ?? null;
-        await context.globalState.update(cacheKey, latestTagged?.version.raw);
         return result;
     } catch {
-        const latestTagged = context.globalState.get<string | null>(cacheKey, null);
-        if (latestTagged) {
-            return new semver.SemVer(latestTagged);
-        }
         return null;
     }
 }
@@ -108,13 +99,29 @@ async function getLatestTaggedZigVersion(context: vscode.ExtensionContext): Prom
  *
  * Throws an exception when no network connection is available.
  */
-async function getVersions(): Promise<zigUtil.ZigVersion[]> {
-    const [zigIndexJson, machIndexJson] = await Promise.all(
-        ["https://ziglang.org/download/index.json", "https://pkg.machengine.org/zig/index.json"].map(async (url) => {
-            const response = await fetch(url);
-            return response.json() as Promise<zigUtil.VersionIndex>;
-        }),
-    );
+async function getVersions(context: vscode.ExtensionContext): Promise<zigUtil.ZigVersion[]> {
+    const cacheKey = "zig-version-list";
+    let zigIndexJson, machIndexJson;
+    try {
+        [zigIndexJson, machIndexJson] = await Promise.all(
+            ["https://ziglang.org/download/index.json", "https://pkg.machengine.org/zig/index.json"].map(
+                async (url) => {
+                    const response = await fetch(url);
+                    return response.json() as Promise<zigUtil.VersionIndex>;
+                },
+            ),
+        );
+    } catch (error) {
+        const cached = context.globalState.get<zigUtil.ZigVersion[]>(cacheKey);
+        if (cached !== undefined) {
+            for (const version of cached) {
+                // Must be instanceof SemVer
+                version.version = new semver.SemVer(version.version.raw);
+            }
+            return cached;
+        }
+        throw error;
+    }
     const indexJson = { ...machIndexJson, ...zigIndexJson };
 
     const result: zigUtil.ZigVersion[] = [];
@@ -140,6 +147,7 @@ async function getVersions(): Promise<zigUtil.ZigVersion[]> {
         );
     }
     sortVersions(result);
+    await context.globalState.update(cacheKey, result);
     return result;
 }
 
@@ -182,7 +190,7 @@ async function selectVersionAndInstall(context: vscode.ExtensionContext) {
     }));
 
     try {
-        const onlineVersions = await getVersions();
+        const onlineVersions = await getVersions(context);
         outer: for (const onlineVersion of onlineVersions) {
             for (const version of versions) {
                 if (semver.eq(version.version, onlineVersion.version)) {
@@ -577,6 +585,33 @@ async function updateStatus(context: vscode.ExtensionContext): Promise<void> {
         });
 }
 
+async function getMirrors(context: vscode.ExtensionContext): Promise<vscode.Uri[]> {
+    const cacheKey = "zig-mirror-list";
+    let cached = context.globalState.get(cacheKey, { timestamp: 0, mirrors: "" });
+
+    const millisecondsInDay = 24 * 60 * 60 * 1000;
+    if (new Date().getTime() - cached.timestamp > millisecondsInDay) {
+        try {
+            const response = await fetch("https://ziglang.org/download/community-mirrors.txt");
+            if (response.status !== 200) throw Error("invalid mirrors");
+            const mirrorList = await response.text();
+            cached = {
+                timestamp: new Date().getTime(),
+                mirrors: mirrorList,
+            };
+            await context.globalState.update(cacheKey, cached);
+        } catch {
+            // Cannot fetch mirrors, rely on cache.
+        }
+    }
+
+    return cached.mirrors
+        .trim()
+        .split("\n")
+        .filter((u) => !!u)
+        .map((u) => vscode.Uri.parse(u));
+}
+
 export async function setupZig(context: vscode.ExtensionContext) {
     {
         // This check can be removed once enough time has passed so that most users switched to the new value
@@ -674,19 +709,6 @@ export async function setupZig(context: vscode.ExtensionContext) {
             break;
     }
 
-    let mirrors: vscode.Uri[] = [];
-    try {
-        const response = await fetch("https://ziglang.org/download/community-mirrors.txt");
-        if (response.status !== 200) throw Error("invalid mirrors");
-        const mirrorList = await response.text();
-        mirrors = mirrorList
-            .trim()
-            .split("\n")
-            .map((u) => vscode.Uri.parse(u));
-    } catch {
-        // Cannot fetch mirrors, attempt downloading from canonical source.
-    }
-
     versionManagerConfig = {
         context: context,
         title: "Zig",
@@ -695,7 +717,9 @@ export async function setupZig(context: vscode.ExtensionContext) {
         /** https://ziglang.org/download */
         minisignKey: minisign.parseKey("RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U"),
         versionArg: "version",
-        mirrorUrls: mirrors,
+        getMirrorUrls() {
+            return getMirrors(context);
+        },
         canonicalUrl: {
             release: vscode.Uri.parse("https://ziglang.org/download"),
             nightly: vscode.Uri.parse("https://ziglang.org/builds"),
