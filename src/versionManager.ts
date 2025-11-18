@@ -157,18 +157,16 @@ async function installFromMirror(
         abortController.abort();
     });
 
+    const artifactUrl = new URL(fileName, mirrorUrl.toString() + (mirrorUrl.path.endsWith("/") ? "" : "/"));
+    const artifactMinisignUrl = new URL(`${artifactUrl.toString()}.minisig`);
+
     /**
      * https://ziglang.org/download/community-mirrors/ encouraged the addition
      * of a `source` query parameter to specify what is making this request.
      * This extension is published as `ziglang.vscode-zig` so we use base it off that.
      */
-    const sourceQuery = "ziglang-vscode-zig";
-
-    const artifactUrl = new URL(fileName, mirrorUrl.toString() + (mirrorUrl.path.endsWith("/") ? "" : "/"));
-    artifactUrl.searchParams.set("source", sourceQuery);
-
-    const artifactMinisignUrl = new URL(`${artifactUrl.toString()}.minisig`);
-    artifactMinisignUrl.searchParams.set("source", sourceQuery);
+    artifactUrl.searchParams.set("source", "ziglang-vscode-zig");
+    artifactMinisignUrl.searchParams.set("source", "ziglang-vscode-zig");
 
     const signatureResponse = await fetch(artifactMinisignUrl, {
         signal: abortController.signal,
