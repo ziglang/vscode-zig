@@ -1,3 +1,9 @@
+## 0.6.16
+- Cache mirror and version list
+   - This enables `zig.install` to work even if [ziglang.org](https://ziglang.org) is down
+- Fix regression with `zig.buildOnSaveArgs` config option not being sent to ZLS (@Techatrix)
+- Fix regression with URL path resolution disabling some mirrors (@Techatrix)
+
 ## 0.6.15
 - Reuse terminal created for running main function (@Anglebase)
 - Disable CodeLens for commented main functions and tests (@soorya-u)
