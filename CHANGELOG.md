@@ -1,3 +1,6 @@
+## 0.6.17
+- Fix invalid minising URL breaking package installs (@Techatrix)
+
 ## 0.6.16
 - Cache mirror and version list
    - This enables `zig.install` to work even if [ziglang.org](https://ziglang.org) is down
